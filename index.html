@@ -1,1207 +1,291 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Control Tower</title>
-<!-- Bootstrap 5 & DataTables -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-<!-- Select2 Multi-Select -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-<!-- Chart.js and PapaParse -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-
-<style>
-    :root { --primary-dark: #0f172a; --accent-blue: #2563eb; }
-    body { background-color: #f1f5f9; font-family: 'Segoe UI', system-ui, sans-serif; color: #334155; }
-    .top-navbar { background: var(--primary-dark); color: white; padding: 12px 24px; }
-    .nav-pills .nav-link { font-weight: 600; color: #94a3b8; border-radius: 8px; font-size: .85rem; }
-    .nav-pills .nav-link.active { background-color: var(--accent-blue); color: white; }
-    .meta-line { font-size: .72rem; color: #94a3b8; }
-    .demo-pill { background:#f59e0b; color:#0f172a; font-size:.65rem; font-weight:800; border-radius:999px; padding:2px 8px; }
-
-    /* KPI mini strip */
-    .kpi-mini { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); height: 100%; }
-    .kpi-mini .lbl { font-size: .68rem; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: .4px; }
-    .kpi-mini .val { font-size: 1.55rem; font-weight: 800; color: #0f172a; line-height: 1.15; }
-    .kpi-mini .sub { font-size: .72rem; color: #94a3b8; }
-
-    /* Core metric cards */
-    .kpi-card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative; overflow: hidden; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; height:100%; }
-    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(15,23,42,.10); }
-    .kpi-card-header { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; }
-    .kpi-main-pct { font-size: 2.1rem; font-weight: 800; color: #0f172a; margin: 4px 0; }
-    .kpi-stat-row { display: flex; justify-content: space-between; font-size: 0.8rem; padding-top: 8px; border-top: 1px solid #f1f5f9; margin-top: 8px; }
-    .kpi-stat-item { text-align: center; }
-    .kpi-stat-label { color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 0.62rem; }
-    .kpi-stat-val { font-weight: 700; color: #334155; }
-    .card-hint { position:absolute; top:10px; right:12px; font-size:.62rem; color:#cbd5e1; font-weight:700; }
-
-    .border-portal { border-top: 4px solid #3b82f6; }
-    .border-actual { border-top: 4px solid #8b5cf6; }
-    .border-openseal { border-top: 4px solid #10b981; }
-    .border-arrival { border-top: 4px solid #f59e0b; }
-
-    .badge-pass { background-color: #dcfce7; color: #15803d; font-size: 0.68rem; font-weight: 700; padding: 3px 6px; border-radius: 4px; }
-    .badge-fail { background-color: #fee2e2; color: #b91c1c; font-size: 0.68rem; font-weight: 700; padding: 3px 6px; border-radius: 4px; }
-
-    .chart-box { position: relative; height: 290px; }
-    .chart-box-sm { position: relative; height: 240px; }
-    .chart-card h6 { font-size:.85rem; }
-
-    /* Gap analysis */
-    .insight-card { background: white; border-radius: 10px; border: 1px solid #e2e8f0; border-left-width: 5px; padding: 12px 14px; height: 100%; }
-    .tone-danger { border-left-color: #ef4444; } .tone-warning { border-left-color: #f59e0b; }
-    .tone-success { border-left-color: #22c55e; } .tone-info { border-left-color: #0ea5e9; }
-    .insight-card .t { font-size:.64rem; font-weight:700; text-transform:uppercase; color:#64748b; letter-spacing:.4px; }
-    .insight-card .m { font-size:1.02rem; font-weight:800; color:#0f172a; margin:2px 0; }
-    .insight-card .s { font-size:.72rem; color:#64748b; }
-
-    .score-pill { border-radius: 999px; padding: 2px 10px; font-weight: 700; font-size: .74rem; display: inline-block; min-width: 52px; text-align: center; }
-    .adh-good { background:#dcfce7; color:#15803d; } .adh-mid { background:#fef9c3; color:#a16207; }
-    .adh-bad { background:#fee2e2; color:#b91c1c; } .adh-na { background:#e2e8f0; color:#64748b; }
-
-    .table-container { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; }
-    .fs-7 { font-size:.82rem; }
-    .rca-box-fail { background: #fff1f2; border-left: 4px solid #f43f5e; padding: 12px; border-radius: 6px; margin-bottom: 12px; }
-    .rca-box-pass { background: #f0fdf4; border-left: 4px solid #22c55e; padding: 10px; border-radius: 6px; margin-bottom: 12px; }
-
-    .mini-tile { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:6px 10px; height:100%; }
-    .mini-tile .l { font-size:.6rem; font-weight:700; text-transform:uppercase; color:#94a3b8; }
-    .mini-tile .v { font-size:.82rem; font-weight:700; color:#0f172a; }
-
-    .chip-bar .btn { border-radius: 999px !important; }
-    .select2-container--bootstrap-5 .select2-selection { font-size: 0.85rem; min-height: 31px; }
-    .clickable { cursor:pointer; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistics & Line Haul Dashboard</title>
+    
+    <!-- Libraries: Chart.js for graphs, PapaParse for complex CSV parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --bg: #f4f6f9; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: var(--bg); display: flex; color: #333; height: 100vh; }
+        
+        /* Sidebar Filters */
+        .sidebar { width: 280px; background: #fff; padding: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.05); overflow-y: auto; }
+        .sidebar h3 { margin-top: 0; color: var(--primary); font-size: 18px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+        .filter-group { margin-bottom: 20px; }
+        .filter-group label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 8px; color: #555; }
+        .filter-group select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; height: 120px; }
+        .help-text { font-size: 11px; color: #888; margin-top: 4px; }
+        
+        /* Main Content */
+        .main-content { flex: 1; padding: 20px 30px; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 24px; color: var(--primary); }
+        #loading { padding: 10px 20px; background: #f1c40f; color: #fff; border-radius: 4px; font-weight: bold; display: none; }
+        
+        /* KPI Cards */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .kpi-card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid var(--accent); }
+        .kpi-title { font-size: 12px; font-weight: 600; color: #7f8c8d; text-transform: uppercase; margin-bottom: 10px; }
+        .kpi-value { font-size: 28px; font-weight: bold; color: var(--primary); }
+        
+        /* Charts Area */
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .chart-box { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .chart-title { text-align: center; font-weight: 600; margin-bottom: 15px; color: #555; }
+        canvas { max-width: 100%; }
+    </style>
 </head>
 <body>
 
-<!-- Header Navigation -->
-<div class="top-navbar d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div>
-        <h4 class="m-0 fw-bold"><i class="bi bi-truck me-2"></i>Line Haul Control Tower
-            <span class="demo-pill ms-2" id="demoNote" style="display:none">DEMO DATA</span>
-        </h4>
-        <div class="meta-line" id="sheetMeta">Connecting to sheet…</div>
-    </div>
-    <div class="d-flex align-items-center gap-2">
-        <ul class="nav nav-pills" id="pageTabs">
-            <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard"><i class="bi bi-speedometer2 me-1"></i> Executive Dashboard</button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-gap"><i class="bi bi-search-heart me-1"></i> Gap Analysis</button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-rca"><i class="bi bi-list-task me-1"></i> Trips &amp; RCA Log</button></li>
-        </ul>
-        <button class="btn btn-sm btn-outline-light" id="btnRefresh" title="Reload data from sheet" onclick="refreshData()"><i class="bi bi-arrow-repeat"></i></button>
-    </div>
-</div>
-
-<div class="container-fluid p-4">
-
-    <!-- GLOBAL FILTER BAR -->
-    <div class="card p-3 mb-4 border-0 shadow-sm">
-        <div class="row g-2 align-items-end">
-            <div class="col-6 col-md-2">
-                <label class="form-label fw-bold small text-muted">From Date</label>
-                <input type="date" id="filter-start-date" class="form-control form-control-sm" onchange="applyGlobalFilters()">
-            </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label fw-bold small text-muted">To Date</label>
-                <input type="date" id="filter-end-date" class="form-control form-control-sm" onchange="applyGlobalFilters()">
-            </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label fw-bold small text-muted">Source Hubs</label>
-                <select id="filter-src" class="form-select select2-multi" multiple="multiple"></select>
-            </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label fw-bold small text-muted">Destination Hubs</label>
-                <select id="filter-dst" class="form-select select2-multi" multiple="multiple"></select>
-            </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label fw-bold small text-muted">Vendors</label>
-                <select id="filter-vendor" class="form-select select2-multi" multiple="multiple"></select>
-            </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label fw-bold small text-muted">Slots</label>
-                <select id="filter-slot" class="form-select select2-multi" multiple="multiple"></select>
-            </div>
+    <!-- Sidebar for Interactive Filters -->
+    <div class="sidebar">
+        <h3>Control Panel</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 20px;">Use filters to analyze specific business flows.</p>
+        
+        <div class="filter-group">
+            <label>Source Hub(s)</label>
+            <select id="filterSrcHub" multiple></select>
+            <div class="help-text">Hold Ctrl (Windows) or Cmd (Mac) to select multiple hubs.</div>
         </div>
-        <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
-            <div class="small text-muted fw-semibold" id="filterCount">—</div>
-            <div class="d-flex gap-2">
-                <button class="btn btn-sm btn-outline-secondary" onclick="resetFilters()"><i class="bi bi-arrow-counterclockwise"></i> Clear Filters</button>
-                <button class="btn btn-sm btn-outline-success" onclick="exportCsv()"><i class="bi bi-file-earmark-excel"></i> Export CSV</button>
-            </div>
+        
+        <div class="filter-group">
+            <label>Destination Hub(s)</label>
+            <select id="filterDstHub" multiple></select>
         </div>
+
+        <div class="filter-group">
+            <label>Vendor(s)</label>
+            <select id="filterVendor" multiple></select>
+        </div>
+        
+        <button onclick="applyFilters()" style="width: 100%; padding: 10px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Apply Filters</button>
     </div>
 
-    <!-- Loader -->
-    <div id="loader" class="text-center py-5">
-        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
-        <p class="mt-3 text-muted fw-semibold">Loading Operational Log &amp; Analytics...</p>
-    </div>
+    <!-- Main Dashboard Area -->
+    <div class="main-content">
+        <div class="header">
+            <h1>LH Network Performance</h1>
+            <div id="loading">Syncing Data...</div>
+        </div>
 
-    <div class="tab-content" id="appPages" style="display:none;">
-
-        <!-- ============ PAGE 1: EXECUTIVE DASHBOARD ============ -->
-        <div class="tab-pane fade show active" id="page-dashboard">
-
-            <!-- BUSINESS KPI STRIP -->
-            <div class="row g-3 mb-4">
-                <div class="col-6 col-md-2"><div class="kpi-mini">
-                    <div class="lbl">Total Trips</div>
-                    <div class="val" id="k-trips">0</div>
-                    <div class="sub"><span id="k-ship">0</span> shipments moved</div>
-                </div></div>
-                <div class="col-6 col-md-2"><div class="kpi-mini">
-                    <div class="lbl">Composite Adherence</div>
-                    <div class="val text-primary" id="k-comp">0%</div>
-                    <div class="sub">all 4 core checkpoints combined</div>
-                </div></div>
-                <div class="col-6 col-md-2"><div class="kpi-mini">
-                    <div class="lbl">Perfect Trips</div>
-                    <div class="val text-success" id="k-perfect">0%</div>
-                    <div class="sub"><span id="k-perfect-n">0</span> trips green on all 4 checkpoints</div>
-                </div></div>
-                <div class="col-6 col-md-2"><div class="kpi-mini">
-                    <div class="lbl">Avg Open → Seal</div>
-                    <div class="val" id="k-o2s">—</div>
-                    <div class="sub" id="k-o2s-sub">minutes at source hub</div>
-                </div></div>
-                <div class="col-6 col-md-2"><div class="kpi-mini">
-                    <div class="lbl">Avg Utilization</div>
-                    <div class="val" style="color:#0ea5e9" id="k-util">—</div>
-                    <div class="sub"><span id="k-util-n">0</span> trips under 70% loaded</div>
-                </div></div>
-                <div class="col-6 col-md-2"><div class="kpi-mini clickable" onclick="gotoLog('rcaPending', null)" title="Show trips that failed without an RCA">
-                    <div class="lbl">RCA Pending</div>
-                    <div class="val text-danger" id="k-rca">0</div>
-                    <div class="sub"><span id="k-rca-sub">0%</span> of failures have RCA filled</div>
-                </div></div>
+        <!-- Business Impact KPIs -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-title">Total Trips</div>
+                <div class="kpi-value" id="kpiTrips">0</div>
             </div>
-
-            <!-- 4 CORE METRIC CARDS (click a card to inspect its failures) -->
-            <div class="row g-3 mb-4">
-                <div class="col-md-3"><div class="kpi-card border-portal" onclick="gotoLog('failed','portalAdh')" title="Click to view failing trips">
-                    <span class="card-hint">VIEW FAILURES ▸</span>
-                    <div class="kpi-card-header">Portal Adherence</div>
-                    <div class="kpi-main-pct text-primary" id="c1-pct">0%</div>
-                    <div class="kpi-stat-row">
-                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="c1-total">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Adhered</div><div class="kpi-stat-val text-success" id="c1-adh">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Not Adhered</div><div class="kpi-stat-val text-danger" id="c1-nonadh">0</div></div>
-                    </div>
-                </div></div>
-                <div class="col-md-3"><div class="kpi-card border-actual" onclick="gotoLog('failed','portalPlanVsActualAdh')" title="Click to view failing trips">
-                    <span class="card-hint">VIEW FAILURES ▸</span>
-                    <div class="kpi-card-header">Portal Actual Vs Plan</div>
-                    <div class="kpi-main-pct" style="color: #8b5cf6;" id="c2-pct">0%</div>
-                    <div class="kpi-stat-row">
-                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="c2-total">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Adhered</div><div class="kpi-stat-val text-success" id="c2-adh">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Not Adhered</div><div class="kpi-stat-val text-danger" id="c2-nonadh">0</div></div>
-                    </div>
-                </div></div>
-                <div class="col-md-3"><div class="kpi-card border-openseal" onclick="gotoLog('failed','openToSealAdh')" title="Click to view failing trips">
-                    <span class="card-hint">VIEW FAILURES ▸</span>
-                    <div class="kpi-card-header">Open to Seal Adherence</div>
-                    <div class="kpi-main-pct text-success" id="c3-pct">0%</div>
-                    <div class="kpi-stat-row">
-                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="c3-total">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Adhered</div><div class="kpi-stat-val text-success" id="c3-adh">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Not Adhered</div><div class="kpi-stat-val text-danger" id="c3-nonadh">0</div></div>
-                    </div>
-                </div></div>
-                <div class="col-md-3"><div class="kpi-card border-arrival" onclick="gotoLog('failed','arrivalAdh')" title="Click to view failing trips">
-                    <span class="card-hint">VIEW FAILURES ▸</span>
-                    <div class="kpi-card-header">Arrival Adherence</div>
-                    <div class="kpi-main-pct text-warning" id="c4-pct">0%</div>
-                    <div class="kpi-stat-row">
-                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="c4-total">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Adhered</div><div class="kpi-stat-val text-success" id="c4-adh">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Not Adhered</div><div class="kpi-stat-val text-danger" id="c4-nonadh">0</div></div>
-                    </div>
-                </div></div>
+            <div class="kpi-card">
+                <div class="kpi-title">Total Shipments</div>
+                <div class="kpi-value" id="kpiShipments">0</div>
             </div>
-
-            <!-- VOLUME VS ADHERENCE + STAGE FAILURES -->
-            <div class="row g-3 mb-4">
-                <div class="col-lg-8">
-                    <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line text-primary me-2"></i>Daily Trip Volume vs Composite Adherence</h6>
-                        <div class="chart-box"><canvas id="chartVolAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-diagram-3 text-danger me-2"></i>Where Trips Fail — Failures per Checkpoint</h6>
-                        <div class="chart-box"><canvas id="chartStageFail"></canvas></div>
-                    </div>
-                </div>
+            <div class="kpi-card" style="border-left-color: #e74c3c;">
+                <div class="kpi-title">Avg Turnaround (Mins)</div>
+                <div class="kpi-value" id="kpiTAT">0</div>
             </div>
-
-            <!-- TREND -->
-            <div class="card p-3 border-0 shadow-sm mb-4 chart-card">
-                <h6 class="fw-bold mb-3"><i class="bi bi-graph-up text-primary me-2"></i>Adherence % Trend Through the Period</h6>
-                <div style="height: 300px; position:relative;"><canvas id="chartTrend"></canvas></div>
-            </div>
-
-            <!-- VARIANCE / SLAB / ADHOC -->
-            <div class="row g-3 mb-2">
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-clock-history text-warning me-2"></i>Dispatch Variance (Actual − Plan)</h6>
-                        <div class="chart-box-sm"><canvas id="chartVariance"></canvas></div>
-                        <div class="text-muted mt-2" style="font-size:.7rem">Positive = left later than plan. Blank variance rows are excluded.</div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-hourglass-split text-success me-2"></i>Open → Seal Time Slabs</h6>
-                        <div class="chart-box-sm"><canvas id="chartSlab"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-lightning-charge text-info me-2"></i>Planned vs Adhoc Trips</h6>
-                        <div class="chart-box-sm"><canvas id="chartAdhoc"></canvas></div>
-                        <div class="text-muted mt-2 fw-semibold" style="font-size:.74rem" id="adhocNote">—</div>
-                    </div>
-                </div>
+            <div class="kpi-card" style="border-left-color: #2ecc71;">
+                <div class="kpi-title">Perfect Trips</div>
+                <div class="kpi-value" id="kpiPerfect">0%</div>
             </div>
         </div>
 
-        <!-- ============ PAGE 2: GAP ANALYSIS ============ -->
-        <div class="tab-pane fade" id="page-gap">
-
-            <h6 class="fw-bold text-muted text-uppercase mb-2" style="font-size:.75rem"><i class="bi bi-exclamation-diamond me-1"></i>Auto-Detected Gaps (based on current filters)</h6>
-            <div class="row g-2 mb-4" id="insightCards"></div>
-
-            <div class="row g-3 mb-4">
-                <div class="col-lg-7">
-                    <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-building text-primary me-2"></i>Composite Adherence by Vendor (top 10 by volume)</h6>
-                        <div class="chart-box"><canvas id="chartVendorAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-lg-5">
-                    <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-stopwatch text-success me-2"></i>Where the Minutes Go — Avg Stage Durations</h6>
-                        <div class="chart-box"><canvas id="chartStageTime"></canvas></div>
-                    </div>
-                </div>
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="chart-box">
+                <div class="chart-title">Adherence Health (%)</div>
+                <canvas id="adherenceChart"></canvas>
             </div>
-
-            <!-- VENDOR SCORECARD -->
-            <div class="table-container mb-4">
-                <h5 class="fw-bold mb-3"><i class="bi bi-award me-2"></i>Vendor Scorecard</h5>
-                <table id="vendorTable" class="table table-hover align-middle w-100 fs-7 table-sm">
-                    <thead class="table-light"><tr>
-                        <th>Vendor</th><th>Trips</th><th>Shipments</th><th>Portal %</th><th>Act vs Plan %</th><th>Open→Seal %</th><th>Arrival %</th><th>Avg Util</th><th>RCA Fill %</th><th>Composite</th>
-                    </tr></thead>
-                    <tbody id="vendorTableBody"></tbody>
-                </table>
-            </div>
-
-            <div class="row g-3 mb-4">
-                <!-- LANE PERFORMANCE -->
-                <div class="col-lg-7">
-                    <div class="table-container h-100">
-                        <h5 class="fw-bold mb-3"><i class="bi bi-signpost-split me-2"></i>Lane Performance</h5>
-                        <table id="laneTable" class="table table-hover align-middle w-100 fs-7 table-sm">
-                            <thead class="table-light"><tr>
-                                <th>Lane</th><th>Trips</th><th>Shipments</th><th>Adherence</th><th>Avg Dispatch Delay</th><th>Avg Open→Seal</th>
-                            </tr></thead>
-                            <tbody id="laneTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-                <!-- REPEAT OFFENDERS -->
-                <div class="col-lg-5">
-                    <div class="table-container h-100">
-                        <h5 class="fw-bold mb-3"><i class="bi bi-cone-striped me-2 text-danger"></i>Repeat Offenders (Trucks, 2+ trips)</h5>
-                        <table class="table table-hover align-middle w-100 fs-7 table-sm">
-                            <thead class="table-light"><tr><th>Plate</th><th>Vendor</th><th>Trips</th><th>Failed</th><th>Fail Rate</th></tr></thead>
-                            <tbody id="offenderBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- RCA ACCOUNTABILITY -->
-            <div class="table-container mb-2">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold m-0"><i class="bi bi-clipboard2-x me-2 text-danger"></i>Failed Trips Missing RCA <span class="text-muted fs-6 fw-normal">(accountability gap — fill these first)</span></h5>
-                    <span class="badge bg-danger-subtle text-danger fw-bold" id="pendingCountBadge">0 pending</span>
-                </div>
-                <table id="pendingTable" class="table table-hover align-middle w-100 fs-7 table-sm">
-                    <thead class="table-light"><tr>
-                        <th>Date</th><th>Trip ID</th><th>Route</th><th>Vendor</th><th>Checkpoints Missing RCA</th><th>Action</th>
-                    </tr></thead>
-                    <tbody id="pendingTableBody"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- ============ PAGE 3: TRIP LOG & RCA MANAGEMENT ============ -->
-        <div class="tab-pane fade" id="page-rca">
-            <div class="table-container">
-                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                    <h5 class="fw-bold m-0"><i class="bi bi-journal-text me-2"></i>Master Trip Operational Log</h5>
-                    <div class="d-flex align-items-center gap-3 flex-wrap">
-                        <div class="btn-group btn-group-sm chip-bar" id="logChips">
-                            <button class="btn btn-outline-secondary active" data-mode="all">All Trips</button>
-                            <button class="btn btn-outline-danger" data-mode="failed">Failures Only</button>
-                            <button class="btn btn-outline-warning" data-mode="rcaPending">RCA Pending</button>
-                        </div>
-                        <span id="metricFocusChip" class="badge bg-danger-subtle text-danger" style="display:none"></span>
-                        <input type="text" id="log-search" class="form-control form-control-sm" style="width:230px" placeholder="Search trip ID, route, plate...">
-                    </div>
-                </div>
-                <table id="tripTable" class="table table-hover align-middle w-100 fs-7">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Date</th>
-                            <th>Slot</th>
-                            <th>Trip ID</th>
-                            <th>Route</th>
-                            <th>Vendor / Truck</th>
-                            <th>Shipments</th>
-                            <th>Util</th>
-                            <th>Delay</th>
-                            <th>SLA Checkpoints (P | PA | GO | OS | AR | VH)</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tripTableBody"></tbody>
-                </table>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-<!-- RCA MODAL -->
-<div class="modal fade" id="rcaModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title fw-bold" id="rcaModalTitle">RCA Log Inspection</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="modalRowIdx">
-                <div class="row g-2 mb-3" id="modalTripInfo"></div>
-                <div id="rcaModalBody"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="btnSaveRca" onclick="saveRcas()"><i class="bi bi-save me-1"></i> Save RCA Changes</button>
+            <div class="chart-box">
+                <div class="chart-title">Shipments vs. Utilization</div>
+                <canvas id="volumeChart"></canvas>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Toast notifications -->
-<div id="toastWrap" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+    <script>
+        // 🔴 Paste your CSV URL here
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVVwlkf3BVaI-4KDYTAOZYxhB3V0yAo9baAinrxjmtpG5_RYbndKXlvy7mflKg6A675LF5H41Sj4Cu/pub?output=csv';
+        
+        let globalData = [];
+        let adherenceChartInstance = null;
+        let volumeChartInstance = null;
 
-<!-- Standard RCA reason suggestions (free text still allowed) -->
-<datalist id="dl-portalRca">
-    <option value="Vendor vehicle reported late"></option>
-    <option value="Vehicle placement delay by vendor"></option>
-    <option value="Hub loading started late"></option>
-    <option value="Portal/system downtime"></option>
-    <option value="Trip plan changed last minute"></option>
-    <option value="Documentation / gate pass delay"></option>
-    <option value="Weather / traffic on inbound"></option>
-</datalist>
-<datalist id="dl-openSealRca">
-    <option value="Sorting backlog at hub"></option>
-    <option value="Manpower shortage on shift"></option>
-    <option value="Shipment count mismatch - recount"></option>
-    <option value="Damaged shipment repacking"></option>
-    <option value="Late dock / belt allocation"></option>
-    <option value="System issue during scan/close"></option>
-</datalist>
-<datalist id="dl-arrivalRca">
-    <option value="Traffic congestion on route"></option>
-    <option value="Vehicle breakdown en route"></option>
-    <option value="Driver delayed / rest stop"></option>
-    <option value="Route diversion / road closure"></option>
-    <option value="Checkpoint / police stop"></option>
-    <option value="Toll plaza delay"></option>
-    <option value="Weather conditions"></option>
-</datalist>
-<datalist id="dl-vehicleRca">
-    <option value="Wrong vehicle type assigned"></option>
-    <option value="Vehicle capacity mismatch"></option>
-    <option value="Non-compliant vehicle (docs)"></option>
-    <option value="Vendor substituted vehicle"></option>
-    <option value="Plate number mismatch vs portal"></option>
-</datalist>
+        const loadingIndicator = document.getElementById('loading');
+        loadingIndicator.style.display = 'block';
 
-<!-- JS Dependencies -->
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+        // 1. Fetch and Parse data using PapaParse
+        Papa.parse(csvUrl, {
+            download: true,
+            header: true, // Automatically uses the first row as object keys
+            skipEmptyLines: true,
+            complete: function(results) {
+                globalData = results.data;
+                loadingIndicator.style.display = 'none';
+                
+                populateFilters();
+                updateDashboard(globalData); // Load initial dashboard with all data
+            }
+        });
 
-<script>
+        // 2. Extract unique values to build the dropdown filters
+        function populateFilters() {
+            const srcHubs = [...new Set(globalData.map(row => row.trip_seal_src_hub).filter(Boolean))].sort();
+            const dstHubs = [...new Set(globalData.map(row => row.trip_seal_dst_hub).filter(Boolean))].sort();
+            const vendors = [...new Set(globalData.map(row => row.vendor_name).filter(Boolean))].sort();
 
-// 🔴 PASTE YOUR BRAND NEW CSV LINK HERE
-const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVVwlkf3BVaI-4KDYTAOZYxhB3V0yAo9baAinrxjmtpG5_RYbndKXlvy7mflKg6A675LF5H41Sj4Cu/pubhtml?gid=2084995103&single=true';
+            fillSelect('filterSrcHub', srcHubs);
+            fillSelect('filterDstHub', dstHubs);
+            fillSelect('filterVendor', vendors);
+        }
 
-/* ================================================================
-   STATE & CONFIG
-================================================================ */
-const BIZ = { LATE_MIN: 15, LOW_UTIL: 70, VENDOR_MIN_TRIPS: 5, LANE_MIN_TRIPS: 3, O2S_TARGET: 60 };
-
-const METRICS = [
-  { key:'portalAdh',             label:'Portal Adherence',       short:'P',  color:'#3b82f6', rca:'portalRca' },
-  { key:'portalPlanVsActualAdh', label:'Portal Actual vs Plan',  short:'PA', color:'#8b5cf6', rca:'portalRca' },
-  { key:'gateInToOpenAdh',       label:'Gate-in to Open',        short:'GO', color:'#06b6d4', rca:null },
-  { key:'openToSealAdh',         label:'Open to Seal',           short:'OS', color:'#10b981', rca:'openSealRca' },
-  { key:'arrivalAdh',            label:'Arrival Adherence',      short:'AR', color:'#f59e0b', rca:'arrivalRca' },
-  { key:'vehicleAdh',            label:'Vehicle Compliance',     short:'VH', color:'#ef4444', rca:'vehicleRca' }
-];
-const CORE_KEYS = ['portalAdh','portalPlanVsActualAdh','openToSealAdh','arrivalAdh'];
-
-let rawTrips = [], filteredTrips = [];
-let dataTable = null, vendorDT = null, laneDT = null, pendingDT = null;
-let rcaModalObj;
-let charts = {};
-let logFilter = { mode: 'all', metric: null };   // all | failed | rcaPending (+ optional metric focus)
-let gapState = 'pending';                        // pending | live  (gap tab charts render lazily)
-let DEMO = false;
-
-/* ================================================================
-   HELPERS
-================================================================ */
-function esc(s){ return (s===null||s===undefined)?'':String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function isPass(v){ if(v===null||v===undefined) return false; const s=String(v).toUpperCase().trim(); return ['ADHERED','TRUE','YES','PASSED','PASS','1','Y', 'WITHIN TARGET', 'PERFECT'].includes(s); }
-function isYes(v){ if(!v) return false; const s=String(v).toUpperCase().trim(); return ['YES','TRUE','1','Y','ADHOC'].includes(s); }
-function avg(arr){ const a=arr.filter(x=>x!==null&&x!==undefined&&!isNaN(x)); return a.length? a.reduce((s,x)=>s+x,0)/a.length : null; }
-function fmt(n){ return (n||0).toLocaleString('en-US'); }
-function groupBy(arr, fn){ const m={}; arr.forEach(x=>{ const k=fn(x)||'—'; (m[k]=m[k]||[]).push(x); }); return m; }
-function composite(arr){ if(!arr.length) return 0; let p=0,t=0; arr.forEach(x=>{ CORE_KEYS.forEach(k=>{ t++; if(isPass(x[k])) p++; }); }); return t? p/t*100 : 0; }
-function anyFail(t){ return METRICS.some(m=>!isPass(t[m.key])); }
-function rcaCounts(data){ let need=0,have=0; data.forEach(t=>METRICS.forEach(m=>{ if(m.rca && !isPass(t[m.key])){ need++; if(String(t[m.rca]||'').trim()) have++; } })); return {need, have}; }
-function rcaPendingTrip(t){ return METRICS.some(m=> m.rca && !isPass(t[m.key]) && !String(t[m.rca]||'').trim()); }
-function missingRcaFor(t){ return METRICS.filter(m=> m.rca && !isPass(t[m.key]) && !String(t[m.rca]||'').trim()); }
-function adhClass(p){ return p>=90?'adh-good':p>=75?'adh-mid':'adh-bad'; }
-function adhColor(p){ return p>=90?'#16a34a':p>=75?'#ca8a04':'#dc2626'; }
-function pillHtml(p){ return `<span class="score-pill ${adhClass(p)}">${Math.round(p)}%</span>`; }
-function dash(){ return '<span class="text-muted">—</span>'; }
-
-function destroyChart(name){ if(charts[name]){ charts[name].destroy(); delete charts[name]; } }
-function setChart(name, canvasId, cfg){ destroyChart(name); const el=document.getElementById(canvasId); if(el) charts[name]=new Chart(el,cfg); }
-function makeTable(selector, order){ if ($.fn.DataTable.isDataTable(selector)) { $(selector).DataTable().destroy(); } return $(selector).DataTable(order); }
-
-function showToast(msg, type='success'){
-    const wrap=document.getElementById('toastWrap');
-    const el=document.createElement('div');
-    el.className=`toast align-items-center text-bg-${type} border-0`;
-    el.innerHTML=`<div class="d-flex"><div class="toast-body fw-semibold">${esc(msg)}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>`;
-    wrap.appendChild(el);
-    const t=new bootstrap.Toast(el,{delay:3500}); t.show();
-    el.addEventListener('hidden.bs.toast',()=>el.remove());
-}
-
-/* ================================================================
-   BOOTSTRAP / DATA LOADING (Using PapaParse)
-================================================================ */
-window.onload = function() {
-    rcaModalObj = new bootstrap.Modal(document.getElementById('rcaModal'));
-    document.querySelector('[data-bs-target="#page-gap"]').addEventListener('shown.bs.tab', () => {
-        if (gapState !== 'live') { renderGap(filteredTrips); gapState = 'live'; }
-    });
-
-    loadDataFromCSV();
-};
-
-function loadDataFromCSV() {
-    Papa.parse(csvUrl, {
-        download: true,
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {
-            const mappedTrips = results.data.map((row, idx) => {
-                return {
-                    rowIdx: idx + 2,
-                    date: row['DATE'] || row['date'] || '',
-                    slot: '',
-                    tripId: row['id_trip'] || row['Trip ID'] || '',
-                    tripCode: row['trip_code'] || '',
-                    srcHub: row['trip_seal_src_hub'] || '',
-                    dstHub: row['trip_seal_dst_hub'] || '',
-                    vendor: row['vendor_name'] || row['vendor'] || '',
-                    vendorType: '',
-                    plateNr: row['plate_nr'] || '',
-                    driver: row['driver_full_name'] || '',
-                    vehicleType: row['vehicle_type'] || '',
-                    isAdhoc: row['is_adhoc'] || '',
-                    shipments: parseFloat(row['total_shipments']) || 0,
-                    utilization: parseFloat(row['trip_stop_estimated_utilization']) || null,
-                    varMinutes: parseFloat(row['Var_in_Minutes_between_Actual_and_plan']) || null,
-                    gateInToOpenMin: parseFloat(row['Gate_in_to_open']) || null,
-                    openToSealMin: parseFloat(row['Open_to_seal_in_Minutes']) || null,
-                    arrivedTatMin: parseFloat(row['Arrived_TAT_in_Minutes']) || null,
-                    openToSealSlab: row['Open_to_Seal_Slab'] || '',
-
-                    // Map specific adherence columns to template keys
-                    portalAdh: row['Portal_Adherence'] || '',
-                    portalPlanVsActualAdh: row['Portal Actual Vs Portal Plan Adherence'] || '',
-                    gateInToOpenAdh: row['gate in to open adherence'] || '',
-                    openToSealAdh: row['Open_to_seal_Adhrence'] || '', 
-                    arrivalAdh: row['Arrival_Adherence'] || '',
-                    vehicleAdh: row['Vendor_Adherence'] || '', 
-
-                    // Local RCA storage
-                    portalRca: '', portalRemark: '',
-                    openSealRca: '', openSealRemark: '',
-                    arrivalRca: '', arrivalRemark: '',
-                    vehicleRca: '', vehicleRemark: ''
-                };
+        function fillSelect(elementId, options) {
+            const select = document.getElementById(elementId);
+            options.forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt;
+                el.textContent = opt;
+                select.appendChild(el);
             });
-            initApp({ sheetName: 'Line Haul Live DB', generatedAt: new Date().toLocaleString(), trips: mappedTrips }, false);
-        },
-        error: function(err) {
-            showLoadError("Failed to load CSV: " + err);
         }
-    });
-}
 
-function showLoadError(msg){
-    document.getElementById('loader').innerHTML = `
-      <div class="alert alert-danger d-inline-block text-start mt-4" style="max-width:560px">
-        <h6 class="fw-bold"><i class="bi bi-exclamation-octagon me-1"></i> Could not load trip data</h6>
-        <div class="small">${esc(msg)}</div>
-        <button class="btn btn-sm btn-danger mt-2" onclick="location.reload()"><i class="bi bi-arrow-repeat me-1"></i>Retry</button>
-      </div>`;
-}
+        // 3. Apply user filters
+        function getSelectedValues(elementId) {
+            const select = document.getElementById(elementId);
+            return Array.from(select.selectedOptions).map(opt => opt.value);
+        }
 
-function refreshData(){
-    const btn=document.getElementById('btnRefresh'); btn.disabled=true;
-    showToast('Refreshing data from CSV...');
-    loadDataFromCSV();
-    setTimeout(() => { btn.disabled=false; }, 2000);
-}
+        window.applyFilters = function() {
+            const selectedSrc = getSelectedValues('filterSrcHub');
+            const selectedDst = getSelectedValues('filterDstHub');
+            const selectedVendor = getSelectedValues('filterVendor');
 
-function initApp(res, preserve){
-    if(res.error){ showLoadError(res.error); return; }
-    const keep = preserve ? {
-        src: $('#filter-src').val()||[], dst: $('#filter-dst').val()||[],
-        ven: $('#filter-vendor').val()||[], slot: $('#filter-slot').val()||[]
-    } : null;
+            const filteredData = globalData.filter(row => {
+                const matchSrc = selectedSrc.length === 0 || selectedSrc.includes(row.trip_seal_src_hub);
+                const matchDst = selectedDst.length === 0 || selectedDst.includes(row.trip_seal_dst_hub);
+                const matchVendor = selectedVendor.length === 0 || selectedVendor.includes(row.vendor_name);
+                return matchSrc && matchDst && matchVendor;
+            });
 
-    rawTrips = res.trips || [];
-    populateMultiSelects(keep);
-    document.getElementById('sheetMeta').innerText =
-        `Source: ${res.sheetName} • ${fmt(rawTrips.length)} trips • Synced at ${res.generatedAt || ''}`;
-
-    applyGlobalFilters();
-
-    document.getElementById('loader').style.display = 'none';
-    document.getElementById('appPages').style.display = 'block';
-}
-
-/* ================================================================
-   FILTERS
-================================================================ */
-function fillSelect(id, values, keepVals){
-    const $el=$(id);
-    if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
-    $el.empty();
-    values.forEach(v => $el.append(new Option(v, v, false, false)));
-    $el.select2({ theme:'bootstrap-5', placeholder:'All', allowClear:true, width:'100%' })
-       .on('change', applyGlobalFilters);
-    if (keepVals && keepVals.length) $el.val(keepVals.filter(x => values.includes(x)));
-}
-
-function populateMultiSelects(keep){
-    const uniq = (fn) => [...new Set(rawTrips.map(fn).filter(x => x !== null && x !== undefined && String(x).trim() !== ''))].sort();
-    fillSelect('#filter-src',  uniq(t => t.srcHub),  keep && keep.src);
-    fillSelect('#filter-dst',  uniq(t => t.dstHub),  keep && keep.dst);
-    fillSelect('#filter-vendor', uniq(t => t.vendor),  keep && keep.ven);
-    fillSelect('#filter-slot',   uniq(t => t.slot),    keep && keep.slot);
-}
-
-function applyGlobalFilters(){
-    const start = document.getElementById('filter-start-date').value;
-    const end   = document.getElementById('filter-end-date').value;
-    const selSrc   = $('#filter-src').val() || [];
-    const selDst   = $('#filter-dst').val() || [];
-    const selVen   = $('#filter-vendor').val() || [];
-    const selSlot  = $('#filter-slot').val() || [];
-
-    filteredTrips = rawTrips.filter(t => {
-        const d = t.date || '';
-        let matchDate = true;
-        if (start && end)  matchDate = (d >= start && d <= end);
-        else if (start)    matchDate = (d >= start);       // open-ended range supported
-        else if (end)      matchDate = (d !== '' && d <= end);
-
-        return matchDate
-            && (selSrc.length  === 0 || selSrc.includes(t.srcHub))
-            && (selDst.length  === 0 || selDst.includes(t.dstHub))
-            && (selVen.length  === 0 || selVen.includes(t.vendor))
-            && (selSlot.length === 0 || selSlot.includes(t.slot));
-    });
-
-    document.getElementById('filterCount').innerText =
-        `Showing ${fmt(filteredTrips.length)} of ${fmt(rawTrips.length)} trips`;
-
-    renderDashboard(filteredTrips);
-    if (gapState === 'live') renderGap(filteredTrips);
-    renderTableLog(getLogData());
-}
-
-function resetFilters(){
-    document.getElementById('filter-start-date').value = '';
-    document.getElementById('filter-end-date').value = '';
-    ['#filter-src','#filter-dst','#filter-vendor','#filter-slot'].forEach(id => $(id).val(null).trigger('change.select2'));
-    $('#filter-src').val(null).trigger('change');   // single trigger re-filters once
-}
-
-/* ================================================================
-   PAGE 1 — DASHBOARD
-================================================================ */
-function renderDashboard(data){
-    const total = data.length;
-
-    // ---- KPI mini strip ----
-    const totalShip = data.reduce((s,t)=>s+(t.shipments||0),0);
-    const comp = composite(data);
-    const perfect = data.filter(t => CORE_KEYS.every(k => isPass(t[k]))).length;
-    const avgO2S = avg(data.map(t=>t.openToSealMin));
-    const avgUtil = avg(data.map(t=>t.utilization));
-    const lowUtil = data.filter(t => t.utilization !== null && t.utilization < BIZ.LOW_UTIL).length;
-    const rc = rcaCounts(data);
-    const pendingTrips = data.filter(rcaPendingTrip).length;
-
-    document.getElementById('k-trips').innerText = fmt(total);
-    document.getElementById('k-ship').innerText = fmt(totalShip);
-    document.getElementById('k-comp').innerText = Math.round(comp) + '%';
-    document.getElementById('k-comp').className = 'val ' + (comp>=90?'text-success':comp>=75?'text-primary':'text-danger');
-    document.getElementById('k-perfect').innerText = (total ? Math.round(perfect/total*100) : 0) + '%';
-    document.getElementById('k-perfect-n').innerText = fmt(perfect);
-    document.getElementById('k-o2s').innerText = avgO2S===null ? '—' : Math.round(avgO2S) + 'm';
-    document.getElementById('k-o2s-sub').innerText = avgO2S===null ? 'no timing data' : (avgO2S<=BIZ.O2S_TARGET? `within ${BIZ.O2S_TARGET}m target` : `above ${BIZ.O2S_TARGET}m target`);
-    document.getElementById('k-util').innerText = avgUtil===null ? '—' : Math.round(avgUtil) + '%';
-    document.getElementById('k-util-n').innerText = fmt(lowUtil);
-    document.getElementById('k-rca').innerText = fmt(pendingTrips);
-    document.getElementById('k-rca-sub').innerText = (rc.need ? Math.round(rc.have/rc.need*100) : 100) + '%';
-
-    // ---- 4 core cards ----
-    const cards = [
-        { p:'c1-pct', t:'c1-total', a:'c1-adh', n:'c1-nonadh', key:'portalAdh' },
-        { p:'c2-pct', t:'c2-total', a:'c2-adh', n:'c2-nonadh', key:'portalPlanVsActualAdh' },
-        { p:'c3-pct', t:'c3-total', a:'c3-adh', n:'c3-nonadh', key:'openToSealAdh' },
-        { p:'c4-pct', t:'c4-total', a:'c4-adh', n:'c4-nonadh', key:'arrivalAdh' }
-    ];
-    cards.forEach(c => {
-        const pass = data.filter(x => isPass(x[c.key])).length;
-        document.getElementById(c.p).innerText = (total ? Math.round(pass/total*100) : 0) + '%';
-        document.getElementById(c.t).innerText = fmt(total);
-        document.getElementById(c.a).innerText = fmt(pass);
-        document.getElementById(c.n).innerText = fmt(total - pass);
-    });
-
-    renderDashboardCharts(data);
-}
-
-function dailyAgg(data){
-    const m = {};
-    data.forEach(t => { if(!t.date) return; (m[t.date]=m[t.date]||[]).push(t); });
-    const dates = Object.keys(m).sort();
-    return { dates, dayTrips: dates.map(d => m[d]) };
-}
-
-function renderDashboardCharts(data){
-    const agg = dailyAgg(data);
-
-    // 1) Volume vs composite adherence
-    setChart('volAdh','chartVolAdh',{
-        data: { labels: agg.dates, datasets: [
-            { type:'bar', label:'Trips', data: agg.dayTrips.map(a=>a.length), backgroundColor:'#cbd5e1', borderRadius:4, yAxisID:'y1', order:2 },
-            { type:'line', label:'Composite Adherence %', data: agg.dayTrips.map(a=>Math.round(composite(a))), borderColor:'#2563eb', backgroundColor:'#2563eb', tension:.3, yAxisID:'y', order:1, pointRadius:3 }
-        ]},
-        options: { responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-            plugins:{ legend:{position:'bottom'} },
-            scales:{ y:{min:0,max:100,title:{display:true,text:'Adherence %'}},
-                     y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'Trips'},ticks:{precision:0}},
-                     x:{ticks:{autoSkip:true,maxTicksLimit:20}} } }
-    });
-
-    // 2) Failures per checkpoint
-    const failCounts = METRICS.map(m => data.filter(t => !isPass(t[m.key])).length);
-    setChart('stageFail','chartStageFail',{
-        type:'bar',
-        data: { labels: METRICS.map(m=>m.label), datasets:[{ data: failCounts, backgroundColor: METRICS.map(m=>m.color), borderRadius:6 }] },
-        options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
-            plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.parsed.x} trips failed (${data.length?Math.round(ctx.parsed.x/data.length*100):0}%)` } } },
-            scales:{ x:{ beginAtZero:true, ticks:{precision:0} } } }
-    });
-
-    // 3) Trend of 4 core metrics
-    const coreM = CORE_KEYS.map(k => METRICS.find(m=>m.key===k));
-    setChart('trend','chartTrend',{
-        type:'line',
-        data: { labels: agg.dates, datasets: coreM.map(m => ({
-            label: m.label + ' %',
-            data: agg.dayTrips.map(day => day.length ? Math.round(day.filter(t=>isPass(t[m.key])).length/day.length*100) : 0),
-            borderColor: m.color, backgroundColor: m.color, tension:.3, pointRadius:2
-        }))},
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom'} },
-            scales:{ y:{ max:100, beginAtZero:true }, x:{ ticks:{autoSkip:true,maxTicksLimit:20} } } }
-    });
-
-    // 4) Dispatch variance histogram
-    const buckets = [0,0,0,0,0,0];
-    data.forEach(t => { const v=t.varMinutes; if(v===null||v===undefined||isNaN(v)) return;
-        if (v < -30) buckets[0]++; else if (v < -BIZ.LATE_MIN) buckets[1]++; else if (v <= BIZ.LATE_MIN) buckets[2]++;
-        else if (v <= 30) buckets[3]++; else if (v <= 60) buckets[4]++; else buckets[5]++;
-    });
-    setChart('variance','chartVariance',{
-        type:'bar',
-        data: { labels:['Early >30m','Early 15–30m','On-time (±15m)','Late 15–30m','Late 30–60m','Late >60m'],
-            datasets:[{ data:buckets, borderRadius:6,
-                backgroundColor:['#22c55e','#86efac','#cbd5e1','#fbbf24','#fb923c','#ef4444'] }]},
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true,ticks:{precision:0}} } }
-    });
-
-    // 5) Open -> Seal slab doughnut
-    const slabG = groupBy(data.filter(t=>t.openToSealSlab && String(t.openToSealSlab).trim()!==''), t=>String(t.openToSealSlab).trim());
-    const slabLabels = Object.keys(slabG).sort();
-    setChart('slab','chartSlab',{
-        type:'doughnut',
-        data: { labels: slabLabels, datasets:[{ data: slabLabels.map(l=>slabG[l].length),
-            backgroundColor:['#10b981','#84cc16','#f59e0b','#f97316','#ef4444','#94a3b8','#0ea5e9'] }]},
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom'} } }
-    });
-
-    // 6) Planned vs adhoc
-    const adhoc = data.filter(t=>isYes(t.isAdhoc));
-    const planned = data.filter(t=>!isYes(t.isAdhoc));
-    setChart('adhoc','chartAdhoc',{
-        type:'doughnut',
-        data: { labels:['Planned','Adhoc'], datasets:[{ data:[planned.length, adhoc.length], backgroundColor:['#6366f1','#f59e0b'] }]},
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom'} } }
-    });
-    document.getElementById('adhocNote').innerHTML =
-        `Adhoc share <strong>${data.length?Math.round(adhoc.length/data.length*100):0}%</strong> • adherence: adhoc <strong>${Math.round(composite(adhoc))}%</strong> vs planned <strong>${Math.round(composite(planned))}%</strong>`;
-}
-
-/* ================================================================
-   PAGE 2 — GAP ANALYSIS
-================================================================ */
-function vendorStats(data){
-    const g = groupBy(data, t => t.vendor);
-    return Object.entries(g).map(([name, arr]) => {
-        const rates = CORE_KEYS.map(k => arr.filter(t=>isPass(t[k])).length / arr.length * 100);
-        const rc = rcaCounts(arr);
-        return {
-            name, trips: arr.length,
-            ship: arr.reduce((s,t)=>s+(t.shipments||0),0),
-            r: { p:rates[0], pa:rates[1], os:rates[2], ar:rates[3] },
-            util: avg(arr.map(t=>t.utilization)),
-            composite: (rates[0]+rates[1]+rates[2]+rates[3])/4,
-            rcaPct: rc.need ? rc.have/rc.need*100 : null
+            updateDashboard(filteredData);
         };
-    }).sort((a,b)=>b.trips-a.trips);
-}
 
-function laneStats(data){
-    const g = groupBy(data, t => `${t.srcHub || '?'} → ${t.dstHub || '?'}`);
-    return Object.entries(g).map(([name, arr]) => ({
-        name, trips: arr.length,
-        ship: arr.reduce((s,t)=>s+(t.shipments||0),0),
-        adh: composite(arr),
-        delay: avg(arr.map(t=>t.varMinutes)),
-        o2s: avg(arr.map(t=>t.openToSealMin))
-    })).sort((a,b)=>a.adh-b.adh);
-}
+        // 4. Calculate Business KPIs and Update Charts
+        function updateDashboard(data) {
+            if (data.length === 0) {
+                alert("No data matches these filters.");
+                return;
+            }
 
-function renderGap(data){
-    renderInsights(data);
-    renderGapCharts(data);
-    renderVendorScorecard(data);
-    renderLanes(data);
-    renderOffenders(data);
-    renderPending(data);
-}
+            // Calculate KPIs
+            let totalShipments = 0;
+            let totalTAT = 0;
+            let validTATCount = 0;
+            let perfectTrips = 0;
 
-function renderInsights(data){
-    const el = document.getElementById('insightCards');
-    const cards = [];
-    if (!data.length) { el.innerHTML = '<div class="col-12"><div class="alert alert-light border">No trips match the current filters.</div></div>'; return; }
+            data.forEach(row => {
+                // Shipments
+                const shipments = parseInt(row.total_shipments);
+                if (!isNaN(shipments)) totalShipments += shipments;
 
-    // 1) Biggest SLA leak
-    const leak = METRICS.map(m => ({ m, f: data.filter(t=>!isPass(t[m.key])).length })).sort((a,b)=>b.f-a.f)[0];
-    if (leak.f > 0) cards.push({ tone:'danger', title:'Biggest SLA Leak', main: esc(leak.m.label),
-        sub: `${fmt(leak.f)} trips failed (${Math.round(leak.f/data.length*100)}% of filtered trips)` });
+                // Turnaround Time
+                const tat = parseFloat(row.Arrived_TAT_in_Minutes);
+                if (!isNaN(tat)) {
+                    totalTAT += tat;
+                    validTATCount++;
+                }
 
-    // 2) RCA accountability
-    const rc = rcaCounts(data);
-    const comp = rc.need ? rc.have/rc.need*100 : 100;
-    cards.push({ tone: comp>=80?'success':comp>=50?'warning':'danger', title:'RCA Accountability',
-        main: Math.round(comp) + '% of failures explained',
-        sub: `${rc.need - rc.have} of ${rc.need} failed checkpoints still missing RCA` });
+                // Perfect Flags (Accepts text 'Perfect' or 'TRUE')
+                const perfectFlag = (row.Perfect_Flag || '').toString().trim().toUpperCase();
+                if (perfectFlag === 'PERFECT' || perfectFlag === 'TRUE' || perfectFlag === '1') {
+                    perfectTrips++;
+                }
+            });
 
-    // 3) Weakest vendor
-    const wv = vendorStats(data).filter(v=>v.trips>=BIZ.VENDOR_MIN_TRIPS).sort((a,b)=>a.composite-b.composite)[0];
-    if (wv) cards.push({ tone:'danger', title:`Weakest Vendor (${BIZ.VENDOR_MIN_TRIPS}+ trips)`, main: esc(wv.name),
-        sub: `${Math.round(wv.composite)}% composite adherence over ${wv.trips} trips` });
+            document.getElementById('kpiTrips').innerText = data.length.toLocaleString();
+            document.getElementById('kpiShipments').innerText = totalShipments.toLocaleString();
+            document.getElementById('kpiTAT').innerText = validTATCount > 0 ? Math.round(totalTAT / validTATCount) : 0;
+            document.getElementById('kpiPerfect').innerText = Math.round((perfectTrips / data.length) * 100) + '%';
 
-    // 4) Weakest lane
-    const wl = laneStats(data).filter(l=>l.trips>=BIZ.LANE_MIN_TRIPS).sort((a,b)=>a.adh-b.adh)[0];
-    if (wl) cards.push({ tone:'warning', title:`Weakest Lane (${BIZ.LANE_MIN_TRIPS}+ trips)`, main: esc(wl.name),
-        sub: `${Math.round(wl.adh)}% adherence over ${wl.trips} trips` });
-
-    // 5) Late dispatch segment
-    const late = data.filter(t => t.varMinutes !== null && t.varMinutes > BIZ.LATE_MIN);
-    if (late.length) cards.push({ tone:'warning', title:'Late Dispatch Segment',
-        main: `${Math.round(avg(late.map(t=>t.varMinutes)))} min avg delay`,
-        sub: `${fmt(late.length)} trips left >${BIZ.LATE_MIN} min after plan (${Math.round(late.length/data.length*100)}%)` });
-
-    // 6) Capacity waste
-    const low = data.filter(t => t.utilization !== null && t.utilization < BIZ.LOW_UTIL);
-    if (low.length) cards.push({ tone:'info', title:'Capacity Wasted',
-        main: `${fmt(low.length)} under-loaded trips`,
-        sub: `utilization below ${BIZ.LOW_UTIL}% (${Math.round(low.length/data.length*100)}% of filtered trips)` });
-
-    // 7) Adhoc pressure
-    const adhoc = data.filter(t=>isYes(t.isAdhoc));
-    if (adhoc.length) {
-        const gap = composite(data.filter(t=>!isYes(t.isAdhoc))) - composite(adhoc);
-        cards.push({ tone: gap>5?'warning':'info', title:'Adhoc Pressure',
-            main: `${fmt(adhoc.length)} adhoc trips (${Math.round(adhoc.length/data.length*100)}%)`,
-            sub: `adhoc adherence trails planned by ${Math.round(gap)} pts` });
-    }
-
-    if (!cards.length) cards.push({ tone:'success', title:'All Clear', main:'No significant gaps', sub:'Everything looks healthy for the current filter scope.' });
-
-    el.innerHTML = cards.map(c => `
-        <div class="col-12 col-md-6 col-xl-3"><div class="insight-card tone-${c.tone}">
-            <div class="t">${c.title}</div><div class="m">${c.main}</div><div class="s">${c.sub}</div>
-        </div></div>`).join('');
-}
-
-function renderGapCharts(data){
-    // Vendor adherence (top 10 by volume, worst first)
-    const vs = vendorStats(data).slice(0,10).sort((a,b)=>a.composite-b.composite);
-    setChart('vendorAdh','chartVendorAdh',{
-        type:'bar',
-        data:{ labels: vs.map(v=>v.name), datasets:[{ data: vs.map(v=>Math.round(v.composite*10)/10),
-            backgroundColor: vs.map(v=>adhColor(v.composite)), borderRadius:6 }]},
-        options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
-            plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.parsed.x}% composite • ${vs[ctx.dataIndex].trips} trips` } } },
-            scales:{ x:{ min:0, max:100 } } }
-    });
-
-    // Avg stage durations
-    const g2o = avg(data.map(t=>t.gateInToOpenMin));
-    const o2s = avg(data.map(t=>t.openToSealMin));
-    const tat = avg(data.map(t=>t.arrivedTatMin));
-    setChart('stageTime','chartStageTime',{
-        type:'bar',
-        data:{ labels:['Gate-in → Open','Open → Seal','Arrival TAT'],
-            datasets:[{ data:[g2o||0, o2s||0, tat||0], backgroundColor:['#06b6d4','#10b981','#f59e0b'], borderRadius:8 }]},
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false},
-            tooltip:{ callbacks:{ label:(ctx)=>` ${Math.round(ctx.parsed.y)} minutes avg` } } },
-            scales:{ y:{ beginAtZero:true, title:{display:true,text:'minutes'} } } }
-    });
-}
-
-function renderVendorScorecard(data){
-    const stats = vendorStats(data);
-    const rows = stats.map(v => `
-        <tr>
-            <td class="fw-semibold">${esc(v.name)}</td>
-            <td data-order="${v.trips}">${fmt(v.trips)}</td>
-            <td data-order="${v.ship}">${fmt(v.ship)}</td>
-            <td data-order="${Math.round(v.r.p)}">${pillHtml(v.r.p)}</td>
-            <td data-order="${Math.round(v.r.pa)}">${pillHtml(v.r.pa)}</td>
-            <td data-order="${Math.round(v.r.os)}">${pillHtml(v.r.os)}</td>
-            <td data-order="${Math.round(v.r.ar)}">${pillHtml(v.r.ar)}</td>
-            <td data-order="${v.util===null?-1:Math.round(v.util)}">${v.util===null?dash():pillHtml(v.util)}</td>
-            <td data-order="${v.rcaPct===null?101:Math.round(v.rcaPct)}">${v.rcaPct===null?dash():pillHtml(v.rcaPct)}</td>
-            <td data-order="${Math.round(v.composite)}">${pillHtml(v.composite)}</td>
-        </tr>`).join('');
-    document.getElementById('vendorTableBody').innerHTML = rows;
-    vendorDT = makeTable('#vendorTable', { pageLength: 8, dom: 'tp', order: [[9,'asc']] });
-}
-
-function renderLanes(data){
-    const stats = laneStats(data);
-    const rows = stats.map(l => `
-        <tr>
-            <td class="fw-semibold">${esc(l.name)}</td>
-            <td data-order="${l.trips}">${fmt(l.trips)}</td>
-            <td data-order="${l.ship}">${fmt(l.ship)}</td>
-            <td data-order="${Math.round(l.adh)}">${pillHtml(l.adh)}</td>
-            <td data-order="${l.delay===null?-9999:Math.round(l.delay)}">${l.delay===null?dash():
-                `<span class="score-pill ${l.delay>BIZ.LATE_MIN?'adh-bad':'adh-good'}">${l.delay>0?'+':''}${Math.round(l.delay)}m</span>`}</td>
-            <td data-order="${l.o2s===null?-1:Math.round(l.o2s)}">${l.o2s===null?dash():
-                `<span class="score-pill ${l.o2s>BIZ.O2S_TARGET?'adh-mid':'adh-good'}">${Math.round(l.o2s)}m</span>`}</td>
-        </tr>`).join('');
-    document.getElementById('laneTableBody').innerHTML = rows;
-    laneDT = makeTable('#laneTable', { pageLength: 8, dom: 'tp', order: [[3,'asc']] });
-}
-
-function renderOffenders(data){
-    const g = groupBy(data.filter(t=>t.plateNr && String(t.plateNr).trim()!==''), t=>String(t.plateNr).trim());
-    const list = Object.entries(g).map(([plate, arr]) => ({
-        plate, vendor: arr[0].vendor || '—', trips: arr.length,
-        fails: arr.filter(anyFail).length
-    })).filter(o => o.trips >= 2 && o.fails > 0)
-      .map(o => ({ ...o, failPct: o.fails/o.trips*100 }))
-      .sort((a,b) => b.failPct - a.failPct || b.trips - a.trips)
-      .slice(0, 8);
-
-    document.getElementById('offenderBody').innerHTML = list.length ? list.map(o => `
-        <tr>
-            <td class="fw-semibold">${esc(o.plate)}</td>
-            <td class="text-muted">${esc(o.vendor)}</td>
-            <td>${o.trips}</td>
-            <td class="text-danger fw-bold">${o.fails}</td>
-            <td><span class="score-pill ${o.failPct>=50?'adh-bad':o.failPct>=25?'adh-mid':'adh-good'}">${Math.round(o.failPct)}%</span></td>
-        </tr>`).join('')
-      : `<tr><td colspan="5" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>No repeat offenders in scope</td></tr>`;
-}
-
-function renderPending(data){
-    const pend = data.filter(rcaPendingTrip);
-    document.getElementById('pendingCountBadge').innerText = `${pend.length} pending`;
-    const rows = pend.map(t => {
-        const missing = missingRcaFor(t);
-        return `<tr>
-            <td>${esc(t.date||'')}</td>
-            <td><strong>${esc(t.tripId)}</strong></td>
-            <td>${esc(t.srcHub)} → ${esc(t.dstHub)}</td>
-            <td>${esc(t.vendor)}</td>
-            <td><div class="d-flex gap-1 flex-wrap">${missing.map(m=>`<span class="badge-fail" title="${esc(m.label)}">${m.short}</span>`).join('')}</div></td>
-            <td><button class="btn btn-sm btn-outline-primary" onclick="openRcaModal(${t.rowIdx})"><i class="bi bi-pencil-square"></i> Add RCA</button></td>
-        </tr>`;
-    }).join('');
-    document.getElementById('pendingTableBody').innerHTML = rows;
-    pendingDT = makeTable('#pendingTable', { pageLength: 8, dom: 'tp', order: [[0,'desc']] });
-}
-
-/* ================================================================
-   PAGE 3 — TRIP LOG
-================================================================ */
-function gotoLog(mode, metric){
-    logFilter = { mode: mode || 'all', metric: metric || null };
-    syncChipsUI();
-    const tabBtn = document.querySelector('[data-bs-target="#page-rca"]');
-    bootstrap.Tab.getOrCreateInstance(tabBtn).show();
-    renderTableLog(getLogData());
-}
-
-function syncChipsUI(){
-    document.querySelectorAll('#logChips button').forEach(b => {
-        b.classList.toggle('active', b.dataset.mode === logFilter.mode);
-    });
-    const chip = document.getElementById('metricFocusChip');
-    if (logFilter.metric) {
-        const m = METRICS.find(x=>x.key===logFilter.metric);
-        chip.style.display = 'inline-block';
-        chip.innerHTML = `Failures: ${esc(m ? m.label : logFilter.metric)}
-            <i class="bi bi-x-circle ms-1 clickable" onclick="gotoLog('failed', null)"></i>`;
-    } else {
-        chip.style.display = 'none';
-        chip.innerHTML = '';
-    }
-}
-
-document.querySelectorAll('#logChips button').forEach(b => {
-    b.addEventListener('click', () => { logFilter = { mode: b.dataset.mode, metric: null }; syncChipsUI(); renderTableLog(getLogData()); });
-});
-
-function getLogData(){
-    let d = [...filteredTrips];
-    if (logFilter.mode === 'failed') {
-        d = d.filter(t => logFilter.metric ? !isPass(t[logFilter.metric]) : anyFail(t));
-    } else if (logFilter.mode === 'rcaPending') {
-        d = d.filter(rcaPendingTrip);
-    }
-    return d;
-}
-
-function utilChip(u){
-    if (u===null || u===undefined || isNaN(u)) return dash();
-    return `<span class="score-pill ${u>=90?'adh-good':u>=BIZ.LOW_UTIL?'adh-mid':'adh-bad'}">${Math.round(u)}%</span>`;
-}
-function delayChip(v){
-    if (v===null || v===undefined || isNaN(v)) return dash();
-    const cls = v>BIZ.LATE_MIN ? (v>30?'adh-bad':'adh-mid') : 'adh-good';
-    return `<span class="score-pill ${cls}">${v>0?'+':''}${Math.round(v)}m</span>`;
-}
-
-function renderTableLog(data){
-    if ($.fn.DataTable.isDataTable('#tripTable')) { $('#tripTable').DataTable().destroy(); }
-
-    document.getElementById('tripTableBody').innerHTML = data.map(t => {
-        const badges = METRICS.map(m => {
-            const ok = isPass(t[m.key]);
-            const raw = String(t[m.key] || '').trim();
-            return `<span class="${ok?'badge-pass':'badge-fail'}" title="${esc(m.label)}: ${esc(raw || 'blank')}">${m.short}</span>`;
-        }).join('');
-        return `<tr>
-            <td>${esc(t.date||'')}</td>
-            <td>${t.slot?`<span class="badge text-bg-light border">${esc(t.slot)}</span>`:''}</td>
-            <td><strong>${esc(t.tripId)}</strong>${t.tripCode?`<br><small class="text-muted">${esc(t.tripCode)}</small>`:''}</td>
-            <td>${esc(t.srcHub)} → ${esc(t.dstHub)}</td>
-            <td>${esc(t.vendor)}<br><small class="text-muted">${esc(t.plateNr)}${t.vehicleType?` • ${esc(t.vehicleType)}`:''}</small></td>
-            <td data-order="${t.shipments||0}">${fmt(t.shipments)}</td>
-            <td data-order="${t.utilization===null?-1:t.utilization}">${utilChip(t.utilization)}</td>
-            <td data-order="${t.varMinutes===null?-9999:t.varMinutes}">${delayChip(t.varMinutes)}</td>
-            <td><div class="d-flex gap-1 flex-wrap">${badges}</div></td>
-            <td><button class="btn btn-sm btn-outline-primary" onclick="openRcaModal(${t.rowIdx})"><i class="bi bi-pencil-square"></i> Inspect / RCA</button></td>
-        </tr>`;
-    }).join('');
-
-    dataTable = $('#tripTable').DataTable({ pageLength: 15, dom: 'lrtip', order: [[0,'desc']] });
-
-    const s = document.getElementById('log-search').value;
-    if (s) dataTable.search(s).draw();
-}
-
-document.getElementById('log-search').addEventListener('keyup', function() {
-    if (dataTable) dataTable.search(this.value).draw();
-});
-
-/* ================================================================
-   RCA MODAL (Updated to save locally only since this is CSV driven)
-================================================================ */
-function openRcaModal(rowIdx) {
-    const t = rawTrips.find(x => x.rowIdx === rowIdx);
-    if(!t) return;
-
-    const btn = document.getElementById('btnSaveRca');
-    btn.disabled = false;
-    btn.innerHTML = `<i class="bi bi-save me-1"></i> Save RCA Changes`;
-
-    document.getElementById('modalRowIdx').value = t.rowIdx;
-    document.getElementById('rcaModalTitle').innerText = `RCA Inspection: ${t.tripId}  (${t.srcHub} → ${t.dstHub})`;
-
-    // Trip context tiles
-    const tile = (l,v) => `<div class="col-6 col-md-3"><div class="mini-tile"><div class="l">${l}</div><div class="v">${v||'—'}</div></div></div>`;
-    document.getElementById('modalTripInfo').innerHTML =
-        tile('Date', esc(t.date)) + tile('Slot', esc(t.slot)) +
-        tile('Vendor', esc(t.vendor)) + tile('Truck', esc(t.plateNr)) +
-        tile('Vehicle Type', esc(t.vehicleType)) + tile('Shipments', fmt(t.shipments)) +
-        tile('Utilization', t.utilization===null?'—':Math.round(t.utilization)+'%') +
-        tile('Dispatch Variance', t.varMinutes===null?'—':(t.varMinutes>0?'+':'')+Math.round(t.varMinutes)+' min') +
-        tile('Open → Seal', t.openToSealMin===null?'—':Math.round(t.openToSealMin)+' min') +
-        tile('Arrival TAT', t.arrivedTatMin===null?'—':Math.round(t.arrivedTatMin)+' min') +
-        tile('Driver', esc(t.driver)) + tile('Adhoc', isYes(t.isAdhoc)?'Yes':'No');
-
-    const body = document.getElementById('rcaModalBody');
-    body.innerHTML =
-        createRcaSection("1. Portal Plan Vs Actual Adherence", t.portalPlanVsActualAdh, "portalRca", "portalRemark", t.portalRca, t.portalRemark) +
-        createRcaSection("2. Open to Seal (Hub Operations)", t.openToSealAdh, "openSealRca", "openSealRemark", t.openSealRca, t.openSealRemark) +
-        createRcaSection("3. Line Haul Arrival Adherence", t.arrivalAdh, "arrivalRca", "arrivalRemark", t.arrivalRca, t.arrivalRemark) +
-        createRcaSection("4. Vehicle Compliance & Type", t.vehicleAdh, "vehicleRca", "vehicleRemark", t.vehicleRca, t.vehicleRemark) +
-        // Gate-in→open has no RCA column in sheet — status shown as informational only
-        `<div class="rca-box-${isPass(t.gateInToOpenAdh)?'pass':'fail'}">
-            <div class="d-flex justify-content-between align-items-center">
-                <strong>5. Gate-in to Open (informational)</strong>
-                <span class="badge ${isPass(t.gateInToOpenAdh)?'bg-success':'bg-secondary'}">${esc(String(t.gateInToOpenAdh||'').trim()||'No data')} — no RCA column in sheet</span>
-            </div>
-        </div>`;
-
-    rcaModalObj.show();
-}
-
-function createRcaSection(title, statusVal, rcaId, remarkId, existingRca, existingRemark) {
-    if (isPass(statusVal)) {
-        return `<div class="rca-box-pass">
-            <div class="d-flex justify-content-between align-items-center">
-                <strong>${title}</strong>
-                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Adhered — No RCA Required</span>
-            </div>
-        </div>`;
-    }
-    return `<div class="rca-box-fail">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <strong class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i> ${title}</strong>
-            <span class="badge bg-danger">Not Adhered${String(statusVal||'').trim()==='' ? ' / blank' : ''}</span>
-        </div>
-        <div class="row g-2">
-            <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted">RCA Reason</label>
-                <input type="text" class="form-control form-control-sm" id="m-${rcaId}" list="dl-${rcaId}" value="${esc(existingRca)}" placeholder="Pick a standard reason or type your own...">
-            </div>
-            <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted">RCA Details / Remarks</label>
-                <input type="text" class="form-control form-control-sm" id="m-${remarkId}" value="${esc(existingRemark)}" placeholder="Enter context, action taken...">
-            </div>
-        </div>
-    </div>`;
-}
-
-function saveRcas() {
-    const rowIdx = parseInt(document.getElementById('modalRowIdx').value);
-    const btn = document.getElementById('btnSaveRca');
-    const getVal = (id) => { const el = document.getElementById('m-'+id); return el ? el.value : undefined; };
-
-    const payload = {
-        rowIdx: rowIdx,
-        portalRca: getVal("portalRca"),       portalRemark: getVal("portalRemark"),
-        openSealRca: getVal("openSealRca"),   openSealRemark: getVal("openSealRemark"),
-        arrivalRca: getVal("arrivalRca"),     arrivalRemark: getVal("arrivalRemark"),
-        vehicleRca: getVal("vehicleRca"),     vehicleRemark: getVal("vehicleRemark")
-    };
-
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Saving Locally...`;
-
-    // Because we are using CSV, we save to the browser's memory for the session
-    setTimeout(() => {
-        const t = rawTrips.find(x => x.rowIdx === rowIdx);
-        if(t){
-            ['portalRca','portalRemark','openSealRca','openSealRemark','arrivalRca','arrivalRemark','vehicleRca','vehicleRemark']
-              .forEach(k => { if(payload[k] !== undefined) t[k] = payload[k]; });
+            drawAdherenceChart(data);
+            drawVolumeChart(data);
         }
-        rcaModalObj.hide();
-        applyGlobalFilters();
-        btn.disabled = false; btn.innerHTML = `<i class="bi bi-save me-1"></i> Save RCA Changes`;
-        showToast('RCA saved to temporary memory (CSV format cannot write back to Google)');
-    }, 500);
-}
 
-/* ================================================================
-   CSV EXPORT
-================================================================ */
-function csvCell(v){ if(v===null||v===undefined) v=''; return '"' + String(v).replace(/"/g,'""').replace(/[\r\n]+/g,' ') + '"'; }
+        // 5. Draw the Adherence Bar Chart
+        function drawAdherenceChart(data) {
+            const metrics = ['Portal_Adherence', 'Arrival_Adherence', 'Vendor_Adherence', 'gate in to open adherence', 'LM adherence'];
+            const scores = metrics.map(metric => {
+                let adheredCount = 0;
+                let totalValid = 0;
+                
+                data.forEach(row => {
+                    if (row[metric]) {
+                        totalValid++;
+                        const val = row[metric].toString().trim().toUpperCase();
+                        if (val === 'ADHERED' || val === 'TRUE' || val === '1' || val === 'WITHIN TARGET') {
+                            adheredCount++;
+                        }
+                    }
+                });
+                return totalValid > 0 ? Math.round((adheredCount / totalValid) * 100) : 0;
+            });
 
-function exportCsv(){
-    const data = getLogData();
-    if (!data.length) { showToast('Nothing to export for current filters', 'danger'); return; }
+            const ctx = document.getElementById('adherenceChart').getContext('2d');
+            if (adherenceChartInstance) adherenceChartInstance.destroy(); // Clear old chart
+            
+            adherenceChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: metrics.map(m => m.replace(/_/g, ' ')),
+                    datasets: [{
+                        label: '% Adhered',
+                        data: scores,
+                        backgroundColor: '#3498db',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    scales: { y: { max: 100 } }
+                }
+            });
+        }
 
-    const headers = ['Date','Slot','Trip ID','Trip Code','Source Hub','Destination Hub','Vendor','Vendor Type','Vehicle Type','Plate','Driver','Is Adhoc','Shipments','Utilization %','Variance (min)','GateIn-Open (min)','Open-Seal (min)','Arrival TAT (min)','Portal Adherence','Portal Actual vs Plan','Gate-in to Open','Open to Seal','Arrival','Vehicle','Portal RCA','Open-Seal RCA','Arrival RCA','Vehicle RCA'];
-    const lines = [headers.map(csvCell).join(',')];
-    data.forEach(t => lines.push([
-        t.date, t.slot, t.tripId, t.tripCode, t.srcHub, t.dstHub, t.vendor, t.vendorType, t.vehicleType, t.plateNr, t.driver,
-        isYes(t.isAdhoc)?'Yes':'No', t.shipments, t.utilization, t.varMinutes, t.gateInToOpenMin, t.openToSealMin, t.arrivedTatMin,
-        t.portalAdh, t.portalPlanVsActualAdh, t.gateInToOpenAdh, t.openToSealAdh, t.arrivalAdh, t.vehicleAdh,
-        t.portalRca, t.openSealRca, t.arrivalRca, t.vehicleRca
-    ].map(csvCell).join(',')));
+        // 6. Draw the Volume Chart (Top 10 Routes by Shipments)
+        function drawVolumeChart(data) {
+            // Aggregate shipments by route
+            const routeData = {};
+            data.forEach(row => {
+                const route = row.route_code || 'Unknown';
+                const shipments = parseInt(row.total_shipments) || 0;
+                if (!routeData[route]) routeData[route] = 0;
+                routeData[route] += shipments;
+            });
 
-    const blob = new Blob(["\ufeff" + lines.join('\n')], { type:'text/csv;charset=utf-8;' });
-    const a = document.createElement('a');
-    const stamp = new Date().toISOString().slice(0,16).replace(/[-:T]/g,'');
-    a.href = URL.createObjectURL(blob);
-    a.download = `line_haul_export_${stamp}.csv`;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(a.href);
-    showToast(`Exported ${fmt(data.length)} trips to CSV`);
-}
-</script>
+            // Sort and take top 10
+            const sortedRoutes = Object.keys(routeData).sort((a, b) => routeData[b] - routeData[a]).slice(0, 10);
+            const routeValues = sortedRoutes.map(route => routeData[route]);
+
+            const ctx = document.getElementById('volumeChart').getContext('2d');
+            if (volumeChartInstance) volumeChartInstance.destroy();
+
+            volumeChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedRoutes,
+                    datasets: [{
+                        label: 'Total Shipments',
+                        data: routeValues,
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                }
+            });
+        }
+    </script>
 </body>
 </html>
