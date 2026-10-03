@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistics & Line Haul Dashboard</title>
+    
+    <!-- Libraries: Chart.js for graphs, PapaParse for complex CSV parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --bg: #f4f6f9; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: var(--bg); display: flex; color: #333; height: 100vh; }
+        
+        /* Sidebar Filters */
+        .sidebar { width: 280px; background: #fff; padding: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.05); overflow-y: auto; }
+        .sidebar h3 { margin-top: 0; color: var(--primary); font-size: 18px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+        .filter-group { margin-bottom: 20px; }
+        .filter-group label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 8px; color: #555; }
+        .filter-group select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; height: 120px; }
+        .help-text { font-size: 11px; color: #888; margin-top: 4px; }
+        
+        /* Main Content */
+        .main-content { flex: 1; padding: 20px 30px; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 24px; color: var(--primary); }
+        #loading { padding: 10px 20px; background: #f1c40f; color: #fff; border-radius: 4px; font-weight: bold; display: none; }
+        
+        /* KPI Cards */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .kpi-card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid var(--accent); }
+        .kpi-title { font-size: 12px; font-weight: 600; color: #7f8c8d; text-transform: uppercase; margin-bottom: 10px; }
+        .kpi-value { font-size: 28px; font-weight: bold; color: var(--primary); }
+        
+        /* Charts Area */
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .chart-box { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .chart-title { text-align: center; font-weight: 600; margin-bottom: 15px; color: #555; }
+        canvas { max-width: 100%; }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar for Interactive Filters -->
+    <div class="sidebar">
+        <h3>Control Panel</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 20px;">Use filters to analyze specific business flows.</p>
+        
+        <div class="filter-group">
+            <label>Source Hub(s)</label>
+            <select id="filterSrcHub" multiple></select>
+            <div class="help-text">Hold Ctrl (Windows) or Cmd (Mac) to select multiple hubs.</div>
+        </div>
+        
+        <div class="filter-group">
+            <label>Destination Hub(s)</label>
+            <select id="filterDstHub" multiple></select>
+        </div>
+
+        <div class="filter-group">
+            <label>Vendor(s)</label>
+            <select id="filterVendor" multiple></select>
+        </div>
+        
+        <button onclick="applyFilters()" style="width: 100%; padding: 10px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Apply Filters</button>
+    </div>
+
+    <!-- Main Dashboard Area -->
+    <div class="main-content">
+        <div class="header">
+            <h1>LH Network Performance</h1>
+            <div id="loading">Syncing Data...</div>
+        </div>
+
+        <!-- Business Impact KPIs -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-title">Total Trips</div>
+                <div class="kpi-value" id="kpiTrips">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Total Shipments</div>
+                <div class="kpi-value" id="kpiShipments">0</div>
+            </div>
+            <div class="kpi-card" style="border-left-color: #e74c3c;">
+                <div class="kpi-title">Avg Turnaround (Mins)</div>
+                <div class="kpi-value" id="kpiTAT">0</div>
+            </div>
+            <div class="kpi-card" style="border-left-color: #2ecc71;">
+                <div class="kpi-title">Perfect Trips</div>
+                <div class="kpi-value" id="kpiPerfect">0%</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="chart-box">
+                <div class="chart-title">Adherence Health (%)</div>
+                <canvas id="adherenceChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <div class="chart-title">Shipments vs. Utilization</div>
+                <canvas id="volumeChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 🔴 Paste your CSV URL here
+        const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVVwlkf3BVaI-4KDYTAOZYxhB3V0yAo9baAinrxjmtpG5_RYbndKXlvy7mflKg6A675LF5H41Sj4Cu/pub?output=csv';
+        
+        let globalData = [];
+        let adherenceChartInstance = null;
+        let volumeChartInstance = null;
+
+        const loadingIndicator = document.getElementById('loading');
+        loadingIndicator.style.display = 'block';
+
+        // 1. Fetch and Parse data using PapaParse
+        Papa.parse(csvUrl, {
+            download: true,
+            header: true, // Automatically uses the first row as object keys
+            skipEmptyLines: true,
+            complete: function(results) {
+                globalData = results.data;
+                loadingIndicator.style.display = 'none';
+                
+                populateFilters();
+                updateDashboard(globalData); // Load initial dashboard with all data
+            }
+        });
+
+        // 2. Extract unique values to build the dropdown filters
+        function populateFilters() {
+            const srcHubs = [...new Set(globalData.map(row => row.trip_seal_src_hub).filter(Boolean))].sort();
+            const dstHubs = [...new Set(globalData.map(row => row.trip_seal_dst_hub).filter(Boolean))].sort();
+            const vendors = [...new Set(globalData.map(row => row.vendor_name).filter(Boolean))].sort();
+
+            fillSelect('filterSrcHub', srcHubs);
+            fillSelect('filterDstHub', dstHubs);
+            fillSelect('filterVendor', vendors);
+        }
+
+        function fillSelect(elementId, options) {
+            const select = document.getElementById(elementId);
+            options.forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt;
+                el.textContent = opt;
+                select.appendChild(el);
+            });
+        }
+
+        // 3. Apply user filters
+        function getSelectedValues(elementId) {
+            const select = document.getElementById(elementId);
+            return Array.from(select.selectedOptions).map(opt => opt.value);
+        }
+
+        window.applyFilters = function() {
+            const selectedSrc = getSelectedValues('filterSrcHub');
+            const selectedDst = getSelectedValues('filterDstHub');
+            const selectedVendor = getSelectedValues('filterVendor');
+
+            const filteredData = globalData.filter(row => {
+                const matchSrc = selectedSrc.length === 0 || selectedSrc.includes(row.trip_seal_src_hub);
+                const matchDst = selectedDst.length === 0 || selectedDst.includes(row.trip_seal_dst_hub);
+                const matchVendor = selectedVendor.length === 0 || selectedVendor.includes(row.vendor_name);
+                return matchSrc && matchDst && matchVendor;
+            });
+
+            updateDashboard(filteredData);
+        };
+
+        // 4. Calculate Business KPIs and Update Charts
+        function updateDashboard(data) {
+            if (data.length === 0) {
+                alert("No data matches these filters.");
+                return;
+            }
+
+            // Calculate KPIs
+            let totalShipments = 0;
+            let totalTAT = 0;
+            let validTATCount = 0;
+            let perfectTrips = 0;
+
+            data.forEach(row => {
+                // Shipments
+                const shipments = parseInt(row.total_shipments);
+                if (!isNaN(shipments)) totalShipments += shipments;
+
+                // Turnaround Time
+                const tat = parseFloat(row.Arrived_TAT_in_Minutes);
+                if (!isNaN(tat)) {
+                    totalTAT += tat;
+                    validTATCount++;
+                }
+
+                // Perfect Flags (Accepts text 'Perfect' or 'TRUE')
+                const perfectFlag = (row.Perfect_Flag || '').toString().trim().toUpperCase();
+                if (perfectFlag === 'PERFECT' || perfectFlag === 'TRUE' || perfectFlag === '1') {
+                    perfectTrips++;
+                }
+            });
+
+            document.getElementById('kpiTrips').innerText = data.length.toLocaleString();
+            document.getElementById('kpiShipments').innerText = totalShipments.toLocaleString();
+            document.getElementById('kpiTAT').innerText = validTATCount > 0 ? Math.round(totalTAT / validTATCount) : 0;
+            document.getElementById('kpiPerfect').innerText = Math.round((perfectTrips / data.length) * 100) + '%';
+
+            drawAdherenceChart(data);
+            drawVolumeChart(data);
+        }
+
+        // 5. Draw the Adherence Bar Chart
+        function drawAdherenceChart(data) {
+            const metrics = ['Portal_Adherence', 'Arrival_Adherence', 'Vendor_Adherence', 'gate in to open adherence', 'LM adherence'];
+            const scores = metrics.map(metric => {
+                let adheredCount = 0;
+                let totalValid = 0;
+                
+                data.forEach(row => {
+                    if (row[metric]) {
+                        totalValid++;
+                        const val = row[metric].toString().trim().toUpperCase();
+                        if (val === 'ADHERED' || val === 'TRUE' || val === '1' || val === 'WITHIN TARGET') {
+                            adheredCount++;
+                        }
+                    }
+                });
+                return totalValid > 0 ? Math.round((adheredCount / totalValid) * 100) : 0;
+            });
+
+            const ctx = document.getElementById('adherenceChart').getContext('2d');
+            if (adherenceChartInstance) adherenceChartInstance.destroy(); // Clear old chart
+            
+            adherenceChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: metrics.map(m => m.replace(/_/g, ' ')),
+                    datasets: [{
+                        label: '% Adhered',
+                        data: scores,
+                        backgroundColor: '#3498db',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    scales: { y: { max: 100 } }
+                }
+            });
+        }
+
+        // 6. Draw the Volume Chart (Top 10 Routes by Shipments)
+        function drawVolumeChart(data) {
+            // Aggregate shipments by route
+            const routeData = {};
+            data.forEach(row => {
+                const route = row.route_code || 'Unknown';
+                const shipments = parseInt(row.total_shipments) || 0;
+                if (!routeData[route]) routeData[route] = 0;
+                routeData[route] += shipments;
+            });
+
+            // Sort and take top 10
+            const sortedRoutes = Object.keys(routeData).sort((a, b) => routeData[b] - routeData[a]).slice(0, 10);
+            const routeValues = sortedRoutes.map(route => routeData[route]);
+
+            const ctx = document.getElementById('volumeChart').getContext('2d');
+            if (volumeChartInstance) volumeChartInstance.destroy();
+
+            volumeChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedRoutes,
+                    datasets: [{
+                        label: 'Total Shipments',
+                        data: routeValues,
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                }
+            });
+        }
+    </script>
+</body>
+</html>
