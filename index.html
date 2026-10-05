@@ -7,6 +7,10 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<!-- Brand Fonts: Montserrat (headers) / Open Sans (body) / Roboto Mono (numbers) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <!-- Select2 Multi-Select -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
@@ -15,80 +19,117 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
 <style>
-    :root { --primary-dark: #0f172a; --accent-blue: #2563eb; }
-    body { background-color: #f1f5f9; font-family: 'Segoe UI', system-ui, sans-serif; color: #334155; }
-    .top-navbar { background: var(--primary-dark); color: white; padding: 12px 24px; }
-    .nav-pills .nav-link { font-weight: 600; color: #94a3b8; border-radius: 8px; font-size: .85rem; }
-    .nav-pills .nav-link.active { background-color: var(--accent-blue); color: white; }
-    .meta-line { font-size: .72rem; color: #94a3b8; }
-    .demo-pill { background:#f59e0b; color:#0f172a; font-size:.65rem; font-weight:800; border-radius:999px; padding:2px 8px; }
+/* ===================== BRAND GUIDELINES =====================
+   Colors : header black (dashboards) • page bg light yellow • cards/rest white
+            text black • headers white • critical notes red
+   Fonts  : Montserrat bold (headers) • Open Sans (body) • Roboto Mono (numbers)
+============================================================= */
+:root {
+    --brand-black: #000000;
+    --brand-yellow: #FFF7E0;        /* dashboard background - light yellow */
+    --brand-yellow3: #FFF2CC;       /* Light Yellow 3 - report headers / accents */
+    --brand-red: #D32F2F;           /* critical notes */
+    --brand-white: #ffffff;
+    --font-head: 'Montserrat', 'Segoe UI', sans-serif;
+    --font-body: 'Open Sans', 'Segoe UI', sans-serif;
+    --font-num: 'Roboto Mono', monospace;
+}
+body { background-color: var(--brand-yellow); font-family: var(--font-body); color: #111111; }
+h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 700; color: #111111; }
 
-    /* KPI mini strip */
-    .kpi-mini { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); height: 100%; }
-    .kpi-mini .lbl { font-size: .68rem; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: .4px; }
-    .kpi-mini .val { font-size: 1.55rem; font-weight: 800; color: #0f172a; line-height: 1.15; }
-    .kpi-mini .sub { font-size: .72rem; color: #94a3b8; }
+/* Header — black for dashboards, white Montserrat title + slogan */
+.top-navbar { background: var(--brand-black); color: var(--brand-white); padding: 12px 24px; }
+.top-navbar h4 { color: var(--brand-white); font-weight: 800; font-size: 1.6rem; letter-spacing: .3px; }
+.top-navbar .brand-slogan { font-family: var(--font-head); font-size: .72rem; font-weight: 600; color: var(--brand-yellow3); letter-spacing: 1.2px; text-transform: uppercase; }
+.meta-line { font-size: .72rem; color: #cfcabc; font-family: var(--font-num); }
+.demo-pill { background:#f59e0b; color:#0f172a; font-size:.65rem; font-weight:800; border-radius:999px; padding:2px 8px; }
 
-    /* Core metric cards */
-    .kpi-card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative; overflow: hidden; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; height:100%; }
-    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(15,23,42,.10); }
-    .kpi-card-header { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; }
-    .kpi-main-pct { font-size: 2.1rem; font-weight: 800; color: #0f172a; margin: 4px 0; }
-    .kpi-stat-row { display: flex; justify-content: space-between; font-size: 0.8rem; padding-top: 8px; border-top: 1px solid #f1f5f9; margin-top: 8px; }
-    .kpi-stat-item { text-align: center; }
-    .kpi-stat-label { color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 0.62rem; }
-    .kpi-stat-val { font-weight: 700; color: #334155; }
-    .card-hint { position:absolute; top:10px; right:12px; font-size:.62rem; color:#cbd5e1; font-weight:700; }
+/* Numbers / metrics always Roboto Mono */
+.kpi-mini .val, .kpi-main-pct, .kpi-stat-val, .score-pill, .mini-tile .v,
+.live-table .time-cell, .live-kpi .v, td[data-order] { font-family: var(--font-num); }
+
+/* Cards & containers rest on white */
+.kpi-mini { background: var(--brand-white); border-radius: 12px; border: 1px solid #e8e2cf; padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); height: 100%; }
+.kpi-mini .lbl { font-family: var(--font-head); font-size: .68rem; font-weight: 700; text-transform: uppercase; color: #6b6353; letter-spacing: .4px; }
+.kpi-mini .val { font-size: 1.55rem; font-weight: 800; color: #111111; line-height: 1.15; }
+.kpi-mini .sub { font-size: .72rem; color: #9a9282; }
+
+/* Core metric cards */
+.kpi-card { background: var(--brand-white); border-radius: 12px; border: 1px solid #e8e2cf; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative; overflow: hidden; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; height:100%; }
+.kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.10); }
+.kpi-card-header { font-family: var(--font-head); font-size: 0.82rem; font-weight: 700; text-transform: uppercase; color: #6b6353; letter-spacing: 0.5px; }
+.kpi-main-pct { font-size: 2.1rem; font-weight: 800; color: #111111; margin: 4px 0; }
+.kpi-stat-row { display: flex; justify-content: space-between; font-size: 0.8rem; padding-top: 8px; border-top: 1px solid #f4efdd; margin-top: 8px; }
+.kpi-stat-item { text-align: center; }
+.kpi-stat-label { color: #9a9282; font-weight: 600; text-transform: uppercase; font-size: 0.62rem; }
+.kpi-stat-val { font-weight: 700; color: #333333; }
+.card-hint { position:absolute; top:10px; right:12px; font-size:.62rem; color:#d8d2c0; font-weight:700; }
 
     .border-portal { border-top: 4px solid #3b82f6; }
     .border-actual { border-top: 4px solid #8b5cf6; }
     .border-openseal { border-top: 4px solid #10b981; }
     .border-arrival { border-top: 4px solid #f59e0b; }
 
-    .badge-pass { background-color: #dcfce7; color: #15803d; font-size: 0.68rem; font-weight: 700; padding: 3px 6px; border-radius: 4px; }
-    .badge-fail { background-color: #fee2e2; color: #b91c1c; font-size: 0.68rem; font-weight: 700; padding: 3px 6px; border-radius: 4px; }
+/* Critical notes in brand red */
+.badge-pass { background-color: #e5f3e0; color: #1e7a2e; font-size: 0.68rem; font-weight: 700; padding: 3px 6px; border-radius: 4px; }
+.badge-fail { background-color: #fdecea; color: var(--brand-red); font-size: 0.68rem; font-weight: 700; padding: 3px 6px; border-radius: 4px; }
+.text-danger, .badge.bg-danger, .badge.bg-danger-subtle { color: var(--brand-red) !important; }
 
-    .chart-box { position: relative; height: 290px; }
-    .chart-box-sm { position: relative; height: 240px; }
-    .chart-card h6 { font-size:.85rem; }
+.chart-box { position: relative; height: 290px; }
+.chart-box-sm { position: relative; height: 240px; }
+.chart-card h6 { font-size:.85rem; }
 
-    /* Gap analysis */
-    .insight-card { background: white; border-radius: 10px; border: 1px solid #e2e8f0; border-left-width: 5px; padding: 12px 14px; height: 100%; }
-    .tone-danger { border-left-color: #ef4444; } .tone-warning { border-left-color: #f59e0b; }
-    .tone-success { border-left-color: #22c55e; } .tone-info { border-left-color: #0ea5e9; }
-    .insight-card .t { font-size:.64rem; font-weight:700; text-transform:uppercase; color:#64748b; letter-spacing:.4px; }
-    .insight-card .m { font-size:1.02rem; font-weight:800; color:#0f172a; margin:2px 0; }
-    .insight-card .s { font-size:.72rem; color:#64748b; }
+/* Cards / charts on white */
+.card { background: var(--brand-white); border-radius: 12px; }
+.chart-card { border: 1px solid #e8e2cf; }
 
-    .score-pill { border-radius: 999px; padding: 2px 10px; font-weight: 700; font-size: .74rem; display: inline-block; min-width: 52px; text-align: center; }
-    .adh-good { background:#dcfce7; color:#15803d; } .adh-mid { background:#fef9c3; color:#a16207; }
-    .adh-bad { background:#fee2e2; color:#b91c1c; } .adh-na { background:#e2e8f0; color:#64748b; }
+/* Gap analysis */
+.insight-card { background: var(--brand-white); border-radius: 10px; border: 1px solid #e8e2cf; border-left-width: 5px; padding: 12px 14px; height: 100%; }
+.tone-danger { border-left-color: var(--brand-red); } .tone-warning { border-left-color: #f59e0b; }
+.tone-success { border-left-color: #22c55e; } .tone-info { border-left-color: #0ea5e9; }
+.insight-card .t { font-family: var(--font-head); font-size:.64rem; font-weight:700; text-transform:uppercase; color:#6b6353; letter-spacing:.4px; }
+.insight-card .m { font-size:1.02rem; font-weight:800; color:#111111; margin:2px 0; }
+.insight-card .s { font-size:.72rem; color:#6b6353; }
 
-    .table-container { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; }
+.score-pill { border-radius: 999px; padding: 2px 10px; font-weight: 700; font-size: .74rem; display: inline-block; min-width: 52px; text-align: center; }
+.adh-good { background:#e5f3e0; color:#1e7a2e; } .adh-mid { background:#fdf3ce; color:#8a6d1a; }
+.adh-bad { background:#fdecea; color:var(--brand-red); } .adh-na { background:#efece2; color:#6b6353; }
+
+.table-container { background: var(--brand-white); border-radius: 12px; border: 1px solid #e8e2cf; padding: 20px; }
+
+/* Tables: thin borders all around, no gridlines/stripes */
+.table > :not(caption) > * > * { border: 1px solid #ece7d5 !important; background-color: var(--brand-white); box-shadow: none; }
+.table thead th { background: var(--brand-yellow3) !important; font-family: var(--font-head); font-size: .72rem; text-transform: uppercase; letter-spacing: .3px; color: #111111; }
+.table tbody tr:nth-child(odd) > * { background-color: var(--brand-white); }
     .fs-7 { font-size:.82rem; }
-    .rca-box-fail { background: #fff1f2; border-left: 4px solid #f43f5e; padding: 12px; border-radius: 6px; margin-bottom: 12px; }
+    .rca-box-fail { background: #fdecea; border-left: 4px solid var(--brand-red); padding: 12px; border-radius: 6px; margin-bottom: 12px; }
     .rca-box-pass { background: #f0fdf4; border-left: 4px solid #22c55e; padding: 10px; border-radius: 6px; margin-bottom: 12px; }
 
-    .mini-tile { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:6px 10px; height:100%; }
-    .mini-tile .l { font-size:.6rem; font-weight:700; text-transform:uppercase; color:#94a3b8; }
-    .mini-tile .v { font-size:.82rem; font-weight:700; color:#0f172a; }
+    .mini-tile { background:#fbf8ee; border:1px solid #e8e2cf; border-radius:8px; padding:6px 10px; height:100%; }
+    .mini-tile .l { font-family: var(--font-head); font-size:.6rem; font-weight:700; text-transform:uppercase; color:#9a9282; }
+    .mini-tile .v { font-size:.82rem; font-weight:700; color:#111111; }
 
     .chip-bar .btn { border-radius: 999px !important; }
     .select2-container--bootstrap-5 .select2-selection { font-size: 0.85rem; min-height: 31px; }
     .clickable { cursor:pointer; }
 
-    /* ===== Live Tracking ===== */
+    /* ===== Live Tracking (brand applied) ===== */
     .live-table { border-collapse: collapse; width: 100%; font-size: .8rem; }
-    .live-table th, .live-table td { border: 1px solid #e2e8f0; text-align: center; vertical-align: middle; padding: 5px 8px; }
-    .live-table thead th { background: #f8fafc; font-size: .72rem; text-transform: uppercase; letter-spacing: .3px; color: #475569; }
-    .live-table .occ-head { background: #0f172a; color: white; font-weight: 800; font-size: .78rem; }
-    .live-table .dest-cell { background: #f8fafc; font-weight: 700; text-align: left; white-space: nowrap; position: sticky; left: 0; z-index: 1; }
-    .live-table .time-cell { font-weight: 700; color: #0f172a; white-space: nowrap; }
+    .live-table th, .live-table td { border: 1px solid #e8e2cf; text-align: center; vertical-align: middle; padding: 5px 8px; background: var(--brand-white); }
+    .live-table thead th { background: var(--brand-yellow3); font-family: var(--font-head); font-size: .72rem; text-transform: uppercase; letter-spacing: .3px; color: #111111; }
+    .live-table .occ-head { background: var(--brand-black); color: var(--brand-white); font-family: var(--font-head); font-weight: 800; font-size: .78rem; }
+    .live-table .dest-cell { background: #fbf8ee; font-weight: 700; text-align: left; white-space: nowrap; position: sticky; left: 0; z-index: 1; }
+    .live-table .time-cell { font-weight: 700; color: #111111; white-space: nowrap; }
     .live-wrap { overflow-x: auto; }
-    .live-hub-title { font-size: 1rem; font-weight: 800; color: #0f172a; }
-    .live-kpi { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:6px 14px; display:inline-block; margin-right:10px; }
-    .live-kpi .l { font-size:.6rem; font-weight:700; text-transform:uppercase; color:#94a3b8; }
-    .live-kpi .v { font-size:.95rem; font-weight:800; color:#0f172a; }
+    .live-hub-title { font-family: var(--font-head); font-size: 1rem; font-weight: 800; color: #111111; }
+    .live-kpi { background: var(--brand-white); border:1px solid #e8e2cf; border-radius:8px; padding:6px 14px; display:inline-block; margin-right:10px; }
+    .live-kpi .l { font-family: var(--font-head); font-size:.6rem; font-weight:700; text-transform:uppercase; color:#9a9282; }
+    .live-kpi .v { font-size:.95rem; font-weight:800; color:#111111; }
+
+    /* Brand footer */
+    .brand-footer { background: var(--brand-black); color: var(--brand-white); padding: 14px 24px; margin-top: 24px; }
+    .brand-footer .slogan { font-family: var(--font-head); font-weight: 700; font-size: .95rem; color: var(--brand-yellow3); letter-spacing: .5px; }
+    .brand-footer .values { font-family: var(--font-body); font-size: .72rem; color: #cfcabc; }
 </style>
 </head>
 <body>
@@ -97,6 +138,7 @@
 <div class="top-navbar d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
         <h4 class="m-0 fw-bold"><i class="bi bi-truck me-2"></i>Line Haul Control Tower</h4>
+        <div class="brand-slogan">We Build, Guide, Excel, and Control.</div>
         <div class="meta-line" id="sheetMeta">Connecting to sheet…</div>
     </div>
     <div class="d-flex align-items-center gap-2">
@@ -110,10 +152,10 @@
     </div>
 </div>
 
-<div class="container-fluid p-4">
+    <div class="container-fluid p-4">
 
     <!-- GLOBAL FILTER BAR -->
-    <div class="card p-3 mb-4 border-0 shadow-sm">
+    <div class="card p-3 mb-4 border shadow-sm" style="border-color:#e8e2cf !important;">
         <div class="row g-2 align-items-end">
             <div class="col-6 col-md-2">
                 <label class="form-label fw-bold small text-muted">From Date</label>
@@ -433,6 +475,12 @@
 
     </div>
 </div>
+
+<!-- Brand footer -->
+<footer class="brand-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="slogan">We Build, Guide, Excel, and Control.</div>
+    <div class="values">Values: Integrity • Growth • Honesty • Leadership &nbsp;|&nbsp; Strengths: Data Analysis • Strategic Thinking • Critical Thinking • Communication</div>
+</footer>
 
 <!-- RCA MODAL -->
 <div class="modal fade" id="rcaModal" tabindex="-1">
