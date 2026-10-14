@@ -318,7 +318,11 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                         <label class="form-label fw-bold small text-muted">Vendors</label>
                         <select id="live-vendor" class="form-select select2-live" multiple="multiple"></select>
                     </div>
-                    <div class="col-6 col-md-3 d-flex align-items-end">
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted" title="FLAG_HUBS column from the live sheet">Flag Hubs</label>
+                        <select id="live-flag" class="form-select select2-live" multiple="multiple"></select>
+                    </div>
+                    <div class="col-6 col-md-2 d-flex align-items-end">
                         <div class="form-check ms-2">
                             <input type="checkbox" class="form-check-input" id="live-auto" onchange="toggleAutoRefresh()">
                             <label class="form-check-label small fw-semibold" for="live-auto"><i class="bi bi-arrow-repeat me-1"></i>Auto-refresh (60s)</label>
@@ -862,10 +866,12 @@ function populateLiveFilters(){
     const curSrc = $('#live-src').val() || [];
     const curDst = $('#live-dst').val() || [];
     const curVen = $('#live-vendor').val() || [];
+    const curFlag = $('#live-flag').val() || [];
     const uniq = (fn) => [...new Set(liveRows.map(fn).filter(x => x !== null && x !== undefined && String(x).trim() !== ''))].sort();
     fillLiveSelect('#live-src', uniq(t => t.srcHub), curSrc);
     fillLiveSelect('#live-dst', uniq(t => t.dstHub), curDst);
     fillLiveSelect('#live-vendor', uniq(t => t.vendor), curVen);
+    fillLiveSelect('#live-flag', uniq(t => t.flagHubs), curFlag);
 }
 
 function fillLiveSelect(sel, values, keepVals){
@@ -917,7 +923,7 @@ function toggleAutoRefresh(){
 
 function resetLiveFilters(){
     document.getElementById('live-date').value = '';
-    ['#live-src','#live-dst','#live-vendor'].forEach(id => $(id).val(null).trigger('change'));
+    ['#live-src','#live-dst','#live-vendor','#live-flag'].forEach(id => $(id).val(null).trigger('change'));
 }
 
 function parseHhmm(s){
@@ -941,12 +947,14 @@ function renderLiveTracking(){
     const srcSel  = $('#live-src').val() || [];
     const dstSel  = $('#live-dst').val() || [];
     const venSel  = $('#live-vendor').val() || [];
+    const flagSel = $('#live-flag').val() || [];
 
     let rows = liveRows;
     if (dateVal) rows = rows.filter(t => t.dod === normDateKey(dateVal) || normDateKey(t.dod) === dateVal);
     if (srcSel.length) rows = rows.filter(t => srcSel.includes(t.srcHub));
     if (dstSel.length) rows = rows.filter(t => dstSel.includes(t.dstHub));
     if (venSel.length) rows = rows.filter(t => venSel.includes(t.vendor));
+    if (flagSel.length) rows = rows.filter(t => flagSel.includes(String(t.flagHubs).trim()));
 
     // Summary KPIs (Extra rows have no plan → excluded from adherence)
     const planned  = rows.filter(t => String(t.outAdhRaw).trim() !== '' && String(t.outAdhRaw).trim().toLowerCase() !== 'extra');
@@ -1011,7 +1019,6 @@ function renderLiveTracking(){
                 <div><span class="live-hub-title"><i class="bi bi-geo-alt text-primary me-1"></i>${esc(src)}</span>
                     <span class="text-muted fs-7 ms-2">${esc(dateVal || '')}${dstSel.length?` • dst: ${esc(dstSel.join(', '))}`:''}${venSel.length?` • vendors: ${esc(venSel.join(', '))}`:''}</span></div>
                     <span class="badge text-bg-light border">${fmt(srcTrips.length)} occurrences • ${dstRows.length} destinations</span>
-                </div>
                 <div class="live-wrap">
                     <table class="live-table">
                         <thead>${head1}${head2}</thead>
