@@ -328,7 +328,8 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                             <label class="form-check-label small fw-semibold" for="live-auto"><i class="bi bi-arrow-repeat me-1"></i>Auto-refresh (60s)</label>
                         </div>
                     </div>
-                    <div class="col-6 col-md-2 d-flex align-items-end gap-2">
+                    <div class="col-6 col-md-3 d-flex align-items-end gap-2">
+                        <button class="btn btn-sm btn-outline-primary" onclick="snapLiveBoard()" title="Capture the whole live board (KPIs + all hub tables) as one image to copy or download"><i class="bi bi-camera"></i> Snap Board</button>
                         <button class="btn btn-sm btn-outline-secondary" onclick="resetLiveFilters()"><i class="bi bi-arrow-counterclockwise"></i> Clear</button>
                         <button class="btn btn-sm btn-outline-primary" onclick="refreshData()"><i class="bi bi-arrow-repeat"></i> Refresh</button>
                     </div>
@@ -338,7 +339,9 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                     Out_Dispatch_adh &amp; Out_Arrival_adh come pre-computed in the sheet (<code>adhered</code> / <code>not adhered early|late</code> / <code>Extra</code>). Occurrences are ordered by <code>Trip_Sequence</code>; rows without a plan time show <code>Extra</code>.
                 </div>
             </div>
-            <div id="liveTables"></div>
+                    <div id="liveBoard" style="background:#fff;">
+                <div id="liveTables"></div>
+            </div>
         </div>
 
         <!-- ============ PAGE 3: GAP ANALYSIS ============ -->
@@ -685,6 +688,14 @@ function loadLiveCsv() {
 ================================================================ */
 const SNAP_SCALE = 2;   // 2x for crisp text in the image
 
+/* Capture the entire Live Tracking board — summary KPIs + every hub table —
+   as a single PNG, ready to paste (Ctrl+V) into an email / Teams / WhatsApp.   */
+function snapLiveBoard(){
+    const board = document.getElementById('liveBoard');
+    if (!board || !board.querySelector('.live-table')) { showToast('Nothing to capture — load the Live Tracking data first', 'danger'); return; }
+    snapshotEl(board, 'live_board');
+}
+
 function snapStatus(msg){
     document.querySelectorAll('.snap-status').forEach(e=>e.remove());
     const el=document.createElement('div');
@@ -1029,6 +1040,7 @@ function renderLiveTracking(){
     });
 
     wrap.innerHTML = html.join('');
+    if (typeof initSnapshots === 'function') initSnapshots();   // re-add camera buttons to re-rendered tables
 }
 
 /* ================================================================
