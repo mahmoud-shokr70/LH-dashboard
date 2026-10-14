@@ -69,6 +69,32 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
     .border-actual { border-top: 4px solid #8b5cf6; }
     .border-openseal { border-top: 4px solid #10b981; }
     .border-arrival { border-top: 4px solid #f59e0b; }
+    .border-gatein { border-top: 4px solid #06b6d4; }
+    .border-vehicle { border-top: 4px solid #ef4444; }
+
+    .metric-card {
+        position: relative;
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.10);
+    }
+    .metric-card.selected {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        border-color: var(--brand-black) !important;
+        border-width: 2px;
+        z-index: 10;
+    }
+    .metric-detail-panel {
+        border: 2px dashed #ccc;
+        background: #fafaf5;
+    }
+    .metric-detail-panel.active {
+        border: 2px solid var(--brand-black);
+        background: #fff;
+    }
 
 /* Critical notes in brand red */
 .badge-pass { background-color: #e5f3e0; color: #1e7a2e; font-size: 0.68rem; font-weight: 700; padding: 3px 6px; border-radius: 4px; }
@@ -111,6 +137,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 
     .chip-bar .btn { border-radius: 999px !important; }
     .select2-container--bootstrap-5 .select2-selection { font-size: 0.85rem; min-height: 31px; }
+    .select2-dash .select2-selection { font-size: 0.75rem; min-height: 28px; max-height: 200px; }
     .clickable { cursor:pointer; }
 
     /* ===== Live Tracking (brand applied) ===== */
@@ -154,7 +181,6 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard"><i class="bi bi-speedometer2 me-1"></i> Executive Dashboard</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live"><i class="bi bi-broadcast me-1"></i> Live Tracking</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-gap"><i class="bi bi-search-heart me-1"></i> Gap Analysis</button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-rca"><i class="bi bi-list-task me-1"></i> Trips &amp; RCA Log</button></li>
         </ul>
         <button class="btn btn-sm btn-outline-light" id="btnRefresh" title="Reload data from sheet" onclick="refreshData()"><i class="bi bi-arrow-repeat"></i></button>
     </div>
@@ -173,6 +199,42 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
         <!-- ============ PAGE 1: EXECUTIVE DASHBOARD ============ -->
         <div class="tab-pane fade show active" id="page-dashboard">
 
+            <!-- FILTER BAR -->
+            <div class="card p-3 mb-4 border-0 shadow-sm">
+                <div class="d-flex flex-wrap gap-2 align-items-end">
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted">Date</label>
+                        <input type="date" id="dash-date" class="form-control form-control-sm" onchange="applyDashboardFilters()">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted">Src Hub</label>
+                        <select id="dash-src" class="form-select select2-dash" multiple="multiple"></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted">Dst Hub</label>
+                        <select id="dash-dst" class="form-select select2-dash" multiple="multiple"></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted">Vendor</label>
+                        <select id="dash-vendor" class="form-select select2-dash" multiple="multiple"></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted">Flag Hubs</label>
+                        <select id="dash-flag" class="form-select select2-dash" multiple="multiple"></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted">Perfect Flag</label>
+                        <select id="dash-perfect" class="form-select select2-dash" multiple="multiple"></select>
+                    </div>
+                    <div class="col-12 col-md-auto ms-auto">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="resetDashFilters()"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+                        <button class="btn btn-sm btn-success" onclick="copyDashboardReport()"><i class="bi bi-clipboard me-1"></i> Copy Report</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="showDashboardReportPopup()"><i class="bi bi-eye me-1"></i> View</button>
+                    </div>
+                </div>
+                <div class="small text-muted mt-2" id="dashFilterInfo"></div>
+            </div>
+
             <!-- BUSINESS KPI STRIP -->
             <div class="row g-3 mb-4">
                 <div class="col-6 col-md-2"><div class="kpi-mini">
@@ -181,14 +243,14 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                     <div class="sub"><span id="k-ship">0</span> shipments moved</div>
                 </div></div>
                 <div class="col-6 col-md-2"><div class="kpi-mini">
-                    <div class="lbl">Composite Adherence</div>
+                    <div class="lbl">Composite Adh</div>
                     <div class="val text-primary" id="k-comp">0%</div>
-                    <div class="sub">all 4 core checkpoints combined</div>
+                    <div class="sub">all 4 core checkpoints</div>
                 </div></div>
                 <div class="col-6 col-md-2"><div class="kpi-mini">
-                    <div class="lbl">Perfect Trips</div>
+                    <div class="lbl">Perfect Flag</div>
                     <div class="val text-success" id="k-perfect">0%</div>
-                    <div class="sub"><span id="k-perfect-n">0</span> trips green on all 4 checkpoints</div>
+                    <div class="sub"><span id="k-perfect-n">0</span> trips PERFECT</div>
                 </div></div>
                 <div class="col-6 col-md-2"><div class="kpi-mini">
                     <div class="lbl">Avg Open → Seal</div>
@@ -198,57 +260,104 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 <div class="col-6 col-md-2"><div class="kpi-mini">
                     <div class="lbl">Avg Utilization</div>
                     <div class="val" style="color:#0ea5e9" id="k-util">—</div>
-                    <div class="sub"><span id="k-util-n">0</span> trips under 70% loaded</div>
+                    <div class="sub"><span id="k-util-n">0</span> trips under 70%</div>
                 </div></div>
-                <div class="col-6 col-md-2"><div class="kpi-mini clickable" onclick="gotoLog('rcaPending', null)" title="Show trips that failed without an RCA">
-                    <div class="lbl">RCA Pending</div>
-                    <div class="val text-danger" id="k-rca">0</div>
-                    <div class="sub"><span id="k-rca-sub">0%</span> of failures have RCA filled</div>
+                <div class="col-6 col-md-2"><div class="kpi-mini">
+                    <div class="lbl">Flag Hubs</div>
+                    <div class="val" style="color:#f59e0b" id="k-flag">—</div>
+                    <div class="sub"><span id="k-flag-n">0</span> with flags</div>
                 </div></div>
             </div>
 
-            <!-- 4 CORE METRIC CARDS (click a card to inspect its failures) -->
+            <!-- 6 CORE METRIC CARDS - Click to select a metric for detailed view -->
             <div class="row g-3 mb-4">
-                <div class="col-md-3"><div class="kpi-card border-portal" onclick="gotoLog('failed','portalAdh')" title="Click to view failing trips">
-                    <span class="card-hint">VIEW FAILURES ▸</span>
-                    <div class="kpi-card-header">Portal Adherence</div>
-                    <div class="kpi-main-pct text-primary" id="c1-pct">0%</div>
+                <div class="col-md-2"><div class="kpi-card border-portal metric-card" data-metric="portalAdh" onclick="selectMetricCard(this, 'portalAdh')" title="Click to focus on this metric">
+                    <span class="card-hint">SELECT ▸</span>
+                    <div class="kpi-card-header">Portal Adh</div>
+                    <div class="kpi-main-pct text-primary" id="m-portalAdh-pct">0%</div>
                     <div class="kpi-stat-row">
-                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="c1-total">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Adhered</div><div class="kpi-stat-val text-success" id="c1-adh">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Not Adhered</div><div class="kpi-stat-val text-danger" id="c1-nonadh">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="m-portalAdh-total">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Pass</div><div class="kpi-stat-val text-success" id="m-portalAdh-pass">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Fail</div><div class="kpi-stat-val text-danger" id="m-portalAdh-fail">0</div></div>
                     </div>
                 </div></div>
-                <div class="col-md-3"><div class="kpi-card border-actual" onclick="gotoLog('failed','portalPlanVsActualAdh')" title="Click to view failing trips">
-                    <span class="card-hint">VIEW FAILURES ▸</span>
-                    <div class="kpi-card-header">Portal Actual Vs Plan</div>
-                    <div class="kpi-main-pct" style="color: #8b5cf6;" id="c2-pct">0%</div>
+                <div class="col-md-2"><div class="kpi-card border-actual metric-card" data-metric="portalPlanVsActualAdh" onclick="selectMetricCard(this, 'portalPlanVsActualAdh')" title="Click to focus on this metric">
+                    <span class="card-hint">SELECT ▸</span>
+                    <div class="kpi-card-header">Port Act/Plan</div>
+                    <div class="kpi-main-pct" style="color:#8b5cf6" id="m-portalPlanVsActualAdh-pct">0%</div>
                     <div class="kpi-stat-row">
-                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="c2-total">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Adhered</div><div class="kpi-stat-val text-success" id="c2-adh">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Not Adhered</div><div class="kpi-stat-val text-danger" id="c2-nonadh">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="m-portalPlanVsActualAdh-total">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Pass</div><div class="kpi-stat-val text-success" id="m-portalPlanVsActualAdh-pass">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Fail</div><div class="kpi-stat-val text-danger" id="m-portalPlanVsActualAdh-fail">0</div></div>
                     </div>
                 </div></div>
-                <div class="col-md-3"><div class="kpi-card border-openseal" onclick="gotoLog('failed','openToSealAdh')" title="Click to view failing trips">
-                    <span class="card-hint">VIEW FAILURES ▸</span>
-                    <div class="kpi-card-header">Open to Seal Adherence</div>
-                    <div class="kpi-main-pct text-success" id="c3-pct">0%</div>
+                <div class="col-md-2"><div class="kpi-card border-gatein metric-card" data-metric="gateInToOpenAdh" onclick="selectMetricCard(this, 'gateInToOpenAdh')" title="Click to focus on this metric">
+                    <span class="card-hint">SELECT ▸</span>
+                    <div class="kpi-card-header">Gate→Open</div>
+                    <div class="kpi-main-pct text-info" id="m-gateInToOpenAdh-pct">0%</div>
                     <div class="kpi-stat-row">
-                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="c3-total">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Adhered</div><div class="kpi-stat-val text-success" id="c3-adh">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Not Adhered</div><div class="kpi-stat-val text-danger" id="c3-nonadh">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="m-gateInToOpenAdh-total">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Pass</div><div class="kpi-stat-val text-success" id="m-gateInToOpenAdh-pass">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Fail</div><div class="kpi-stat-val text-danger" id="m-gateInToOpenAdh-fail">0</div></div>
                     </div>
                 </div></div>
-                <div class="col-md-3"><div class="kpi-card border-arrival" onclick="gotoLog('failed','arrivalAdh')" title="Click to view failing trips">
-                    <span class="card-hint">VIEW FAILURES ▸</span>
-                    <div class="kpi-card-header">Arrival Adherence</div>
-                    <div class="kpi-main-pct text-warning" id="c4-pct">0%</div>
+                <div class="col-md-2"><div class="kpi-card border-openseal metric-card" data-metric="openToSealAdh" onclick="selectMetricCard(this, 'openToSealAdh')" title="Click to focus on this metric">
+                    <span class="card-hint">SELECT ▸</span>
+                    <div class="kpi-card-header">Open→Seal</div>
+                    <div class="kpi-main-pct text-success" id="m-openToSealAdh-pct">0%</div>
                     <div class="kpi-stat-row">
-                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="c4-total">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Adhered</div><div class="kpi-stat-val text-success" id="c4-adh">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Not Adhered</div><div class="kpi-stat-val text-danger" id="c4-nonadh">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="m-openToSealAdh-total">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Pass</div><div class="kpi-stat-val text-success" id="m-openToSealAdh-pass">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Fail</div><div class="kpi-stat-val text-danger" id="m-openToSealAdh-fail">0</div></div>
                     </div>
                 </div></div>
+                <div class="col-md-2"><div class="kpi-card border-arrival metric-card" data-metric="arrivalAdh" onclick="selectMetricCard(this, 'arrivalAdh')" title="Click to focus on this metric">
+                    <span class="card-hint">SELECT ▸</span>
+                    <div class="kpi-card-header">Arrival Adh</div>
+                    <div class="kpi-main-pct text-warning" id="m-arrivalAdh-pct">0%</div>
+                    <div class="kpi-stat-row">
+                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="m-arrivalAdh-total">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Pass</div><div class="kpi-stat-val text-success" id="m-arrivalAdh-pass">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Fail</div><div class="kpi-stat-val text-danger" id="m-arrivalAdh-fail">0</div></div>
+                    </div>
+                </div></div>
+                <div class="col-md-2"><div class="kpi-card border-vehicle metric-card" data-metric="vehicleAdh" onclick="selectMetricCard(this, 'vehicleAdh')" title="Click to focus on this metric">
+                    <span class="card-hint">SELECT ▸</span>
+                    <div class="kpi-card-header">Vendor Adh</div>
+                    <div class="kpi-main-pct text-danger" id="m-vehicleAdh-pct">0%</div>
+                    <div class="kpi-stat-row">
+                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="m-vehicleAdh-total">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Pass</div><div class="kpi-stat-val text-success" id="m-vehicleAdh-pass">0</div></div>
+                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Fail</div><div class="kpi-stat-val text-danger" id="m-vehicleAdh-fail">0</div></div>
+                    </div>
+                </div></div>
+            </div>
+
+            <!-- SELECTED METRIC DETAIL PANEL -->
+            <div class="card p-4 mb-4 border-0 shadow-sm metric-detail-panel" id="metricDetailPanel" style="display:none;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold m-0" id="metricDetailTitle"><i class="bi bi-circle-info me-2"></i>Select a metric above to see details</h5>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="clearMetricSelection()"><i class="bi bi-x"></i> Clear</button>
+                </div>
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <div class="chart-box" style="height:300px;">
+                            <canvas id="metricDetailChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="alert alert-light border mb-3">
+                            <div class="fw-bold" id="metricDetailDesc"></div>
+                            <div class="small text-muted mt-2" id="metricDetailStats"></div>
+                        </div>
+                        <div class="table-container p-0">
+                            <table class="table table-sm table-hover align-middle fs-7" id="metricDetailTable">
+                                <thead class="table-light"><tr><th>Trip ID</th><th>Route</th><th>Vendor</th><th>Value</th><th>RCA</th></tr></thead>
+                                <tbody id="metricDetailBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- VOLUME VS ADHERENCE + STAGE FAILURES -->
@@ -267,10 +376,67 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </div>
             </div>
 
-            <!-- TREND -->
-            <div class="card p-3 border-0 shadow-sm mb-4 chart-card">
-                <h6 class="fw-bold mb-3"><i class="bi bi-graph-up text-primary me-2"></i>Adherence % Trend Through the Period</h6>
-                <div style="height: 300px; position:relative;"><canvas id="chartTrend"></canvas></div>
+            <!-- METRIC TREND CHARTS - All 6 metrics over time -->
+            <div class="row g-3 mb-4">
+                <div class="col-lg-6">
+                    <div class="card p-3 border-0 shadow-sm chart-card">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-graph-up text-primary me-2"></i>Adherence Trend — All Metrics</h6>
+                        <div style="height:280px;position:relative;"><canvas id="chartTrend"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card p-3 border-0 shadow-sm chart-card">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line text-primary me-2"></i>Daily Volume vs Composite Adherence</h6>
+                        <div style="height:280px;position:relative;"><canvas id="chartVolAdh"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INDIVIDUAL METRIC VISUALIZATIONS -->
+            <h6 class="fw-bold text-muted text-uppercase mb-3" style="font-size:.75rem"><i class="bi bi-eye me-1"></i>Individual Metric Visualizations</h6>
+            <div class="row g-3 mb-4">
+                <div class="col-lg-4">
+                    <div class="card p-3 border-0 shadow-sm chart-card">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-primary me-1"></i>Portal Adherence <span class="badge bg-primary-subtle text-primary" id="viz-portalAdh-badge">0%</span></h6>
+                        <div style="height:180px;position:relative;"><canvas id="viz-portalAdh"></canvas></div>
+                        <div class="text-muted small mt-1" id="viz-portalAdh-info"></div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card p-3 border-0 shadow-sm chart-card">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-purple" style="color:#8b5cf6" me-1"></i>Port Act vs Plan <span class="badge bg-purple-subtle" style="background:#f3e8ff;color:#7e22ce;" id="viz-portalPlanVsActualAdh-badge">0%</span></h6>
+                        <div style="height:180px;position:relative;"><canvas id="viz-portalPlanVsActualAdh"></canvas></div>
+                        <div class="text-muted small mt-1" id="viz-portalPlanVsActualAdh-info"></div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card p-3 border-0 shadow-sm chart-card">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-info me-1"></i>Gate→Open Adh <span class="badge bg-info-subtle" style="background:#e0f2fe;color:#0369a1;" id="viz-gateInToOpenAdh-badge">0%</span></h6>
+                        <div style="height:180px;position:relative;"><canvas id="viz-gateInToOpenAdh"></canvas></div>
+                        <div class="text-muted small mt-1" id="viz-gateInToOpenAdh-info"></div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card p-3 border-0 shadow-sm chart-card">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-success me-1"></i>Open→Seal Adh <span class="badge bg-success-subtle" style="background:#dcfce7;color:#15803d;" id="viz-openToSealAdh-badge">0%</span></h6>
+                        <div style="height:180px;position:relative;"><canvas id="viz-openToSealAdh"></canvas></div>
+                        <div class="text-muted small mt-1" id="viz-openToSealAdh-info"></div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card p-3 border-0 shadow-sm chart-card">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-warning me-1"></i>Arrival Adh <span class="badge bg-warning-subtle" style="background:#fef3c7;color:#92400e;" id="viz-arrivalAdh-badge">0%</span></h6>
+                        <div style="height:180px;position:relative;"><canvas id="viz-arrivalAdh"></canvas></div>
+                        <div class="text-muted small mt-1" id="viz-arrivalAdh-info"></div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card p-3 border-0 shadow-sm chart-card">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-danger me-1"></i>Vendor Adh <span class="badge bg-danger-subtle" style="background:#fee2e2;color:#991b1b;" id="viz-vehicleAdh-badge">0%</span></h6>
+                        <div style="height:180px;position:relative;"><canvas id="viz-vehicleAdh"></canvas></div>
+                        <div class="text-muted small mt-1" id="viz-vehicleAdh-info"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- VARIANCE / SLAB / ADHOC -->
@@ -376,20 +542,66 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
         <!-- ============ PAGE 3: GAP ANALYSIS ============ -->
         <div class="tab-pane fade" id="page-gap">
 
-            <h6 class="fw-bold text-muted text-uppercase mb-2" style="font-size:.75rem"><i class="bi bi-exclamation-diamond me-1"></i>Auto-Detected Gaps (based on current filters)</h6>
+            <!-- REPORT BUTTON -->
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h6 class="fw-bold text-muted text-uppercase mb-0" style="font-size:.75rem"><i class="bi bi-exclamation-diamond me-1"></i>Auto-Detected Gaps (based on current filters)</h6>
+                <button class="btn btn-sm btn-success" onclick="copyDashboardReport()"><i class="bi bi-clipboard me-1"></i> Copy Gap Report to Clipboard</button>
+            </div>
             <div class="row g-2 mb-4" id="insightCards"></div>
 
+            <!-- METRIC VISUALIZATIONS -->
             <div class="row g-3 mb-4">
-                <div class="col-lg-7">
+                <div class="col-lg-6">
                     <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-building text-primary me-2"></i>Composite Adherence by Vendor (top 10 by volume)</h6>
+                        <h6 class="fw-bold mb-3"><i class="bi bi-stack text-primary me-2"></i>Composite Adherence by Vendor (top 10 by volume)</h6>
                         <div class="chart-box"><canvas id="chartVendorAdh"></canvas></div>
                     </div>
                 </div>
-                <div class="col-lg-5">
+                <div class="col-lg-6">
                     <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-stopwatch text-success me-2"></i>Where the Minutes Go — Avg Stage Durations</h6>
+                        <h6 class="fw-bold mb-3"><i class="bi bi-stopwatch text-success me-2"></i>Average Stage Durations</h6>
                         <div class="chart-box"><canvas id="chartStageTime"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ALL 6 METRICS VISUALIZATIONS -->
+            <h6 class="fw-bold text-muted text-uppercase mb-3" style="font-size:.75rem"><i class="bi bi-bar-chart me-1"></i>All Metrics Breakdown</h6>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card p-3 border-0 shadow-sm">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-primary me-1"></i>Portal Adherence</h6>
+                        <div style="height:160px;position:relative;"><canvas id="gap-viz-portalAdh"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3 border-0 shadow-sm">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle" style="color:#8b5cf6" me-1"></i>Port Act vs Plan</h6>
+                        <div style="height:160px;position:relative;"><canvas id="gap-viz-portalPlanVsActualAdh"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3 border-0 shadow-sm">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-info me-1"></i>Gate → Open Adh</h6>
+                        <div style="height:160px;position:relative;"><canvas id="gap-viz-gateInToOpenAdh"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3 border-0 shadow-sm">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-success me-1"></i>Open → Seal Adh</h6>
+                        <div style="height:160px;position:relative;"><canvas id="gap-viz-openToSealAdh"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3 border-0 shadow-sm">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-warning me-1"></i>Arrival Adherence</h6>
+                        <div style="height:160px;position:relative;"><canvas id="gap-viz-arrivalAdh"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3 border-0 shadow-sm">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-danger me-1"></i>Vendor Compliance</h6>
+                        <div style="height:160px;position:relative;"><canvas id="gap-viz-vehicleAdh"></canvas></div>
                     </div>
                 </div>
             </div>
@@ -572,6 +784,12 @@ const liveCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPk
 ================================================================ */
 const BIZ = { LATE_MIN: 15, LOW_UTIL: 70, VENDOR_MIN_TRIPS: 5, LANE_MIN_TRIPS: 3, O2S_TARGET: 60 };
 
+function isPerfectFlag(v){
+    if(v===null||v===undefined) return false;
+    const s=String(v).toUpperCase().trim();
+    return ['YES','TRUE','1','Y','PERFECT','PASS','PASSED','ADHERED'].includes(s);
+}
+
 const METRICS = [
   { key:'portalAdh',             label:'Portal Adherence',       short:'P',  color:'#3b82f6', rca:'portalRca' },
   { key:'portalPlanVsActualAdh', label:'Portal Actual vs Plan',  short:'PA', color:'#8b5cf6', rca:'portalRca' },
@@ -622,6 +840,170 @@ function showToast(msg, type='success'){
     wrap.appendChild(el);
     const t=new bootstrap.Toast(el,{delay:3500}); t.show();
     el.addEventListener('hidden.bs.toast',()=>el.remove());
+}
+
+/* ================================================================
+   DASHBOARD FILTERS & METRIC SELECTION
+================================================================ */
+let dashSrcSelection = [];
+let dashDstSelection = [];
+let dashVendorSelection = [];
+let dashFlagSelection = [];
+let dashPerfectSelection = [];
+let dashDateValue = '';
+let selectedMetricKey = null;
+
+function applyDashboardFilters(){
+    dashDateValue = document.getElementById('dash-date').value || '';
+    dashSrcSelection = $('#dash-src').val() || [];
+    dashDstSelection = $('#dash-dst').val() || [];
+    dashVendorSelection = $('#dash-vendor').val() || [];
+    dashFlagSelection = $('#dash-flag').val() || [];
+    dashPerfectSelection = $('#dash-perfect').val() || [];
+
+    let data = [...rawTrips];
+    if (dashDateValue) data = data.filter(t => t.date && (t.date.includes(dashDateValue) || normDateKey(t.date) === dashDateValue));
+    if (dashSrcSelection.length) data = data.filter(t => dashSrcSelection.includes(t.srcHub));
+    if (dashDstSelection.length) data = data.filter(t => dashDstSelection.includes(t.dstHub));
+    if (dashVendorSelection.length) data = data.filter(t => dashVendorSelection.includes(t.vendor));
+    if (dashFlagSelection.length) data = data.filter(t => dashFlagSelection.includes(String(t.flagHubs||'').trim()));
+    if (dashPerfectSelection.length) data = data.filter(t => isPerfectFlag(t.perfectFlag));
+
+    document.getElementById('dashFilterInfo').innerHTML = `
+        ${dashDateValue?`<strong>Date:</strong> ${dashDateValue}`: '<strong>Date:</strong> All'} • 
+        ${dashSrcSelection.length?`<strong>Src:</strong> ${dashSrcSelection.join(', ')}`:'<strong>Src:</strong> All'} • 
+        ${dashDstSelection.length?`<strong>Dst:</strong> ${dashDstSelection.join(', ')}`:'<strong>Dst:</strong> All'} • 
+        ${dashVendorSelection.length?`<strong>Vendor:</strong> ${dashVendorSelection.join(', ')}`:'<strong>Vendor:</strong> All'} • 
+        ${dashFlagSelection.length?`<strong>Flag Hubs:</strong> ${dashFlagSelection.join(', ')}`:'<strong>Flag Hubs:</strong> All'} • 
+        ${dashPerfectSelection.length?'<strong>Perfect:</strong> YES': '<strong>Perfect:</strong> All'}`;
+
+    // Make dashboard tab active when filters are applied
+    const dashTab = document.querySelector('[data-bs-target="#page-dashboard"]');
+    if (dashTab) {
+        const bsTab = bootstrap.Tab.getOrCreateInstance(dashTab);
+        bsTab.show();
+    }
+
+    renderDashboard(data);
+}
+
+function resetDashFilters(){
+    document.getElementById('dash-date').value = '';
+    dashDateValue = '';
+    ['#dash-src','#dash-dst','#dash-vendor','#dash-flag','#dash-perfect'].forEach(id => $(id).val(null).trigger('change'));
+    dashSrcSelection = [];
+    dashDstSelection = [];
+    dashVendorSelection = [];
+    dashFlagSelection = [];
+    dashPerfectSelection = [];
+    document.getElementById('dashFilterInfo').innerHTML = '';
+    applyDashboardFilters();
+}
+
+function populateDashFilters(){
+    const curSrc = $('#dash-src').val() || [];
+    const curDst = $('#dash-dst').val() || [];
+    const curVen = $('#dash-vendor').val() || [];
+    const curFlag = $('#dash-flag').val() || [];
+    const curPerfect = $('#dash-perfect').val() || [];
+    const uniq = (fn) => [...new Set(rawTrips.map(fn).filter(x => x !== null && x !== undefined && String(x).trim() !== ''))].sort();
+    fillDashSelect('#dash-src', uniq(t => t.srcHub), curSrc);
+    fillDashSelect('#dash-dst', uniq(t => t.dstHub), curDst);
+    fillDashSelect('#dash-vendor', uniq(t => t.vendor), curVen);
+    fillDashSelect('#dash-flag', uniq(t => t.flagHubs), curFlag);
+    fillDashSelect('#dash-perfect', ['YES','TRUE','1','Y','PERFECT'], curPerfect);
+}
+
+function fillDashSelect(sel, values, keepVals){
+    const $el = $(sel);
+    if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
+    $el.empty();
+    values.forEach(v => $el.append(new Option(v, v, false, false)));
+    $el.select2({ theme:'bootstrap-5', placeholder:'All', allowClear:true, width:'100%' })
+       .on('change', applyDashboardFilters);
+    if (keepVals && keepVals.length) $el.val(keepVals.filter(x => values.includes(x)));
+    $el.trigger('change.select2');
+}
+
+function selectMetricCard(el, metricKey){
+    // Deselect previous
+    document.querySelectorAll('.metric-card').forEach(c => c.classList.remove('selected'));
+    if (selectedMetricKey) {
+        document.getElementById('metricDetailTable').querySelector('tbody').innerHTML = '';
+    }
+    el.classList.add('selected');
+    selectedMetricKey = metricKey;
+
+    const panel = document.getElementById('metricDetailPanel');
+    panel.style.display = 'block';
+    panel.classList.add('active');
+
+    const metric = METRICS.find(m => m.key === metricKey);
+    const data = getFilteredDashboardData();
+
+    // Update title
+    document.getElementById('metricDetailTitle').innerHTML = `
+        <i class="bi bi-circle-check text-success me-2"></i>${metric ? metric.label : metricKey} — Detailed View`;
+
+    // Update description
+    const pass = data.filter(t => isPass(t[metricKey])).length;
+    const fail = data.length - pass;
+    document.getElementById('metricDetailDesc').innerHTML = `
+        <div class="fs-6">${metric ? metric.label : metricKey}</div>
+        <div class="fs-4 fw-bold mt-2">${data.length} trips: ${pass} passed, ${fail} failed (${(data.length?Math.round(pass/data.length*100):0)}% pass rate)</div>`;
+
+    // Update stats
+    const failRates = {
+        portalAdh: `${Math.round(data.filter(t=>!isPass(t.portalAdh)).length)} trips failed Portal Adherence`,
+        portalPlanVsActualAdh: `${Math.round(data.filter(t=>!isPass(t.portalPlanVsActualAdh)).length)} trips failed Portal Actual vs Plan`,
+        gateInToOpenAdh: `${Math.round(data.filter(t=>!isPass(t.gateInToOpenAdh)).length)} trips failed Gate-in to Open`,
+        openToSealAdh: `${Math.round(data.filter(t=>!isPass(t.openToSealAdh)).length)} trips failed Open to Seal`,
+        arrivalAdh: `${Math.round(data.filter(t=>!isPass(t.arrivalAdh)).length)} trips failed Arrival Adherence`,
+        vehicleAdh: `${Math.round(data.filter(t=>!isPass(t.vehicleAdh)).length)} trips failed Vendor Compliance`
+    };
+    document.getElementById('metricDetailStats').innerHTML = `
+        <div class="row g-2 mt-3">
+            <div class="col-6"><span class="badge bg-success-subtle text-success">${pass} Adhered</span></div>
+            <div class="col-6"><span class="badge bg-danger-subtle text-danger">${fail} Failed</span></div>
+        </div>
+        <div class="small text-muted mt-2">${failRates[metricKey] || ''}</div>`;
+
+    // Populate table with failing trips for this metric
+    const failingTrips = data.filter(t => !isPass(t[metricKey])).slice(0, 50);
+    const body = document.getElementById('metricDetailBody');
+    if (failingTrips.length === 0) {
+        body.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>No failures for this metric</td></tr>';
+    } else {
+        body.innerHTML = failingTrips.map(t => `
+            <tr>
+                <td><strong>${esc(t.tripId)}</strong>${t.tripCode?`<small class="text-muted">${esc(t.tripCode)}</small>`:''}</td>
+                <td>${esc(t.srcHub)} → ${esc(t.dstHub)}</td>
+                <td>${esc(t.vendor)}${t.plateNr?` <small class="text-muted">(${esc(t.plateNr)})</small>`:''}</td>
+                <td><span class="badge bg-danger-subtle text-danger">${esc(String(t[metricKey]||'').trim()||'blank')}</span></td>
+                <td><button class="btn btn-sm btn-outline-primary" onclick="openRcaModal(${t.rowIdx})"><i class="bi bi-pencil-square"></i> RCA</button></td>
+            </tr>`).join('');
+    }
+
+    // Render detail chart
+    renderMetricDetailChart(data, metricKey);
+}
+
+function clearMetricSelection(){
+    document.querySelectorAll('.metric-card').forEach(c => c.classList.remove('selected'));
+    selectedMetricKey = null;
+    document.getElementById('metricDetailPanel').style.display = 'none';
+    document.getElementById('metricDetailPanel').classList.remove('active');
+}
+
+function getFilteredDashboardData(){
+    let data = [...rawTrips];
+    if (dashDateValue) data = data.filter(t => t.date && (t.date.includes(dashDateValue) || normDateKey(t.date) === dashDateValue));
+    if (dashSrcSelection.length) data = data.filter(t => dashSrcSelection.includes(t.srcHub));
+    if (dashDstSelection.length) data = data.filter(t => dashDstSelection.includes(t.dstHub));
+    if (dashVendorSelection.length) data = data.filter(t => dashVendorSelection.includes(t.vendor));
+    if (dashFlagSelection.length) data = data.filter(t => dashFlagSelection.includes(String(t.flagHubs||'').trim()));
+    if (dashPerfectSelection.length) data = data.filter(t => isPerfectFlag(t.perfectFlag));
+    return data;
 }
 
 /* ================================================================
@@ -678,6 +1060,9 @@ function loadLiveCsv() {
         header: true,
         skipEmptyLines: true,
         complete: function(results) {
+            console.log('Live CSV loaded:', results.data.length, 'rows');
+            console.log('Live headers:', results.meta.fields || []);
+            console.log('First live row:', results.data[0] || {});
             liveRows = (results.data || []).map((row, idx) => ({
                 rowIdx: idx + 2,
                 srcHub: row['Source'] || '',
@@ -803,6 +1188,9 @@ function loadDataFromCSV() {
         header: true,
         skipEmptyLines: true,
         complete: function(results) {
+            console.log('CSV loaded:', results.data.length, 'rows');
+            console.log('Headers:', results.meta.fields || []);
+            console.log('First row:', results.data[0] || {});
             const mappedTrips = results.data.map((row, idx) => {
                 return {
                     rowIdx: idx + 2,
@@ -818,6 +1206,10 @@ function loadDataFromCSV() {
                     driver: row['driver_full_name'] || '',
                     vehicleType: row['vehicle_type'] || '',
                     isAdhoc: row['is_adhoc'] || '',
+                    perfectFlag: row['Perfect_Flag'] || row['PERFECT_FLAG'] || '',
+                    flagHubs: row['FLAG_HUBS'] || '',
+                    rankTrip: row['RANK_TRIP'] || '',
+                    facility: row['Facility'] || '',
                     shipments: parseFloat(row['total_shipments']) || 0,
                     utilization: parseFloat(row['trip_stop_estimated_utilization']) || null,
                     varMinutes: parseFloat(row['Var_in_Minutes_between_Actual_and_plan']) || null,
@@ -889,10 +1281,18 @@ function initApp(res, preserve){
     if(res.error){ showLoadError(res.error); return; }
 
     rawTrips = res.trips || [];
+    console.log('initApp: loaded', rawTrips.length, 'trips');
+    console.log('Sample trip:', rawTrips[0] || {});
+    
     document.getElementById('sheetMeta').innerText =
         `Source: ${res.sheetName} • ${fmt(rawTrips.length)} trips • Synced at ${res.generatedAt || ''}`;
 
     applyGlobalFilters();
+
+    // Initialize dashboard filters
+    setTimeout(() => {
+        populateDashFilters();
+    }, 100);
 
     document.getElementById('loader').style.display = 'none';
     document.getElementById('appPages').style.display = 'block';
@@ -1270,6 +1670,181 @@ function fallbackCopy(text){
 }
 
 /* ================================================================
+   DASHBOARD TEXT REPORT - for sending as email/chat
+================================================================ */
+function buildDashboardTextReport(data){
+    const L = [];
+    const srcSel = dashSrcSelection.length ? dashSrcSelection : [];
+    const dstSel = dashDstSelection.length ? dashDstSelection : [];
+    const venSel = dashVendorSelection.length ? dashVendorSelection : [];
+    const flagSel = dashFlagSelection.length ? dashFlagSelection : [];
+    const perfectSel = dashPerfectSelection.length ? dashPerfectSelection : [];
+
+    const scope = [
+        dashDateValue ? `Date: ${dashDateValue}` : 'Date: All Days',
+        srcSel.length ? `Src Hubs: ${srcSel.join(', ')}` : 'Src Hubs: All',
+        dstSel.length ? `Dst Hubs: ${dstSel.join(', ')}` : 'Dst Hubs: All',
+        venSel.length ? `Vendors: ${venSel.join(', ')}` : 'Vendors: All',
+        flagSel.length ? `Flag Hubs: ${flagSel.join(', ')}` : 'Flag Hubs: All',
+        perfectSel.length ? `Perfect Flag: YES` : 'Perfect Flag: All'
+    ].join(' | ');
+
+    L.push('============================================================');
+    L.push('LINE HAUL EXECUTIVE DASHBOARD REPORT');
+    L.push('============================================================');
+    L.push('');
+    L.push(`Scope: ${scope}`);
+    L.push('');
+    L.push('─'.repeat(60));
+    L.push('');
+
+    // --- Executive Summary ---
+    L.push('EXECUTIVE SUMMARY');
+    L.push('='.repeat(60));
+    const total = data.length;
+    const totalShip = data.reduce((s,t)=>s+(t.shipments||0),0);
+    const comp = composite(data);
+    const perfect = data.filter(t => CORE_KEYS.every(k => isPass(t[k]))).length;
+    const flagged = data.filter(t => String(t.flagHubs||'').trim() !== '').length;
+    const perfectFlagged = data.filter(t => isPerfectFlag(t.perfectFlag)).length;
+    const pendingRca = data.filter(rcaPendingTrip).length;
+
+    L.push(`Total Trips: ${fmt(total)} (${fmt(totalShip)} shipments)`);
+    L.push(`Composite Adherence: ${Math.round(comp)}%`);
+    L.push(`Perfect Trips (all 4 core): ${fmt(perfect)} (${total?Math.round(perfect/total*100):0}% )`);
+    L.push(`Trips with Flag Hubs: ${fmt(flagged)} (${total?Math.round(flagged/total*100):0}%)`);
+    L.push(`Perfect Flag Trips: ${fmt(perfectFlagged)} (${total?Math.round(perfectFlagged/total*100):0}%)`);
+    L.push(`RCA Pending: ${fmt(pendingRca)}`);
+    L.push('');
+
+    // --- Metric Breakdown ---
+    L.push('METRIC BREAKDOWN (6 KEY METRICS)');
+    L.push('='.repeat(60));
+    L.push('');
+    METRICS.forEach(m => {
+        const pass = data.filter(t => isPass(t[m.key])).length;
+        const fail = data.length - pass;
+        const pct = data.length ? Math.round(pass/data.length*100) : 0;
+        const icon = pct >= 90 ? '✅' : pct >= 75 ? '⚠️' : '❌';
+        L.push(`${icon} ${m.label}: ${pct}% (${pass} pass / ${fail} fail)`);
+    });
+    L.push('');
+
+    // --- Vendor Performance ---
+    L.push('VENDOR PERFORMANCE');
+    L.push('='.repeat(60));
+    const vs = vendorStats(data);
+    vs.slice(0, 10).forEach(v => {
+        L.push(`${esc(v.name)}: ${fmt(v.trips)} trips, ${Math.round(v.composite)}% composite, RCA: ${v.rcaPct===null?'—':Math.round(v.rcaPct)}%`);
+    });
+    if (vs.length > 10) L.push(`... and ${vs.length - 10} more vendors`);
+    L.push('');
+
+    // --- Key Issues ---
+    L.push('KEY ISSUES');
+    L.push('='.repeat(60));
+    L.push('');
+
+    // Biggest leak
+    const leak = METRICS.map(m => ({ m, f: data.filter(t=>!isPass(t[m.key])).length })).sort((a,b)=>b.f-a.f)[0];
+    if (leak.f > 0) {
+        L.push(`🔴 Biggest SLA Leak: ${leak.m.label} — ${fmt(leak.f)} trips failed (${(data.length?Math.round(leak.f/data.length*100):0)}%)`);
+    }
+
+    // RCA accountability
+    const rc = rcaCounts(data);
+    if (rc.need > 0) {
+        const rcComp = Math.round(rc.have/rc.need*100);
+        L.push(`📋 RCA Accountability: ${rcComp}% (${rc.have}/${rc.need} failures have RCA)`);
+        if (rc.need - rc.have > 0) {
+            L.push(`   ⚠️ ${rc.need - rc.have} checkpoints still missing RCA`);
+        }
+    }
+
+    // Metric failures
+    METRICS.forEach(m => {
+        const fail = data.filter(t=>!isPass(t[m.key])).length;
+        if (fail > 0) {
+            const pct = data.length ? Math.round(fail/data.length*100) : 0;
+            L.push(`   ${m.label}: ${fmt(fail)} failures (${pct}%)`);
+        }
+    });
+    L.push('');
+
+    // --- Detailed by Metric ---
+    METRICS.forEach(m => {
+        const fail = data.filter(t=>!isPass(t[m.key])).length;
+        if (fail > 0) {
+            L.push(`
+─────────────────────────────────────────────────────────────`);
+            L.push(`${m.label} — FAILURES (${fmt(fail)} trips)`);
+            L.push('─────────────────────────────────────────────────────────────');
+            const failing = data.filter(t=>!isPass(t[m.key])).slice(0, 20);
+            failing.forEach(t => {
+                L.push(`  • ${esc(t.tripId)} | ${esc(t.srcHub)}→${esc(t.dstHub)} | ${esc(t.vendor)} | ${esc(String(t[m.key]||'').trim()||'blank')}`);
+            });
+            if (fail > 20) L.push(`  ... and ${fail - 20} more`);
+            L.push('');
+        }
+    });
+
+    L.push('------------------------------------------------------------');
+    L.push('Report generated: ' + new Date().toLocaleString());
+    L.push('============================================================');
+    L.push('');
+    L.push('Copy this report and send it with your dashboard screenshot.');
+    return L.join('\n');
+}
+
+function copyDashboardReport(){
+    const data = getFilteredDashboardData();
+    if (!data.length) { showToast('No data to report', 'danger'); return; }
+    const text = buildDashboardTextReport(data);
+    if (!text) { showToast('Nothing to copy yet', 'danger'); return; }
+    const done = () => showToast('Dashboard report copied — paste it with your snapshot');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(() => { fallbackCopy(text); done(); });
+    } else { fallbackCopy(text); done(); }
+}
+
+function showDashboardReportPopup(){
+    const data = getFilteredDashboardData();
+    if (!data.length) { showToast('No data to report', 'danger'); return; }
+    const report = buildDashboardTextReport(data);
+    
+    // Create modal
+    const modalHtml = `
+        <div class="modal fade" id="reportModal" tabindex="-1">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header bg-dark text-white">
+                        <h5 class="modal-title fw-bold">📊 Dashboard Report</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <pre style="white-space:pre-wrap;font-family:'Roboto Mono',monospace;font-size:.8rem;background:#fafaf5;border:1px solid #e8e2cf;padding:16px;border-radius:8px;max-height:60vh;overflow:auto;">${esc(report)}</pre>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-success" onclick="copyDashboardReport()"><i class="bi bi-clipboard me-1"></i> Copy to Clipboard</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    
+    const temp = document.createElement('div');
+    temp.innerHTML = modalHtml;
+    document.body.appendChild(temp.firstElementChild);
+    
+    const modal = new bootstrap.Modal(document.getElementById('reportModal'));
+    modal.show();
+    
+    document.getElementById('reportModal').addEventListener('hidden.bs.modal', () => {
+        document.getElementById('reportModal').remove();
+    });
+}
+
+/* ================================================================
    PAGE 3 — DASHBOARD
 ================================================================ */
 function renderDashboard(data){
@@ -1284,6 +1859,8 @@ function renderDashboard(data){
     const lowUtil = data.filter(t => t.utilization !== null && t.utilization < BIZ.LOW_UTIL).length;
     const rc = rcaCounts(data);
     const pendingTrips = data.filter(rcaPendingTrip).length;
+    const flagHubsOpacity = data.filter(t => String(t.flagHubs||'').trim() !== '').length;
+    const perfectFlagCount = data.filter(t => isPerfectFlag(t.perfectFlag)).length;
 
     document.getElementById('k-trips').innerText = fmt(total);
     document.getElementById('k-ship').innerText = fmt(totalShip);
@@ -1295,23 +1872,29 @@ function renderDashboard(data){
     document.getElementById('k-o2s-sub').innerText = avgO2S===null ? 'no timing data' : (avgO2S<=BIZ.O2S_TARGET? `within ${BIZ.O2S_TARGET}m target` : `above ${BIZ.O2S_TARGET}m target`);
     document.getElementById('k-util').innerText = avgUtil===null ? '—' : Math.round(avgUtil) + '%';
     document.getElementById('k-util-n').innerText = fmt(lowUtil);
-    document.getElementById('k-rca').innerText = fmt(pendingTrips);
-    document.getElementById('k-rca-sub').innerText = (rc.need ? Math.round(rc.have/rc.need*100) : 100) + '%';
+    document.getElementById('k-flag').innerText = total ? Math.round(flagHubsOpacity/total*100) + '%' : '—';
+    document.getElementById('k-flag-n').innerText = fmt(flagHubsOpacity);
 
-    // ---- 4 core cards ----
-    const cards = [
-        { p:'c1-pct', t:'c1-total', a:'c1-adh', n:'c1-nonadh', key:'portalAdh' },
-        { p:'c2-pct', t:'c2-total', a:'c2-adh', n:'c2-nonadh', key:'portalPlanVsActualAdh' },
-        { p:'c3-pct', t:'c3-total', a:'c3-adh', n:'c3-nonadh', key:'openToSealAdh' },
-        { p:'c4-pct', t:'c4-total', a:'c4-adh', n:'c4-nonadh', key:'arrivalAdh' }
-    ];
-    cards.forEach(c => {
-        const pass = data.filter(x => isPass(x[c.key])).length;
-        document.getElementById(c.p).innerText = (total ? Math.round(pass/total*100) : 0) + '%';
-        document.getElementById(c.t).innerText = fmt(total);
-        document.getElementById(c.a).innerText = fmt(pass);
-        document.getElementById(c.n).innerText = fmt(total - pass);
+    // ---- 6 core metric cards ----
+    const metrics = ['portalAdh','portalPlanVsActualAdh','gateInToOpenAdh','openToSealAdh','arrivalAdh','vehicleAdh'];
+    metrics.forEach(key => {
+        const pass = data.filter(x => isPass(x[key])).length;
+        const suffix = key.replace(/[()]/g, '');
+        const pct = (total ? Math.round(pass/total*100) : 0);
+        document.getElementById(`m-${suffix}-pct`).innerText = pct + '%';
+        document.getElementById(`m-${suffix}-pct`).className = (key==='portalAdh'?'text-primary':key==='portalPlanVsActualAdh'?'':key==='gateInToOpenAdh'?'text-info':key==='openToSealAdh'?'text-success':key==='arrivalAdh'?'text-warning':'text-danger') + ' ' + 'kpi-main-pct';
+        document.getElementById(`m-${suffix}-total`).innerText = fmt(total);
+        document.getElementById(`m-${suffix}-pass`).innerText = fmt(pass);
+        document.getElementById(`m-${suffix}-fail`).innerText = fmt(total - pass);
     });
+
+    // Individual metric visualizations
+    renderMetricViz(data, 'portalAdh', 'viz-portalAdh', '#3b82f6');
+    renderMetricViz(data, 'portalPlanVsActualAdh', 'viz-portalPlanVsActualAdh', '#8b5cf6');
+    renderMetricViz(data, 'gateInToOpenAdh', 'viz-gateInToOpenAdh', '#06b6d4');
+    renderMetricViz(data, 'openToSealAdh', 'viz-openToSealAdh', '#10b981');
+    renderMetricViz(data, 'arrivalAdh', 'viz-arrivalAdh', '#f59e0b');
+    renderMetricViz(data, 'vehicleAdh', 'viz-vehicleAdh', '#ef4444');
 
     renderDashboardCharts(data);
 }
@@ -1349,11 +1932,10 @@ function renderDashboardCharts(data){
             scales:{ x:{ beginAtZero:true, ticks:{precision:0} } } }
     });
 
-    // 3) Trend of 4 core metrics
-    const coreM = CORE_KEYS.map(k => METRICS.find(m=>m.key===k));
+    // 3) Trend of ALL 6 metrics
     setChart('trend','chartTrend',{
         type:'line',
-        data: { labels: agg.dates, datasets: coreM.map(m => ({
+        data: { labels: agg.dates, datasets: METRICS.map(m => ({
             label: m.label + ' %',
             data: agg.dayTrips.map(day => day.length ? Math.round(day.filter(t=>isPass(t[m.key])).length/day.length*100) : 0),
             borderColor: m.color, backgroundColor: m.color, tension:.3, pointRadius:2
@@ -1399,6 +1981,79 @@ function renderDashboardCharts(data){
 }
 
 /* ================================================================
+   INDIVIDUAL METRIC VISUALIZATIONS
+================================================================ */
+function renderMetricViz(data, key, canvasId, color){
+    const failCounts = [data.filter(t => isPass(t[key])).length, data.filter(t => !isPass(t[key])).length];
+    setChart(canvasId, canvasId, {
+        type: 'doughnut',
+        data: {
+            labels: ['Adhered', 'Failed'],
+            datasets: [{
+                data: failCounts,
+                backgroundColor: [color, '#fee2e2'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { font: { size: 10 } } },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => ` ${ctx.label}: ${failCounts[ctx.dataIndex]} trips (${(data.length?Math.round(failCounts[ctx.dataIndex]/data.length*100):0)}%)`
+                    }
+                }
+            }
+        }
+    });
+
+    // Update badge and info
+    const pass = data.filter(t => isPass(t[key])).length;
+    const pct = data.length ? Math.round(pass/data.length*100) : 0;
+    const badge = document.getElementById(`${canvasId.replace('viz-','')}-badge`);
+    if (badge) badge.innerText = pct + '%';
+
+    const info = document.getElementById(`${canvasId.replace('viz-','')}-info`);
+    if (info) {
+        const metric = METRICS.find(m => m.key === key);
+        info.innerHTML = `<strong>${metric ? metric.label : key}:</strong> ${pass}/${data.length} passed (${pct}%)`;
+    }
+}
+
+function renderMetricDetailChart(data, key){
+    const m = METRICS.find(x => x.key === key);
+    if (!m) return;
+
+    const agg = dailyAgg(data);
+    const adhByDay = agg.dayTrips.map(day => day.length ? Math.round(day.filter(t=>isPass(t[key])).length/day.length*100) : 0);
+
+    setChart('metricDetailChart', 'metricDetailChart', {
+        type: 'bar',
+        data: {
+            labels: agg.dates,
+            datasets: [{
+                label: m.label + ' Adherence %',
+                data: adhByDay,
+                backgroundColor: m.color,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { min: 0, max: 100, title: { display: true, text: 'Adherence %' } },
+                x: { ticks: { autoSkip: true, maxTicksLimit: 15 } }
+            }
+        }
+    });
+}
+
+/* ================================================================
    PAGE 4 — GAP ANALYSIS
 ================================================================ */
 function vendorStats(data){
@@ -1435,6 +2090,7 @@ function renderGap(data){
     renderLanes(data);
     renderOffenders(data);
     renderPending(data);
+    renderGapMetricViz(data);
 }
 
 function renderInsights(data){
@@ -1442,50 +2098,75 @@ function renderInsights(data){
     const cards = [];
     if (!data.length) { el.innerHTML = '<div class="col-12"><div class="alert alert-light border">No trips match the current filters.</div></div>'; return; }
 
-    // 1) Biggest SLA leak
-    const leak = METRICS.map(m => ({ m, f: data.filter(t=>!isPass(t[m.key])).length })).sort((a,b)=>b.f-a.f)[0];
-    if (leak.f > 0) cards.push({ tone:'danger', title:'Biggest SLA Leak', main: esc(leak.m.label),
+    // Focus on the 6 key metrics
+    const targetMetrics = METRICS; // All 6 metrics
+
+    // 1) Biggest SLA leak - from the 6 metrics
+    const leak = targetMetrics.map(m => ({ m, f: data.filter(t=>!isPass(t[m.key])).length })).sort((a,b)=>b.f-a.f)[0];
+    if (leak.f > 0) cards.push({ tone:'danger', title:'🔴 Biggest SLA Leak', main: esc(leak.m.label),
         sub: `${fmt(leak.f)} trips failed (${Math.round(leak.f/data.length*100)}% of filtered trips)` });
 
     // 2) RCA accountability
     const rc = rcaCounts(data);
-    const comp = rc.need ? rc.have/rc.need*100 : 100;
-    cards.push({ tone: comp>=80?'success':comp>=50?'warning':'danger', title:'RCA Accountability',
-        main: Math.round(comp) + '% of failures explained',
+    const rcComp = rc.need ? rc.have/rc.need*100 : 100;
+    cards.push({ tone: rcComp>=80?'success':rcComp>=50?'warning':'danger', title:'📋 RCA Accountability',
+        main: Math.round(rcComp) + '% of failures explained',
         sub: `${rc.need - rc.have} of ${rc.need} failed checkpoints still missing RCA` });
 
-    // 3) Weakest vendor
+    // 3) Metric-by-metric breakdown
+    targetMetrics.forEach(m => {
+        const failCount = data.filter(t=>!isPass(t[m.key])).length;
+        const pct = data.length ? Math.round(failCount/data.length*100) : 0;
+        if (failCount > 0) {
+            cards.push({ tone: pct>20?'danger':pct>10?'warning':'info', title:`⚠️ ${esc(m.label)} Failures`,
+                main: `${fmt(failCount)} trips failed`,
+                sub: `${pct}% of filtered trips • ${data.length - failCount} adhered` });
+        }
+    });
+
+    // 4) Weakest vendor by composite
     const wv = vendorStats(data).filter(v=>v.trips>=BIZ.VENDOR_MIN_TRIPS).sort((a,b)=>a.composite-b.composite)[0];
-    if (wv) cards.push({ tone:'danger', title:`Weakest Vendor (${BIZ.VENDOR_MIN_TRIPS}+ trips)`, main: esc(wv.name),
+    if (wv) cards.push({ tone:'danger', title:`🏢 Weakest Vendor (${BIZ.VENDOR_MIN_TRIPS}+ trips)`, main: esc(wv.name),
         sub: `${Math.round(wv.composite)}% composite adherence over ${wv.trips} trips` });
 
-    // 4) Weakest lane
+    // 5) Weakest lane by adherence
     const wl = laneStats(data).filter(l=>l.trips>=BIZ.LANE_MIN_TRIPS).sort((a,b)=>a.adh-b.adh)[0];
-    if (wl) cards.push({ tone:'warning', title:`Weakest Lane (${BIZ.LANE_MIN_TRIPS}+ trips)`, main: esc(wl.name),
+    if (wl) cards.push({ tone:'warning', title:`🛣️ Weakest Lane (${BIZ.LANE_MIN_TRIPS}+ trips)`, main: esc(wl.name),
         sub: `${Math.round(wl.adh)}% adherence over ${wl.trips} trips` });
 
-    // 5) Late dispatch segment
+    // 6) Flag Hubs impact
+    const flagged = data.filter(t => String(t.flagHubs||'').trim() !== '');
+    if (flagged.length) {
+        const flaggedComp = composite(flagged);
+        const unflagged = data.filter(t => !String(t.flagHubs||'').trim());
+        const unflaggedComp = composite(unflagged);
+        const gap = unflaggedComp - flaggedComp;
+        cards.push({ tone: gap>5?'warning':'info', title:'🚩 Flag Hubs Impact',
+            main: `${fmt(flagged.length)} flagged trips (${Math.round(flaggedComp)}% adherence)`,
+            sub: `Unflagged: ${Math.round(unflaggedComp)}% • Gap: ${Math.round(gap)} pts` });
+    }
+
+    // 7) Perfect Flag analysis
+    const perfectFlagged = data.filter(t => isPerfectFlag(t.perfectFlag));
+    if (perfectFlagged.length > 0) {
+        cards.push({ tone:'success', title:`⭐ Perfect Flag Trips`,
+            main: `${fmt(perfectFlagged.length)} trips (${Math.round(perfectFlagged.length/data.length*100)}%)`,
+            sub: 'Trips with Perfect_Flag = YES' });
+    }
+
+    // 8) Late dispatch segment
     const late = data.filter(t => t.varMinutes !== null && t.varMinutes > BIZ.LATE_MIN);
-    if (late.length) cards.push({ tone:'warning', title:'Late Dispatch Segment',
+    if (late.length) cards.push({ tone:'warning', title:'⏰ Late Dispatch',
         main: `${Math.round(avg(late.map(t=>t.varMinutes)))} min avg delay`,
         sub: `${fmt(late.length)} trips left >${BIZ.LATE_MIN} min after plan (${Math.round(late.length/data.length*100)}%)` });
 
-    // 6) Capacity waste
+    // 9) Capacity waste
     const low = data.filter(t => t.utilization !== null && t.utilization < BIZ.LOW_UTIL);
-    if (low.length) cards.push({ tone:'info', title:'Capacity Wasted',
+    if (low.length) cards.push({ tone:'info', title:'📦 Capacity Wasted',
         main: `${fmt(low.length)} under-loaded trips`,
         sub: `utilization below ${BIZ.LOW_UTIL}% (${Math.round(low.length/data.length*100)}% of filtered trips)` });
 
-    // 7) Adhoc pressure
-    const adhoc = data.filter(t=>isYes(t.isAdhoc));
-    if (adhoc.length) {
-        const gap = composite(data.filter(t=>!isYes(t.isAdhoc))) - composite(adhoc);
-        cards.push({ tone: gap>5?'warning':'info', title:'Adhoc Pressure',
-            main: `${fmt(adhoc.length)} adhoc trips (${Math.round(adhoc.length/data.length*100)}%)`,
-            sub: `adhoc adherence trails planned by ${Math.round(gap)} pts` });
-    }
-
-    if (!cards.length) cards.push({ tone:'success', title:'All Clear', main:'No significant gaps', sub:'Everything looks healthy for the current filter scope.' });
+    if (!cards.length) cards.push({ tone:'success', title:'✅ All Clear', main:'No significant gaps', sub:'Everything looks healthy for the current filter scope.' });
 
     el.innerHTML = cards.map(c => `
         <div class="col-12 col-md-6 col-xl-3"><div class="insight-card tone-${c.tone}">
@@ -1574,6 +2255,16 @@ function renderOffenders(data){
             <td><span class="score-pill ${o.failPct>=50?'adh-bad':o.failPct>=25?'adh-mid':'adh-good'}">${Math.round(o.failPct)}%</span></td>
         </tr>`).join('')
       : `<tr><td colspan="5" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>No repeat offenders in scope</td></tr>`;
+}
+
+function renderGapMetricViz(data){
+    // All 6 metrics doughnut visualizations
+    renderMetricViz(data, 'portalAdh', 'gap-viz-portalAdh', '#3b82f6');
+    renderMetricViz(data, 'portalPlanVsActualAdh', 'gap-viz-portalPlanVsActualAdh', '#8b5cf6');
+    renderMetricViz(data, 'gateInToOpenAdh', 'gap-viz-gateInToOpenAdh', '#06b6d4');
+    renderMetricViz(data, 'openToSealAdh', 'gap-viz-openToSealAdh', '#10b981');
+    renderMetricViz(data, 'arrivalAdh', 'gap-viz-arrivalAdh', '#f59e0b');
+    renderMetricViz(data, 'vehicleAdh', 'gap-viz-vehicleAdh', '#ef4444');
 }
 
 function renderPending(data){
