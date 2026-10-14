@@ -130,6 +130,14 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
     .brand-footer { background: var(--brand-black); color: var(--brand-white); padding: 14px 24px; margin-top: 24px; }
     .brand-footer .slogan { font-family: var(--font-head); font-weight: 700; font-size: .95rem; color: var(--brand-yellow3); letter-spacing: .5px; }
     .brand-footer .values { font-family: var(--font-body); font-size: .72rem; color: #cfcabc; }
+
+    /* ===== Snapshot (copy as image) ===== */
+    .snap-btn { position: absolute; top: 8px; right: 10px; z-index: 20; border-radius: 8px !important; padding: 2px 8px !important; font-size: .72rem !important; }
+    .snap-wrap { position: relative; }
+    .snap-status { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--brand-black); color: var(--brand-white);
+        font-family: var(--font-head); font-size: .8rem; font-weight: 700; padding: 8px 18px; border-radius: 999px; z-index: 3000; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+    /* Live tracking tables need a positioning context for their snap buttons */
+    .table-container.snap-host { position: relative; }
 </style>
 </head>
 <body>
@@ -153,43 +161,6 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 </div>
 
     <div class="container-fluid p-4">
-
-    <!-- GLOBAL FILTER BAR -->
-    <div class="card p-3 mb-4 border shadow-sm" style="border-color:#e8e2cf !important;">
-        <div class="row g-2 align-items-end">
-            <div class="col-6 col-md-2">
-                <label class="form-label fw-bold small text-muted">From Date</label>
-                <input type="date" id="filter-start-date" class="form-control form-control-sm" onchange="applyGlobalFilters()">
-            </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label fw-bold small text-muted">To Date</label>
-                <input type="date" id="filter-end-date" class="form-control form-control-sm" onchange="applyGlobalFilters()">
-            </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label fw-bold small text-muted">Source Hubs</label>
-                <select id="filter-src" class="form-select select2-multi" multiple="multiple"></select>
-            </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label fw-bold small text-muted">Destination Hubs</label>
-                <select id="filter-dst" class="form-select select2-multi" multiple="multiple"></select>
-            </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label fw-bold small text-muted">Vendors</label>
-                <select id="filter-vendor" class="form-select select2-multi" multiple="multiple"></select>
-            </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label fw-bold small text-muted">Slots</label>
-                <select id="filter-slot" class="form-select select2-multi" multiple="multiple"></select>
-            </div>
-        </div>
-        <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
-            <div class="small text-muted fw-semibold" id="filterCount">—</div>
-            <div class="d-flex gap-2">
-                <button class="btn btn-sm btn-outline-secondary" onclick="resetFilters()"><i class="bi bi-arrow-counterclockwise"></i> Clear Filters</button>
-                <button class="btn btn-sm btn-outline-success" onclick="exportCsv()"><i class="bi bi-file-earmark-excel"></i> Export CSV</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Loader -->
     <div id="loader" class="text-center py-5">
@@ -343,9 +314,9 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                         <label class="form-label fw-bold small text-muted">Destination Hubs</label>
                         <select id="live-dst" class="form-select select2-live" multiple="multiple"></select>
                     </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted">Tolerance (min)</label>
-                        <input type="number" id="live-tol" class="form-control form-control-sm" value="15" min="0" onchange="renderLiveTracking()">
+                    <div class="col-6 col-md-3">
+                        <label class="form-label fw-bold small text-muted">Vendors</label>
+                        <select id="live-vendor" class="form-select select2-live" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-3 d-flex align-items-end">
                         <div class="form-check ms-2">
@@ -360,7 +331,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </div>
                 <div class="mt-3 d-flex flex-wrap align-items-center" id="liveSummary"></div>
                 <div class="small text-muted mt-2">
-                    Out_Time = <code>Src_gate_out_ts</code> vs plan <code>CT_plan_time</code> • Arriv_Time = <code>Dst_gate_in_ts</code> (fallback <code>Dst_Arrived_at_Dock_ts</code>) vs plan <code>CT_arrival_time</code>
+                    Out_Dispatch_adh &amp; Out_Arrival_adh come pre-computed in the sheet (<code>adhered</code> / <code>not adhered early|late</code> / <code>Extra</code>). Occurrences are ordered by <code>Trip_Sequence</code>; rows without a plan time show <code>Extra</code>.
                 </div>
             </div>
             <div id="liveTables"></div>
@@ -547,12 +518,18 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 <script>
 /* ================================================================
    1. YOUR LIVE GOOGLE SHEETS CSV URL
 ================================================================ */
 const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVVwlkf3BVaI-4KDYTAOZYxhB3V0yAo9baAinrxjmtpG5_RYbndKXlvy7mflKg6A675LF5H41Sj4Cu/pub?gid=2084995103&single=true&output=csv';
+
+/* 2. LIVE TRACKING source — pre-computed occurrence sheet:
+   Source, Destination, DOD, Vendor, trip_code, Trip_Sequence, Out_Time, plan time,
+   Dispatch_adherence, Arriv_Time, arrival time, Arrival_adherence, FLAG_HUBS        */
+const liveCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?output=csv';
 
 /* ================================================================
    STATE & CONFIG
@@ -570,6 +547,7 @@ const METRICS = [
 const CORE_KEYS = ['portalAdh','portalPlanVsActualAdh','openToSealAdh','arrivalAdh'];
 
 let rawTrips = [], filteredTrips = [];
+let liveRows = [];                               // Live Tracking data from the occurrence sheet
 let dataTable = null, vendorDT = null, laneDT = null, pendingDT = null;
 let rcaModalObj;
 let charts = {};
@@ -652,7 +630,128 @@ window.onload = function() {
     });
 
     loadDataFromCSV();
+    loadLiveCsv();
 };
+
+/* 2. LIVE TRACKING source — pre-computed occurrence sheet:
+   Source, Destination, DOD, Vendor, trip_code, Trip_Sequence, Out_Time, plan time,
+   Dispatch_adherence, Arriv_Time, arrival time, Arrival_adherence, FLAG_HUBS        */
+function loadLiveCsv() {
+    Papa.parse(liveCsvUrl, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+            liveRows = (results.data || []).map((row, idx) => ({
+                rowIdx: idx + 2,
+                srcHub: row['Source'] || '',
+                dstHub: row['Destination'] || '',
+                dod:    row['DOD'] || '',
+                vendor: row['Vendor'] || '',
+                tripCode: row['trip_code'] || '',
+                seq:    row['Trip_Sequence'] || '',
+                outRaw:     row['Out_Time'] || '',
+                planOutRaw: row['plan time'] || '',
+                outAdhRaw:  row['Dispatch_adherence'] || '',
+                arrRaw:     row['Arriv_Time'] || '',
+                planArrRaw: row['arrival time'] || '',
+                arrAdhRaw:  row['Arrival_adherence'] || '',
+                flagHubs:   row['FLAG_HUBS'] || ''
+            }));
+            document.getElementById('sheetMeta').innerText =
+                `Source: Line Haul Live DB • ${fmt(rawTrips.length)} trips • Live occurrences: ${fmt(liveRows.length)} • Synced at ${new Date().toLocaleString()}`;
+            populateLiveFilters();
+            // Default the live tracking date to the most recent day in the live sheet
+            const liveDateEl = document.getElementById('live-date');
+            if (!liveDateEl.value) {
+                const dodKeys = liveRows.map(t=>normDateKey(t.dod)).filter(Boolean).sort();
+                if (dodKeys.length) { liveDateEl.value = dodKeys[dodKeys.length-1]; }
+            }
+            renderLiveTracking();
+        },
+        error: function(err) {
+            showToast('Live tracking sheet failed to load: ' + err, 'danger');
+        }
+    });
+}
+
+/* ================================================================
+   SNAPSHOT — capture any chart/table as an image
+   Copy to clipboard (paste into email/Teams/WhatsApp) + download
+================================================================ */
+const SNAP_SCALE = 2;   // 2x for crisp text in the image
+
+function snapStatus(msg){
+    document.querySelectorAll('.snap-status').forEach(e=>e.remove());
+    const el=document.createElement('div');
+    el.className='snap-status'; el.innerText=msg;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 2600);
+}
+
+async function captureElement(el, name){
+    const canvas = await html2canvas(el, {
+        scale: SNAP_SCALE,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false,
+        ignoreElements: (e) => e.classList && (e.classList.contains('snap-btn') || e.classList.contains('dataTables_scroll'))
+    });
+    return canvas;
+}
+
+async function copyCanvasToClipboard(canvas){
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+    if (!blob) throw new Error('Image encoding failed');
+    if (!navigator.clipboard || typeof ClipboardItem === 'undefined') throw new Error('Clipboard images not supported in this browser');
+    await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);
+    return blob;
+}
+
+async function snapshotEl(el, name){
+    if (typeof html2canvas === 'undefined') { showToast('Snapshot library not loaded', 'danger'); return; }
+    snapStatus('Capturing…');
+    try {
+        const canvas = await captureElement(el);
+        let where = '';
+        try {
+            const blob = await copyCanvasToClipboard(canvas);
+            where = 'copied to clipboard — paste it anywhere (Ctrl+V)';
+            window.__lastSnapBlob = blob;   // kept in memory if you also want to save it
+        } catch (err) {
+            // Clipboard images unsupported/blocked → download fallback
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL('image/png');
+            a.download = `linehaul_${name}_${new Date().toISOString().slice(0,16).replace(/[-:T]/g,'')}.png`;
+            document.body.appendChild(a); a.click(); a.remove();
+            where = 'clipboard not available — image downloaded instead';
+        }
+        snapStatus('📸 ' + where);
+    } catch (err) {
+        console.error('snapshot failed', err);
+        snapStatus('Snapshot failed: ' + (err && err.message ? err.message : 'error'));
+    }
+}
+
+// Wire every chart card and table container with a camera button (idempotent)
+function initSnapshots(){
+    const hosts = document.querySelectorAll('.chart-card, .table-container');
+    hosts.forEach(host => {
+        if (host.querySelector('.snap-btn')) return;
+        host.classList.add('snap-wrap', 'snap-host');
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-outline-primary snap-btn';
+        btn.type = 'button';
+        btn.title = 'Copy this ' + (host.classList.contains('chart-card') ? 'chart' : 'table') + ' as an image (or download if clipboard is blocked)';
+        btn.innerHTML = '<i class="bi bi-camera"></i> Snap';
+        btn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            const name = (host.querySelector('h5, h6')?.innerText || 'section').replace(/[^a-z0-9]+/gi,'_').slice(0,40).toLowerCase();
+            snapshotEl(host, name);
+        });
+        host.appendChild(btn);
+    });
+}
 
 function loadDataFromCSV() {
     Papa.parse(csvUrl, {
@@ -738,62 +837,35 @@ function refreshData(){
     const btn=document.getElementById('btnRefresh'); btn.disabled=true;
     showToast('Refreshing data from CSV...');
     loadDataFromCSV();
+    loadLiveCsv();
     setTimeout(() => { btn.disabled=false; }, 2000);
 }
 
 function initApp(res, preserve){
     if(res.error){ showLoadError(res.error); return; }
-    const keep = preserve ? {
-        src: $('#filter-src').val()||[], dst: $('#filter-dst').val()||[],
-        ven: $('#filter-vendor').val()||[], slot: $('#filter-slot').val()||[]
-    } : null;
 
     rawTrips = res.trips || [];
-    populateMultiSelects(keep);
-    populateLiveFilters();
     document.getElementById('sheetMeta').innerText =
         `Source: ${res.sheetName} • ${fmt(rawTrips.length)} trips • Synced at ${res.generatedAt || ''}`;
-
-    // Default the live tracking date to the most recent date in the data
-    const liveDateEl = document.getElementById('live-date');
-    if (!liveDateEl.value) {
-        const keys = rawTrips.map(t=>t.dateKey).filter(Boolean).sort();
-        if (keys.length) liveDateEl.value = keys[keys.length-1];
-    }
 
     applyGlobalFilters();
 
     document.getElementById('loader').style.display = 'none';
     document.getElementById('appPages').style.display = 'block';
+    initSnapshots();   // add camera buttons to all chart cards & table containers
 }
 
 /* ================================================================
    FILTERS
 ================================================================ */
-function fillSelect(id, values, keepVals){
-    const $el=$(id);
-    if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
-    $el.empty();
-    values.forEach(v => $el.append(new Option(v, v, false, false)));
-    $el.select2({ theme:'bootstrap-5', placeholder:'All', allowClear:true, width:'100%' })
-       .on('change', applyGlobalFilters);
-    if (keepVals && keepVals.length) $el.val(keepVals.filter(x => values.includes(x)));
-}
-
-function populateMultiSelects(keep){
-    const uniq = (fn) => [...new Set(rawTrips.map(fn).filter(x => x !== null && x !== undefined && String(x).trim() !== ''))].sort();
-    fillSelect('#filter-src',  uniq(t => t.srcHub),  keep && keep.src);
-    fillSelect('#filter-dst',  uniq(t => t.dstHub),  keep && keep.dst);
-    fillSelect('#filter-vendor', uniq(t => t.vendor),  keep && keep.ven);
-    fillSelect('#filter-slot',   uniq(t => t.slot),    keep && keep.slot);
-}
-
 function populateLiveFilters(){
     const curSrc = $('#live-src').val() || [];
     const curDst = $('#live-dst').val() || [];
-    const uniq = (fn) => [...new Set(rawTrips.map(fn).filter(x => x !== null && x !== undefined && String(x).trim() !== ''))].sort();
+    const curVen = $('#live-vendor').val() || [];
+    const uniq = (fn) => [...new Set(liveRows.map(fn).filter(x => x !== null && x !== undefined && String(x).trim() !== ''))].sort();
     fillLiveSelect('#live-src', uniq(t => t.srcHub), curSrc);
     fillLiveSelect('#live-dst', uniq(t => t.dstHub), curDst);
+    fillLiveSelect('#live-vendor', uniq(t => t.vendor), curVen);
 }
 
 function fillLiveSelect(sel, values, keepVals){
@@ -808,56 +880,29 @@ function fillLiveSelect(sel, values, keepVals){
 }
 
 function applyGlobalFilters(){
-    const start = document.getElementById('filter-start-date').value;
-    const end   = document.getElementById('filter-end-date').value;
-    const selSrc   = $('#filter-src').val() || [];
-    const selDst   = $('#filter-dst').val() || [];
-    const selVen   = $('#filter-vendor').val() || [];
-    const selSlot  = $('#filter-slot').val() || [];
-
-    filteredTrips = rawTrips.filter(t => {
-        const d = t.date || '';
-        let matchDate = true;
-        if (start && end)  matchDate = (d >= start && d <= end);
-        else if (start)    matchDate = (d >= start);       
-        else if (end)      matchDate = (d !== '' && d <= end);
-
-        return matchDate
-            && (selSrc.length  === 0 || selSrc.includes(t.srcHub))
-            && (selDst.length  === 0 || selDst.includes(t.dstHub))
-            && (selVen.length  === 0 || selVen.includes(t.vendor))
-            && (selSlot.length === 0 || selSlot.includes(t.slot));
-    });
-
-    document.getElementById('filterCount').innerText =
-        `Showing ${fmt(filteredTrips.length)} of ${fmt(rawTrips.length)} trips`;
+    filteredTrips = rawTrips;
 
     renderDashboard(filteredTrips);
     if (gapState === 'live') renderGap(filteredTrips);
     renderTableLog(getLogData());
-    renderLiveTracking();
 }
 
-function resetFilters(){
-    document.getElementById('filter-start-date').value = '';
-    document.getElementById('filter-end-date').value = '';
-    ['#filter-src','#filter-dst','#filter-vendor','#filter-slot'].forEach(id => $(id).val(null).trigger('change.select2'));
-    $('#filter-src').val(null).trigger('change');
-}
+function resetFilters(){}
 
 /* ================================================================
    PAGE — LIVE TRACKING
-   Out_Time  = Src_gate_out_ts                    vs CT_plan_time
-   Arriv_Time= Dst_gate_in_ts (fallback Dst_Arrived_at_Dock_ts) vs CT_arrival_time
+   Driven entirely by the pre-computed occurrence sheet:
+   Source, Destination, DOD, Vendor, trip_code, Trip_Sequence, Out_Time, plan time,
+   Dispatch_adherence, Arriv_Time, arrival time, Arrival_adherence, FLAG_HUBS
 ================================================================ */
-function liveAdhChip(actual, plan, tol){
-    if (actual === null) return `<span class="score-pill adh-na">pending</span>`;
-    if (plan === null)   return `<span class="score-pill adh-na">no plan</span>`;
-    const diff = (actual - plan) / 60000;
-    if (Math.abs(diff) <= tol) return `<span class="score-pill adh-good">adhered</span>`;
-    return diff < 0
-        ? `<span class="score-pill adh-mid">not adhered early</span>`
-        : `<span class="score-pill adh-bad">not adhered late</span>`;
+function liveAdhChip(raw){
+    const s = String(raw || '').trim().toLowerCase();
+    if (!s)                  return `<span class="score-pill adh-na">no data</span>`;
+    if (s === 'adhered')     return `<span class="score-pill adh-good">adhered</span>`;
+    if (s === 'extra')       return `<span class="score-pill adh-na">extra</span>`;
+    if (s.includes('early')) return `<span class="score-pill adh-mid">not adhered early</span>`;
+    if (s.includes('late'))  return `<span class="score-pill adh-bad">not adhered late</span>`;
+    return `<span class="score-pill adh-na">${esc(raw)}</span>`;
 }
 
 function toggleAutoRefresh(){
@@ -872,9 +917,20 @@ function toggleAutoRefresh(){
 
 function resetLiveFilters(){
     document.getElementById('live-date').value = '';
-    $('#live-src').val(null).trigger('change');
-    $('#live-dst').val(null).trigger('change');
-    document.getElementById('live-tol').value = 15;
+    ['#live-src','#live-dst','#live-vendor'].forEach(id => $(id).val(null).trigger('change'));
+}
+
+function parseHhmm(s){
+    const m = String(s || '').trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+    if (!m) return null;
+    let h = parseInt(m[1], 10);
+    if (m[4]) { h = h % 12; if (m[4].toUpperCase() === 'PM') h += 12; }
+    return h * 60 + parseInt(m[2], 10);   // minutes since midnight, for sorting
+}
+
+function seqRank(s){
+    const m = String(s || '').trim().match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : 999;
 }
 
 function renderLiveTracking(){
@@ -884,53 +940,48 @@ function renderLiveTracking(){
     const dateVal = document.getElementById('live-date').value;   // YYYY-MM-DD
     const srcSel  = $('#live-src').val() || [];
     const dstSel  = $('#live-dst').val() || [];
-    const tol     = parseFloat(document.getElementById('live-tol').value);
-    const TOL     = isNaN(tol) ? 15 : tol;
+    const venSel  = $('#live-vendor').val() || [];
 
-    let trips = rawTrips;
-    if (dateVal) trips = trips.filter(t => t.dateKey === dateVal);
-    if (srcSel.length) trips = trips.filter(t => srcSel.includes(t.srcHub));
-    if (dstSel.length) trips = trips.filter(t => dstSel.includes(t.dstHub));
+    let rows = liveRows;
+    if (dateVal) rows = rows.filter(t => t.dod === normDateKey(dateVal) || normDateKey(t.dod) === dateVal);
+    if (srcSel.length) rows = rows.filter(t => srcSel.includes(t.srcHub));
+    if (dstSel.length) rows = rows.filter(t => dstSel.includes(t.dstHub));
+    if (venSel.length) rows = rows.filter(t => venSel.includes(t.vendor));
 
-    // Summary KPIs
-    const dispatched = trips.filter(t => t.srcGateOut !== null);
-    const arrived    = trips.filter(t => t.dstArrival !== null);
-    const dOk = dispatched.filter(t => t.ctPlan !== null && Math.abs(t.srcGateOut - t.ctPlan)/60000 <= TOL).length;
-    const aOk = arrived.filter(t => t.ctArrival !== null && Math.abs(t.dstArrival - t.ctArrival)/60000 <= TOL).length;
-    const dPlans = dispatched.filter(t => t.ctPlan !== null).length;
-    const aPlans = arrived.filter(t => t.ctArrival !== null).length;
+    // Summary KPIs (Extra rows have no plan → excluded from adherence)
+    const planned  = rows.filter(t => String(t.outAdhRaw).trim() !== '' && String(t.outAdhRaw).trim().toLowerCase() !== 'extra');
+    const dOk = planned.filter(t => String(t.outAdhRaw).trim().toLowerCase() === 'adhered').length;
+    const plannedArr = rows.filter(t => String(t.arrAdhRaw).trim() !== '' && String(t.arrAdhRaw).trim().toLowerCase() !== 'extra');
+    const aOk = plannedArr.filter(t => String(t.arrAdhRaw).trim().toLowerCase() === 'adhered').length;
 
-    document.getElementById('liveSummary').innerHTML = trips.length ? `
-        <span class="live-kpi"><div class="l">Trips</div><div class="v">${fmt(trips.length)}</div></span>
-        <span class="live-kpi"><div class="l">Dispatched</div><div class="v">${fmt(dispatched.length)} / ${fmt(trips.length)}</div></span>
-        <span class="live-kpi"><div class="l">Dispatch Adherence</div><div class="v" style="color:${adhColor(dPlans?dOk/dPlans*100:0)}">${dPlans?Math.round(dOk/dPlans*100):0}%</div></span>
-        <span class="live-kpi"><div class="l">Arrived</div><div class="v">${fmt(arrived.length)} / ${fmt(trips.length)}</div></span>
-        <span class="live-kpi"><div class="l">Arrival Adherence</div><div class="v" style="color:${adhColor(aPlans?aOk/aPlans*100:0)}">${aPlans?Math.round(aOk/aPlans*100):0}%</div></span>
-        <span class="live-kpi"><div class="l">Tolerance</div><div class="v">±${TOL} min</div></span>`
+    document.getElementById('liveSummary').innerHTML = rows.length ? `
+        <span class="live-kpi"><div class="l">Occurrences</div><div class="v">${fmt(rows.length)}</div></span>
+        <span class="live-kpi"><div class="l">With Plan</div><div class="v">${fmt(planned.length)} / ${fmt(rows.length)}</div></span>
+        <span class="live-kpi"><div class="l">Dispatch Adherence</div><div class="v" style="color:${adhColor(planned.length?dOk/planned.length*100:0)}">${planned.length?Math.round(dOk/planned.length*100):0}%</div></span>
+        <span class="live-kpi"><div class="l">Arrival Adherence</div><div class="v" style="color:${adhColor(plannedArr.length?aOk/plannedArr.length*100:0)}">${plannedArr.length?Math.round(aOk/plannedArr.length*100):0}%</div></span>
+        <span class="live-kpi"><div class="l">Extra (no plan)</div><div class="v">${fmt(rows.length - planned.length)}</div></span>`
         : '';
 
-    if (!trips.length) {
+    if (!rows.length) {
+        const dodKeys = liveRows.map(t => normDateKey(t.dod)).filter(Boolean).sort();
         wrap.innerHTML = `<div class="alert alert-light border text-center">
-            <i class="bi bi-calendar-x me-1"></i> No trips found for <strong>${esc(dateVal || 'the selected scope')}</strong>${(srcSel.length||dstSel.length)?` with the selected hubs`:''}.
-            Pick another date (sheet data range: ${esc(rawTrips.length? rawTrips.map(t=>t.dateKey).filter(Boolean).sort()[0] : '')} → ${esc(rawTrips.length? rawTrips.map(t=>t.dateKey).filter(Boolean).sort().pop() : '')}).</div>`;
+            <i class="bi bi-calendar-x me-1"></i> No occurrences found for <strong>${esc(dateVal || 'the selected scope')}</strong>${(srcSel.length||dstSel.length||venSel.length)?` with the selected hubs/vendors`:''}.
+            Pick another date (sheet data range: ${esc(dodKeys.length? dodKeys[0] : '')} → ${esc(dodKeys.length? dodKeys[dodKeys.length-1] : '')}).</div>`;
         return;
     }
 
-    // Group: src hub -> destination hub, occurrences ordered by plan time
-    const bySrc = groupBy(trips, t => t.srcHub || '—');
+    // Group: source hub -> destination hub, occurrences ordered by Trip_Sequence
+    const bySrc = groupBy(rows, t => t.srcHub || '—');
     const html = [];
 
     Object.keys(bySrc).sort().forEach(src => {
         const srcTrips = bySrc[src];
         const byDst = groupBy(srcTrips, t => t.dstHub || '—');
 
-        // occurrences per destination, sorted by plan (fallback actual dispatch, then actual arrival)
         const dstRows = Object.keys(byDst).sort().map(dst => {
-            const occ = byDst[dst].slice().sort((a,b) => {
-                const ka = a.ctPlan || a.srcGateOut || a.dstArrival || 0;
-                const kb = b.ctPlan || b.srcGateOut || b.dstArrival || 0;
-                return ka - kb;
-            });
+            const occ = byDst[dst].slice().sort((a, b) =>
+                (parseHhmm(a.planOutRaw) ?? parseHhmm(a.outRaw) ?? 0) - (parseHhmm(b.planOutRaw) ?? parseHhmm(b.outRaw) ?? 0) ||
+                seqRank(a.seq) - seqRank(b.seq));
             return { dst, occ };
         });
         const maxOcc = Math.max(...dstRows.map(r => r.occ.length));
@@ -946,10 +997,10 @@ function renderLiveTracking(){
                 const t = r.occ[i];
                 if (!t) { cells += `<td colspan="4" class="text-muted">—</td>`; continue; }
                 cells += `
-                    <td class="time-cell">${t.srcGateOut ? fmtClock(t.srcGateOut) : '—'}</td>
-                    <td>${liveAdhChip(t.srcGateOut, t.ctPlan, TOL)}</td>
-                    <td class="time-cell">${t.dstArrival ? fmtClock(t.dstArrival) : '—'}</td>
-                    <td>${liveAdhChip(t.dstArrival, t.ctArrival, TOL)}</td>`;
+                    <td class="time-cell">${esc(String(t.outRaw || '').trim() || '—')}</td>
+                    <td>${liveAdhChip(t.outAdhRaw)}</td>
+                    <td class="time-cell">${esc(String(t.arrRaw || '').trim() || '—')}</td>
+                    <td>${liveAdhChip(t.arrAdhRaw)}</td>`;
             }
             return `<tr><td class="dest-cell">${esc(r.dst)}</td>${cells}</tr>`;
         }).join('');
@@ -958,8 +1009,8 @@ function renderLiveTracking(){
             <div class="table-container mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                 <div><span class="live-hub-title"><i class="bi bi-geo-alt text-primary me-1"></i>${esc(src)}</span>
-                    <span class="text-muted fs-7 ms-2">${esc(dateVal || '')}${dstSel.length?` • dst: ${esc(dstSel.join(', '))}`:''}</span></div>
-                    <span class="badge text-bg-light border">${fmt(srcTrips.length)} trips • ${dstRows.length} destinations</span>
+                    <span class="text-muted fs-7 ms-2">${esc(dateVal || '')}${dstSel.length?` • dst: ${esc(dstSel.join(', '))}`:''}${venSel.length?` • vendors: ${esc(venSel.join(', '))}`:''}</span></div>
+                    <span class="badge text-bg-light border">${fmt(srcTrips.length)} occurrences • ${dstRows.length} destinations</span>
                 </div>
                 <div class="live-wrap">
                     <table class="live-table">
