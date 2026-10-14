@@ -154,7 +154,6 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard"><i class="bi bi-speedometer2 me-1"></i> Executive Dashboard</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live"><i class="bi bi-broadcast me-1"></i> Live Tracking</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-gap"><i class="bi bi-search-heart me-1"></i> Gap Analysis</button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-rca"><i class="bi bi-list-task me-1"></i> Trips &amp; RCA Log</button></li>
         </ul>
         <button class="btn btn-sm btn-outline-light" id="btnRefresh" title="Reload data from sheet" onclick="refreshData()"><i class="bi bi-arrow-repeat"></i></button>
     </div>
@@ -173,6 +172,14 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
         <!-- ============ PAGE 1: EXECUTIVE DASHBOARD ============ -->
         <div class="tab-pane fade show active" id="page-dashboard">
 
+            <!-- FILTERS ROW -->
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-3"><label class="form-label fw-bold small text-muted">Source Hubs</label><select id="exec-src" class="form-select form-select-sm"></select></div>
+                <div class="col-12 col-md-3"><label class="form-label fw-bold small text-muted">Destination Hubs</label><select id="exec-dst" class="form-select form-select-sm"></select></div>
+                <div class="col-12 col-md-3"><label class="form-label fw-bold small text-muted">Vendor</label><select id="exec-vendor" class="form-select form-select-sm"></select></div>
+                <div class="col-12 col-md-3"><label class="form-label fw-bold small text-muted">Flag Hubs</label><select id="exec-flag" class="form-select form-select-sm"></select></div>
+            </div>
+
             <!-- BUSINESS KPI STRIP -->
             <div class="row g-3 mb-4">
                 <div class="col-6 col-md-2"><div class="kpi-mini">
@@ -189,6 +196,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                     <div class="lbl">Perfect Trips</div>
                     <div class="val text-success" id="k-perfect">0%</div>
                     <div class="sub"><span id="k-perfect-n">0</span> trips green on all 4 checkpoints</div>
+                    <div class="text-primary small"><span id="k-perfect-flag">—</span> Perfect Flag</div>
                 </div></div>
                 <div class="col-6 col-md-2"><div class="kpi-mini">
                     <div class="lbl">Avg Open → Seal</div>
@@ -200,17 +208,17 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                     <div class="val" style="color:#0ea5e9" id="k-util">—</div>
                     <div class="sub"><span id="k-util-n">0</span> trips under 70% loaded</div>
                 </div></div>
-                <div class="col-6 col-md-2"><div class="kpi-mini clickable" onclick="gotoLog('rcaPending', null)" title="Show trips that failed without an RCA">
-                    <div class="lbl">RCA Pending</div>
-                    <div class="val text-danger" id="k-rca">0</div>
-                    <div class="sub"><span id="k-rca-sub">0%</span> of failures have RCA filled</div>
-                </div></div>
+                <div class="col-6 col-md-2"><div class="kpi-mini" title="Filters apply globally">
+                    <div class="lbl">Filters</div>
+                    <div class="val" id="k-filters">All</div>
+                </div>
+                <div class="kpi-mini" title="Vendor adherence %"><div class="lbl">Vendor Adh.</div><div class="val" id="k-vendoradh">0%</div></div>
             </div>
 
             <!-- 4 CORE METRIC CARDS (click a card to inspect its failures) -->
             <div class="row g-3 mb-4">
-                <div class="col-md-3"><div class="kpi-card border-portal" onclick="gotoLog('failed','portalAdh')" title="Click to view failing trips">
-                    <span class="card-hint">VIEW FAILURES ▸</span>
+                <div class="col-md-3"><div class="kpi-card border-portal" onclick="updateKpiCards()" title="Click to refresh">
+                    <span class="card-hint">REFRESH</span>
                     <div class="kpi-card-header">Portal Adherence</div>
                     <div class="kpi-main-pct text-primary" id="c1-pct">0%</div>
                     <div class="kpi-stat-row">
@@ -219,8 +227,8 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                         <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Not Adhered</div><div class="kpi-stat-val text-danger" id="c1-nonadh">0</div></div>
                     </div>
                 </div></div>
-                <div class="col-md-3"><div class="kpi-card border-actual" onclick="gotoLog('failed','portalPlanVsActualAdh')" title="Click to view failing trips">
-                    <span class="card-hint">VIEW FAILURES ▸</span>
+                <div class="col-md-3"><div class="kpi-card border-actual" onclick="updateKpiCards()" title="Click to refresh">
+                    <span class="card-hint">REFRESH</span>
                     <div class="kpi-card-header">Portal Actual Vs Plan</div>
                     <div class="kpi-main-pct" style="color: #8b5cf6;" id="c2-pct">0%</div>
                     <div class="kpi-stat-row">
@@ -229,8 +237,8 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                         <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Not Adhered</div><div class="kpi-stat-val text-danger" id="c2-nonadh">0</div></div>
                     </div>
                 </div></div>
-                <div class="col-md-3"><div class="kpi-card border-openseal" onclick="gotoLog('failed','openToSealAdh')" title="Click to view failing trips">
-                    <span class="card-hint">VIEW FAILURES ▸</span>
+                <div class="col-md-3"><div class="kpi-card border-openseal" onclick="updateKpiCards()" title="Click to refresh">
+                    <span class="card-hint">REFRESH</span>
                     <div class="kpi-card-header">Open to Seal Adherence</div>
                     <div class="kpi-main-pct text-success" id="c3-pct">0%</div>
                     <div class="kpi-stat-row">
@@ -239,8 +247,8 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                         <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Not Adhered</div><div class="kpi-stat-val text-danger" id="c3-nonadh">0</div></div>
                     </div>
                 </div></div>
-                <div class="col-md-3"><div class="kpi-card border-arrival" onclick="gotoLog('failed','arrivalAdh')" title="Click to view failing trips">
-                    <span class="card-hint">VIEW FAILURES ▸</span>
+                <div class="col-md-3"><div class="kpi-card border-arrival" onclick="updateKpiCards()" title="Click to refresh">
+                    <span class="card-hint">REFRESH</span>
                     <div class="kpi-card-header">Arrival Adherence</div>
                     <div class="kpi-main-pct text-warning" id="c4-pct">0%</div>
                     <div class="kpi-stat-row">
@@ -445,42 +453,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </div>
         </div>
 
-        <!-- ============ PAGE 4: TRIP LOG & RCA MANAGEMENT ============ -->
-        <div class="tab-pane fade" id="page-rca">
-            <div class="table-container">
-                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                    <h5 class="fw-bold m-0"><i class="bi bi-journal-text me-2"></i>Master Trip Operational Log</h5>
-                    <div class="d-flex align-items-center gap-3 flex-wrap">
-                        <div class="btn-group btn-group-sm chip-bar" id="logChips">
-                            <button class="btn btn-outline-secondary active" data-mode="all">All Trips</button>
-                            <button class="btn btn-outline-danger" data-mode="failed">Failures Only</button>
-                            <button class="btn btn-outline-warning" data-mode="rcaPending">RCA Pending</button>
-                        </div>
-                        <span id="metricFocusChip" class="badge bg-danger-subtle text-danger" style="display:none"></span>
-                        <input type="text" id="log-search" class="form-control form-control-sm" style="width:230px" placeholder="Search trip ID, route, plate...">
-                    </div>
-                </div>
-                <table id="tripTable" class="table table-hover align-middle w-100 fs-7">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Date</th>
-                            <th>Slot</th>
-                            <th>Trip ID</th>
-                            <th>Route</th>
-                            <th>Vendor / Truck</th>
-                            <th>Shipments</th>
-                            <th>Util</th>
-                            <th>Delay</th>
-                            <th>SLA Checkpoints (P | PA | GO | OS | AR | VH)</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tripTableBody"></tbody>
-                </table>
             </div>
-        </div>
-
-    </div>
 </div>
 
 <!-- Brand footer -->
@@ -608,6 +581,7 @@ function missingRcaFor(t){ return METRICS.filter(m=> m.rca && !isPass(t[m.key]) 
 function adhClass(p){ return p>=90?'adh-good':p>=75?'adh-mid':'adh-bad'; }
 function adhColor(p){ return p>=90?'#16a34a':p>=75?'#ca8a04':'#dc2626'; }
 function pillHtml(p){ return `<span class="score-pill ${adhClass(p)}">${Math.round(p)}%</span>`; }
+function isPerfectFlag(v){ if(v===null||v===undefined) return false; const s=String(v).toUpperCase().trim(); return s=== 'YES' || s=== 'TRUE' || s=== '1' || s=== 'PERFECT'; }
 function dash(){ return '<span class="text-muted">—</span>'; }
 
 function destroyChart(name){ if(charts[name]){ charts[name].destroy(); delete charts[name]; } }
@@ -818,6 +792,10 @@ function loadDataFromCSV() {
                     driver: row['driver_full_name'] || '',
                     vehicleType: row['vehicle_type'] || '',
                     isAdhoc: row['is_adhoc'] || '',
+                    perfectFlag: row['Perfect_Flag'] || 'NO',
+                    flagHubs: row['FLAG_HUBS'] || '',
+                    rankTrip: row['RANK_TRIP'] || '0',
+                    facility: row['Facility'] || '',
                     shipments: parseFloat(row['total_shipments']) || 0,
                     utilization: parseFloat(row['trip_stop_estimated_utilization']) || null,
                     varMinutes: parseFloat(row['Var_in_Minutes_between_Actual_and_plan']) || null,
@@ -829,11 +807,14 @@ function loadDataFromCSV() {
                     // Map specific adherence columns to template keys
                     portalAdh: row['Portal_Adherence'] || '',
                     portalPlanVsActualAdh: row['Portal Actual Vs Portal Plan Adherence'] || '',
-                    gateInToOpenAdh: row['gate in to open adherence'] || '',
-                    openToSealAdh: row['Open_to_seal_Adhrence'] || '', 
+                    gateInToOpenAdh: row['gate in to open adherence'] || '',openToSealAdh: row['Open_to_seal_Adhrence'] || '', 
                     arrivalAdh: row['Arrival_Adherence'] || '',
-                    vehicleAdh: row['Vendor_Adherence'] || '', 
-
+                    vehicleAdh: row['Vendor_Adherence'] || '',
+                    // New columns
+                    perfectFlag: row['Perfect_Flag'] || '', 
+                    flagHubs: row['FLAG_HUBS'] || '',
+                    rankTrip: row['RANK_TRIP'] || '',
+                    facility: row['Facility'] || '', 
                     // Live Tracking timestamps
                     srcGateOutRaw: row['Src_gate_out_ts'] || '',
                     ctPlanRaw: row['CT_plan_time'] || '',
@@ -1279,6 +1260,7 @@ function renderDashboard(data){
     const totalShip = data.reduce((s,t)=>s+(t.shipments||0),0);
     const comp = composite(data);
     const perfect = data.filter(t => CORE_KEYS.every(k => isPass(t[k]))).length;
+    const perfectFlagCount = data.filter(t => String(t.perfectFlag||'').trim().toUpperCase() === 'YES' || String(t.perfectFlag||'').trim().toUpperCase() === 'TRUE' || String(t.perfectFlag||'').trim() === '1' || String(t.perfectFlag||'').trim().toUpperCase() === 'PERFECT').length;
     const avgO2S = avg(data.map(t=>t.openToSealMin));
     const avgUtil = avg(data.map(t=>t.utilization));
     const lowUtil = data.filter(t => t.utilization !== null && t.utilization < BIZ.LOW_UTIL).length;
@@ -1291,6 +1273,7 @@ function renderDashboard(data){
     document.getElementById('k-comp').className = 'val ' + (comp>=90?'text-success':comp>=75?'text-primary':'text-danger');
     document.getElementById('k-perfect').innerText = (total ? Math.round(perfect/total*100) : 0) + '%';
     document.getElementById('k-perfect-n').innerText = fmt(perfect);
+    document.getElementById('k-perfect-flag').innerText = perfectFlagCount > 0 ? Math.round(perfectFlagCount/total*100) + '%' : '—';
     document.getElementById('k-o2s').innerText = avgO2S===null ? '—' : Math.round(avgO2S) + 'm';
     document.getElementById('k-o2s-sub').innerText = avgO2S===null ? 'no timing data' : (avgO2S<=BIZ.O2S_TARGET? `within ${BIZ.O2S_TARGET}m target` : `above ${BIZ.O2S_TARGET}m target`);
     document.getElementById('k-util').innerText = avgUtil===null ? '—' : Math.round(avgUtil) + '%';
@@ -1299,11 +1282,14 @@ function renderDashboard(data){
     document.getElementById('k-rca-sub').innerText = (rc.need ? Math.round(rc.have/rc.need*100) : 100) + '%';
 
     // ---- 4 core cards ----
-    const cards = [
-        { p:'c1-pct', t:'c1-total', a:'c1-adh', n:'c1-nonadh', key:'portalAdh' },
-        { p:'c2-pct', t:'c2-total', a:'c2-adh', n:'c2-nonadh', key:'portalPlanVsActualAdh' },
-        { p:'c3-pct', t:'c3-total', a:'c3-adh', n:'c3-nonadh', key:'openToSealAdh' },
-        { p:'c4-pct', t:'c4-total', a:'c4-adh', n:'c4-nonadh', key:'arrivalAdh' }
+    const cards = [{ p:'c1-pct', t:'c1-total', a:'c1-adh', n:'c1-nonadh', key:'portalAdh' },
+         { c:'Perfect_Flag', t:'c1-flag', a:'c1-flagad', n:'c1-flagnon', key:'perfectFlag' },
+         { p:'c2-pct', t:'c2-total', a:'c2-adh', n:'c2-nonadh', key:'portalPlanVsActualAdh' },
+         { c:'FLAG_HUBS', t:'c2-flag', a:'c2-flagad', n:'c2-flagnon', key:'flagHubs' },
+         { p:'c3-pct', t:'c3-total', a:'c3-adh', n:'c3-nonadh', key:'openToSealAdh' },
+         { c:'RANK_TRIP', t:'c3-rank', a:'c3-rankad', n:'c3-ranknon', key:'rankTrip' },
+         { p:'c4-pct', t:'c4-total', a:'c4-adh', n:'c4-nonadh', key:'arrivalAdh' },
+         { c:'Facility', t:'c4-fac', a:'c4-facad', n:'c4-facnon', key:'facility' }
     ];
     cards.forEach(c => {
         const pass = data.filter(x => isPass(x[c.key])).length;
