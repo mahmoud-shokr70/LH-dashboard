@@ -145,7 +145,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 <!-- Header Navigation -->
 <div class="top-navbar d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-        <h4 class="m-0 fw-bold"><i class="bi bi-truck me-2"></i>Line Haul Control Tower</h4>
+        <h4 class="m-0 fw-bold">Control Tower</h4>
         <div class="brand-slogan">We Build, Guide, Excel, and Control.</div>
         <div class="meta-line" id="sheetMeta">Connecting to sheet…</div>
     </div>
@@ -1170,14 +1170,16 @@ function buildTextSummary(rows){
     const arrPct = arrived.length ? Math.round(arrOk/arrived.length*100) : 0;
     const outPct = dispatched.length ? Math.round(outOk/dispatched.length*100) : 0;
 
-    L.push('LINE HAUL LIVE REPORT — ' + scope);
-    L.push('='.repeat(60));
-    L.push(`Occurrences: ${rows.length} (planned ${dispatched.length}, extra/no-plan ${rows.length - dispatched.length})`);
-    L.push(`Dispatch adherence: ${outOk}/${dispatched.length} = ${outPct}%`);
-    L.push(`Arrival adherence:  ${arrOk}/${arrived.length} = ${arrPct}%`);
+    // --- Core KPIs ---
+    L.push('LINE HAUL LIVE REPORT');
+    L.push('=====================');
+    L.push(`Date: ${dateVal || 'All Days'}`);
+    L.push(`Occurrences: ${rows.length} (${dispatched.length} with plan, ${rows.length - dispatched.length} extra/no‑plan)`);
+    L.push(`Dispatch adherence: ${outPct}% (${outOk}/${dispatched.length} on‑plan)`);
+    L.push(`Arrival adherence:  ${arrPct}% (${arrOk}/${arrived.length} on‑time)`);
     L.push('');
 
-    // Lane breakdown: source -> destination
+    // --- Key insights (worst & best lanes) ---
     const lanes = {};
     rows.forEach(t => {
         const key = `${t.srcHub} - ${t.dstHub}`;
@@ -1187,38 +1189,64 @@ function buildTextSummary(rows){
         if (s.out === 'adhered') g.outA++; else if (s.out.startsWith('not adhered early')) g.outE++; else if (s.out.startsWith('not adhered late')) g.outL++; else g.ex++;
         if (s.arr === 'adhered') g.arrA++; else if (s.arr.startsWith('not adhered early')) g.arrE++; else if (s.arr.startsWith('not adhered late')) g.arrL++;
     });
-    L.push('BY LANE (source - destination):');
+    const sortedLanes = Object.entries(lanes).sort((a,b)=> b[1].n - a[1].n);
+    const worst = sortedLanes.slice(0, Math.min(3, sortedLanes.length));
+    const best  = sortedLanes.slice(-3).reverse();
+
+    L.push('KEY INSIGHTS');
     L.push('-'.repeat(60));
-    Object.entries(lanes).sort((a,b)=> b[1].n - a[1].n).forEach(([k,g]) => {
-        const arrN = g.arrA + g.arrE + g.arrL;
-        const arrL = arrN ? Math.round(g.arrA/arrN*100) : 0;
-        const bits = [`trips ${g.n}`];
-        if (g.outE) bits.push(`early out ${g.outE}`);
-        if (g.outL) bits.push(`late out ${g.outL}`);
-        if (g.outA) bits.push(`on-time out ${g.outA}`);
-        if (g.ex)   bits.push(`extra ${g.ex}`);
-        if (arrN)   bits.push(`arrival ${g.arrA}/${arrN} = ${arrL}%`);
-        if (g.arrE) bits.push(`early arr ${g.arrE}`);
-        if (g.arrL) bits.push(`late arr ${g.arrL}`);
-        L.push(`- ${k}: ${bits.join(', ')}`);
-    });
+    if (worst.length) {
+        worst.forEach(([k, g]) => {
+            const arrN = g.arrA + g.arrE + g.arrL;
+            const arrL = arrN ? Math.round(g.arrA/arrN*100) : 0;
+            const outBits = [];
+            if (g.outE) outBits.push(`early out ${g.outE}`);
+            if (g.outL) outBits.push(`late out ${g.outL}`);
+            if (g.outA) outBits.push(`on-time out ${g.outA}`);
+            const outStr = outBits.length ? outBits.join(', ') : 'mixed';
+            const arrStr = arrN ? `${g.arrA}/${arrN} = ${arrL}%` : '—';
+            L.push(`• ${k}: ${outStr} | arrival ${arrStr}`);
+        });
+    }
+    if (best.length) {
+        best.forEach(([k, g]) => {
+            const arrN = g.arrA + g.arrE + g.arrL;
+            const arrL = arrN ? Math.round(g.arrA/arrN*100) : 0;
+            const outBits = [];
+            if (g.outA) outBits.push(`on-time out ${g.outA}`);
+            const outStr = outBits.length ? outBits.join(', ') : 'mixed';
+            L.push(`• ${k}: ${outStr} | 100% arrival adherence`);
+        });
+    }
     L.push('');
 
-    // Failing occurrences detail (only when failures exist)
+    // --- Failing occurrences (summarized, not every row) ---
     const fails = rows.filter(t => st(t).out.startsWith('not adhered') || st(t).arr.startsWith('not adhered'));
+    L.push('NOTABLE FAILURES');
+    L.push('-'.repeat(60));
     if (fails.length) {
-        L.push('FAILING OCCURRENCES (not adhered):');
-        L.push('-'.repeat(60));
+        // Group by lane for concise listing
+        const failByLane = {};
         fails.forEach(t => {
-            const s = st(t);
-            const bits = [];
-            if (s.out.startsWith('not adhered')) bits.push(`out ${String(t.outRaw||'').trim()||'?'} vs plan ${String(t.planOutRaw||'').trim()||'?'} (${s.out.replace('not adhered ','')})`);
-            if (s.arr.startsWith('not adhered')) bits.push(`arr ${String(t.arrRaw||'').trim()||'?'} vs plan ${String(t.planArrRaw||'').trim()||'?'} (${s.arr.replace('not adhered ','')})`);
-            L.push(`- ${t.srcHub} - ${t.dstHub} (${t.vendor}, ${t.tripCode}, ${t.seq}): ${bits.join('; ')}`);
+            const lane = `${t.srcHub} - ${t.dstHub}`;
+            (failByLane[lane] = failByLane[lane] || []).push(t);
         });
+        let count = 0;
+        Object.entries(failByLane).forEach(([lane, flist]) => {
+            if (count >= 5) return; // show max 5 lane groups
+            const first = flist[0];
+            const s = st(first);
+            const outDesc = s.out.startsWith('not adhered') ? `${s.out.replace('not adhered ','')}` : '';
+            const arrDesc = s.arr.startsWith('not adhered') ? `${s.arr.replace('not adhered ','')}` : '';
+            L.push(`• ${lane}: ${outDesc} / ${arrDesc}`);
+            count++;
+        });
+        if (fails.length > 5) L.push(`… and ${fails.length - 5} more failures`);
     } else {
-        L.push('No failing occurrences in this scope. All good! ✓');
+        L.push('No failures in this scope. All adherent! ✓');
     }
+    L.push('');
+    L.push('Copy this text and paste it alongside your Snap Board image in Teams/WhatsApp/email.');
     return L.join('\n');
 }
 
