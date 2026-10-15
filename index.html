@@ -18,6 +18,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
+
 <style>
 /* ===================== BRAND GUIDELINES =====================
    Colors : header black (dashboards) • page bg light yellow • cards/rest white
@@ -203,8 +204,12 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             <div class="card p-3 mb-4 border-0 shadow-sm">
                 <div class="d-flex flex-wrap gap-2 align-items-end">
                     <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted">Date</label>
-                        <input type="date" id="dash-date" class="form-control form-control-sm" onchange="applyDashboardFilters()">
+                        <label class="form-label fw-bold small text-muted">Date From</label>
+                        <input type="date" id="dash-date-from" class="form-control form-control-sm" onchange="applyDashboardFilters()">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted">Date To</label>
+                        <input type="date" id="dash-date-to" class="form-control form-control-sm" onchange="applyDashboardFilters()">
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted">Src Hub</label>
@@ -219,12 +224,16 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                         <select id="dash-vendor" class="form-select select2-dash" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted">Flag Hubs</label>
-                        <select id="dash-flag" class="form-select select2-dash" multiple="multiple"></select>
+                        <label class="form-label fw-bold small text-muted">Facility</label>
+                        <select id="dash-facility" class="form-select select2-dash" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted">Perfect Flag</label>
-                        <select id="dash-perfect" class="form-select select2-dash" multiple="multiple"></select>
+                        <label class="form-label fw-bold small text-muted">Trip Status</label>
+                        <select id="dash-status" class="form-select select2-dash" multiple="multiple"></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted">Flag Hubs</label>
+                        <select id="dash-flag" class="form-select select2-dash" multiple="multiple"></select>
                     </div>
                     <div class="col-12 col-md-auto ms-auto">
                         <button class="btn btn-sm btn-outline-secondary" onclick="resetDashFilters()"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
@@ -460,6 +469,47 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                         <div class="chart-box-sm"><canvas id="chartAdhoc"></canvas></div>
                         <div class="text-muted mt-2 fw-semibold" style="font-size:.74rem" id="adhocNote">—</div>
                     </div>
+                </div>
+            </div>
+
+            <!-- TRIP DETAILS TABLE - All trips with full metrics -->
+            <div class="card p-3 mb-4 border-0 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <h5 class="fw-bold m-0"><i class="bi bi-list-ul me-2"></i>Trip Details <span class="text-muted fw-normal">(Showing ${total} trips)</span></h5>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="tripSearch" class="form-control form-control-sm" style="width:200px" placeholder="Search trip ID or route..." oninput="filterTripTable()">
+                        <button class="btn btn-sm btn-outline-primary" onclick="exportTripTable()"><i class="bi bi-download me-1"></i> Export CSV</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="table table-sm table-hover align-middle fs-7" id="tripDetailsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Date</th>
+                                <th>Trip ID</th>
+                                <th>Trip Code</th>
+                                <th>Route</th>
+                                <th>Src Hub</th>
+                                <th>Dst Hub</th>
+                                <th>Vendor</th>
+                                <th>Status</th>
+                                <th>Facility</th>
+                                <th>Portal</th>
+                                <th>Act/Plan</th>
+                                <th>Gate→Open</th>
+                                <th>Open→Seal</th>
+                                <th>Arrival</th>
+                                <th>Vendor Adh</th>
+                                <th>Shipments</th>
+                                <th>Util %</th>
+                                <th>Perfect</th>
+                                <th>Flag Hubs</th>
+                                <th>RCA</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tripDetailsBody"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -780,6 +830,123 @@ const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVVwlkf3BVaI-4K
 const liveCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=1243180451&single=true&output=csv';
 
 /* ================================================================
+   CSV FETCH GUARD — Google Sheets redirects & transient 5xx/429
+   PapaParse only does HTTP. We fetch ourselves so we can:
+     (a) follow the GSE 307 redirect to the doc-* host reliably,
+     (b) retry on HTTP errors / empty / HTML-only responses,
+     (c) surface a friendly in-page message instead of a silent stall.
+================================================================ */
+async function fetchCsvText(url, retries=2, baseDelayMs=1200){
+    let lastErr = null;
+    for (let attempt=0; attempt<=retries; attempt++){
+        try {
+            const resp = await fetch(url, {
+                method:'GET',
+                headers:{ 'Accept':'text/csv,application/csv,text/plain;q=0.9' },
+                mode:'cors',
+                cache:'no-store'
+            });
+            if(!resp.ok){
+                lastErr = `HTTP ${resp.status} ${resp.statusText} for ${url}`;
+                console.warn('[CSV fetch] attempt', attempt+1, 'failed:', lastErr);
+                if(attempt<retries) await sleep(baseDelayMs*(1<<attempt));
+                continue;
+            }
+            const text = await resp.text();
+            const trimmed = (text||'').trim();
+            if(!trimmed || trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html') || trimmed.startsWith('<HTML')){
+                lastErr = `Empty or HTML response from Google Sheets (likely a temporary redirect/error page). URL: ${url}`;
+                console.warn('[CSV fetch] attempt', attempt+1, 'got non-CSV body (len=' + (trimmed.length||0) + ').');
+                if(attempt<retries) await sleep(baseDelayMs*(1<<attempt));
+                continue;
+            }
+            console.log('[CSV fetch] OK attempt', attempt+1, 'bytes=', text.length, 'firstLine=', text.split(/\r?\n/)[0].slice(0,120));
+            return text;
+        } catch(e){
+            lastErr = String(e?.message || e ?? 'unknown fetch error');
+            console.warn('[CSV fetch] attempt', attempt+1, 'exception:', lastErr);
+            if(attempt<retries) await sleep(baseDelayMs*(1<<attempt));
+        }
+    }
+    throw new Error(lastErr ?? 'Could not fetch CSV after '+(retries+1)+' attempts');
+}
+function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+/* ================================================================
+   LOADER POLISH — clearer in-page states, empty-data retry, logs
+================================================================ */
+function setLoadingState(loader, msg){
+    if(!loader) return;
+    if(msg === null || msg === undefined){
+        loader.style.display = 'none';
+        loader.innerHTML = '';
+        return;
+    }
+    loader.style.display = 'block';
+    loader.innerHTML = `
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading…</span></div>
+        <div class="mt-3 fs-6 fw-semibold">${esc(msg)}</div>
+      </div>`;
+}
+function showLoadError(msg){
+    const loader = document.getElementById('loader');
+    if(!loader) return;
+    loader.innerHTML = `
+      <div class="alert alert-danger d-inline-block text-start mt-4" style="max-width:560px">
+        <h6 class="fw-bold"><i class="bi bi-exclamation-octagon me-1"></i> Could not load trip data</h6>
+        <div class="small">${esc(msg)}</div>
+        <button class="btn btn-sm btn-danger mt-2" onclick="location.reload()"><i class="bi bi-arrow-repeat me-1"></i>Retry</button>
+      </div>`;
+    loader.style.display = 'block';
+}
+
+
+/* ================================================================
+   CSV FETCH GUARD — Google Sheets redirects & transient 5xx/429
+   PapaParse only does HTTP. We fetch ourselves so we can:
+     (a) follow the GSE 307 redirect to the doc-* host reliably,
+     (b) retry on HTTP errors / empty / HTML-only responses,
+     (c) surface a friendly in-page message instead of a silent stall.
+================================================================ */
+async function fetchCsvText(url, retries=2, baseDelayMs=1200){
+    let lastErr = null;
+    for (let attempt=0; attempt<=retries; attempt++){
+        try {
+            const resp = await fetch(url, {
+                method:'GET',
+                headers:{ 'Accept':'text/csv,application/csv,text/plain;q=0.9' },
+                mode:'cors',
+                cache:'no-store'
+            });
+            if(!resp.ok){
+                lastErr = `HTTP ${resp.status} ${resp.statusText} for ${url}`;
+                console.warn('[CSV fetch] attempt', attempt+1, 'failed:', lastErr);
+                if(attempt<retries) await sleep(baseDelayMs*(1<<attempt));
+                continue;
+            }
+            const text = await resp.text();
+            const trimmed = (text||'').trim();
+            // Google Sheets occasionally hands back an HTML error page instead of CSV.
+            if(!trimmed || trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html') || trimmed.startsWith('<HTML')){
+                lastErr = `Empty or HTML response from Google Sheets (likely a temporary redirect/error page). URL: ${url}`;
+                console.warn('[CSV fetch] attempt', attempt+1, 'got non-CSV body (len=' + (trimmed.length||0) + ').');
+                if(attempt<retries) await sleep(baseDelayMs*(1<<attempt));
+                continue;
+            }
+            console.log('[CSV fetch] OK attempt', attempt+1, 'bytes=', text.length, 'firstLine=', text.split(/\r?\n/)[0].slice(0,120));
+            return text;
+        } catch(e){
+            lastErr = String(e?.message || e ?? 'unknown fetch error');
+            console.warn('[CSV fetch] attempt', attempt+1, 'exception:', lastErr);
+            if(attempt<retries) await sleep(baseDelayMs*(1<<attempt));
+        }
+    }
+    throw new Error(lastErr ?? 'Could not fetch CSV after '+(retries+1)+' attempts');
+}
+function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+/* ================================================================
    STATE & CONFIG
 ================================================================ */
 const BIZ = { LATE_MIN: 15, LOW_UTIL: 70, VENDOR_MIN_TRIPS: 5, LANE_MIN_TRIPS: 3, O2S_TARGET: 60 };
@@ -850,30 +1017,45 @@ let dashDstSelection = [];
 let dashVendorSelection = [];
 let dashFlagSelection = [];
 let dashPerfectSelection = [];
-let dashDateValue = '';
-let selectedMetricKey = null;
-
-function applyDashboardFilters(){
-    dashDateValue = document.getElementById('dash-date').value || '';
+let dashFacilitySelection = [];
+let dashStatusSelection = [];
+let dashDateFrom = '';
+let dashDateTo = '';
+let selectedMetricKey = null;function applyDashboardFilters(){
+    dashDateFrom = document.getElementById('dash-date-from').value || '';
+    dashDateTo = document.getElementById('dash-date-to').value || '';
     dashSrcSelection = $('#dash-src').val() || [];
     dashDstSelection = $('#dash-dst').val() || [];
     dashVendorSelection = $('#dash-vendor').val() || [];
     dashFlagSelection = $('#dash-flag').val() || [];
     dashPerfectSelection = $('#dash-perfect').val() || [];
+    dashFacilitySelection = $('#dash-facility').val() || [];
+    dashStatusSelection = $('#dash-status').val() || [];
 
     let data = [...rawTrips];
-    if (dashDateValue) data = data.filter(t => t.date && (t.date.includes(dashDateValue) || normDateKey(t.date) === dashDateValue));
+    if (dashDateFrom || dashDateTo) {
+        data = data.filter(t => {
+            const d = t.date ? (t.date.length > 10 ? t.date.substring(0,10) : t.date) : '';
+            if (dashDateFrom && d < dashDateFrom) return false;
+            if (dashDateTo && d > dashDateTo) return false;
+            return true;
+        });
+    }
     if (dashSrcSelection.length) data = data.filter(t => dashSrcSelection.includes(t.srcHub));
     if (dashDstSelection.length) data = data.filter(t => dashDstSelection.includes(t.dstHub));
     if (dashVendorSelection.length) data = data.filter(t => dashVendorSelection.includes(t.vendor));
     if (dashFlagSelection.length) data = data.filter(t => dashFlagSelection.includes(String(t.flagHubs||'').trim()));
     if (dashPerfectSelection.length) data = data.filter(t => isPerfectFlag(t.perfectFlag));
+    if (dashFacilitySelection.length) data = data.filter(t => dashFacilitySelection.includes(t.facility));
+    if (dashStatusSelection.length) data = data.filter(t => dashStatusSelection.includes(t.tripStatus));
 
     document.getElementById('dashFilterInfo').innerHTML = `
-        ${dashDateValue?`<strong>Date:</strong> ${dashDateValue}`: '<strong>Date:</strong> All'} • 
+        ${dashDateFrom||dashDateTo?`<strong>Date:</strong> ${dashDateFrom||''} ${dashDateFrom&&dashDateTo?'→':''} ${dashDateTo||''}`: '<strong>Date:</strong> All'} • 
         ${dashSrcSelection.length?`<strong>Src:</strong> ${dashSrcSelection.join(', ')}`:'<strong>Src:</strong> All'} • 
         ${dashDstSelection.length?`<strong>Dst:</strong> ${dashDstSelection.join(', ')}`:'<strong>Dst:</strong> All'} • 
         ${dashVendorSelection.length?`<strong>Vendor:</strong> ${dashVendorSelection.join(', ')}`:'<strong>Vendor:</strong> All'} • 
+        ${dashFacilitySelection.length?`<strong>Facility:</strong> ${dashFacilitySelection.join(', ')}`:'<strong>Facility:</strong> All'} • 
+        ${dashStatusSelection.length?`<strong>Status:</strong> ${dashStatusSelection.join(', ')}`:'<strong>Status:</strong> All'} • 
         ${dashFlagSelection.length?`<strong>Flag Hubs:</strong> ${dashFlagSelection.join(', ')}`:'<strong>Flag Hubs:</strong> All'} • 
         ${dashPerfectSelection.length?'<strong>Perfect:</strong> YES': '<strong>Perfect:</strong> All'}`;
 
@@ -883,17 +1065,22 @@ function applyDashboardFilters(){
         const bsTab = bootstrap.Tab.getOrCreateInstance(dashTab);
         bsTab.show();
     }
+    
 
     renderDashboard(data);
 }
 
 function resetDashFilters(){
-    document.getElementById('dash-date').value = '';
-    dashDateValue = '';
-    ['#dash-src','#dash-dst','#dash-vendor','#dash-flag','#dash-perfect'].forEach(id => $(id).val(null).trigger('change'));
+    document.getElementById('dash-date-from').value = '';
+    document.getElementById('dash-date-to').value = '';
+    dashDateFrom = '';
+    dashDateTo = '';
+    ['#dash-src','#dash-dst','#dash-vendor','#dash-facility','#dash-status','#dash-flag','#dash-perfect'].forEach(id => $(id).val(null).trigger('change'));
     dashSrcSelection = [];
     dashDstSelection = [];
     dashVendorSelection = [];
+    dashFacilitySelection = [];
+    dashStatusSelection = [];
     dashFlagSelection = [];
     dashPerfectSelection = [];
     document.getElementById('dashFilterInfo').innerHTML = '';
@@ -906,22 +1093,46 @@ function populateDashFilters(){
     const curVen = $('#dash-vendor').val() || [];
     const curFlag = $('#dash-flag').val() || [];
     const curPerfect = $('#dash-perfect').val() || [];
+    const curFacility = $('#dash-facility').val() || [];
+    const curStatus = $('#dash-status').val() || [];
     const uniq = (fn) => [...new Set(rawTrips.map(fn).filter(x => x !== null && x !== undefined && String(x).trim() !== ''))].sort();
-    fillDashSelect('#dash-src', uniq(t => t.srcHub), curSrc);
-    fillDashSelect('#dash-dst', uniq(t => t.dstHub), curDst);
-    fillDashSelect('#dash-vendor', uniq(t => t.vendor), curVen);
-    fillDashSelect('#dash-flag', uniq(t => t.flagHubs), curFlag);
-    fillDashSelect('#dash-perfect', ['YES','TRUE','1','Y','PERFECT'], curPerfect);
+    const outlets = uniq(t => t.srcHub);
+    const dests  = uniq(t => t.dstHub);
+    const vendors = uniq(t => t.vendor);
+    const flags   = uniq(t => t.flagHubs);
+    const facilities = uniq(t => t.facility);
+    const statuses = uniq(t => t.tripStatus);
+
+    fillDashSelect('#dash-src', outlets, curSrc);
+    fillDashSelect('#dash-dst', dests, curDst);
+    fillDashSelect('#dash-vendor', vendors, curVen);
+    fillDashSelect('#dash-flag', flags, curFlag);
+    fillDashSelect('#dash-perfect', ['YES','TRUE','1','Y','PERFECT','Perfect'], curPerfect);
+    fillDashSelect('#dash-facility', facilities.length ? facilities : ['—'], curFacility);
+    fillDashSelect('#dash-status', statuses.length ? statuses : ['—'], curStatus);
 }
 
 function fillDashSelect(sel, values, keepVals){
     const $el = $(sel);
-    if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
+    if($el.length === 0) return;
+    if ($el.hasClass('select2-hidden-accessible')){ try{ $el.select2('destroy'); }catch(e){} }
     $el.empty();
-    values.forEach(v => $el.append(new Option(v, v, false, false)));
-    $el.select2({ theme:'bootstrap-5', placeholder:'All', allowClear:true, width:'100%' })
-       .on('change', applyDashboardFilters);
-    if (keepVals && keepVals.length) $el.val(keepVals.filter(x => values.includes(x)));
+    if(!values || !values.length){
+        $el.append(new Option('— no values —', '', false, false));
+        $el.prop('disabled', true);
+        try{ $el.select2({ theme:'bootstrap-5', placeholder:'No data', width:'100%' }); }catch(e){}
+        return;
+    }
+    $el.prop('disabled', false);
+    values.forEach(v => $el.append(new Option(String(v), String(v), false, false)));
+    try{
+        $el.select2({ theme:'bootstrap-5', placeholder:'All', allowClear:true, width:'100%' })
+           .on('change', applyDashboardFilters);
+    }catch(e){ console.warn('[fillDashSelect] select2 init failed for', sel, e); }
+    if(keepVals && keepVals.length){
+        const valid = keepVals.filter(x => x && values.includes(String(x)));
+        if(valid.length) $el.val(valid);
+    }
     $el.trigger('change.select2');
 }
 
@@ -997,12 +1208,21 @@ function clearMetricSelection(){
 
 function getFilteredDashboardData(){
     let data = [...rawTrips];
-    if (dashDateValue) data = data.filter(t => t.date && (t.date.includes(dashDateValue) || normDateKey(t.date) === dashDateValue));
+    if (dashDateFrom || dashDateTo) {
+        data = data.filter(t => {
+            const d = t.date ? (t.date.length > 10 ? t.date.substring(0,10) : t.date) : '';
+            if (dashDateFrom && d < dashDateFrom) return false;
+            if (dashDateTo && d > dashDateTo) return false;
+            return true;
+        });
+    }
     if (dashSrcSelection.length) data = data.filter(t => dashSrcSelection.includes(t.srcHub));
     if (dashDstSelection.length) data = data.filter(t => dashDstSelection.includes(t.dstHub));
     if (dashVendorSelection.length) data = data.filter(t => dashVendorSelection.includes(t.vendor));
     if (dashFlagSelection.length) data = data.filter(t => dashFlagSelection.includes(String(t.flagHubs||'').trim()));
     if (dashPerfectSelection.length) data = data.filter(t => isPerfectFlag(t.perfectFlag));
+    if (dashFacilitySelection.length) data = data.filter(t => dashFacilitySelection.includes(t.facility));
+    if (dashStatusSelection.length) data = data.filter(t => dashStatusSelection.includes(t.tripStatus));
     return data;
 }
 
@@ -1055,14 +1275,19 @@ window.onload = function() {
    Source, Destination, DOD, Vendor, trip_code, Trip_Sequence, Out_Time, plan time,
    Dispatch_adherence, Arriv_Time, arrival time, Arrival_adherence, FLAG_HUBS        */
 function loadLiveCsv() {
-    Papa.parse(liveCsvUrl, {
-        download: true,
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {
-            console.log('Live CSV loaded:', results.data.length, 'rows');
-            console.log('Live headers:', results.meta.fields || []);
-            console.log('First live row:', results.data[0] || {});
+    const loader = document.getElementById('loader');
+    setLoadingState(loader, 'Loading live tracking data…');
+    fetchCsvText(liveCsvUrl)
+        .then(csvText => Papa.parse(csvText, {
+            header:true,
+            skipEmptyLines:true,
+            dynamicTyping:false
+        }))
+        .then(results => {
+            console.log('Live CSV loaded:', (results.data||[]).length, 'rows');
+            if(results.errors && results.errors.length){
+                console.warn('Live PapaParse warnings/errors:', results.errors.slice(0,10));
+            }
             liveRows = (results.data || []).map((row, idx) => ({
                 rowIdx: idx + 2,
                 srcHub: row['Source'] || '',
@@ -1089,11 +1314,12 @@ function loadLiveCsv() {
                 if (dodKeys.length) { liveDateEl.value = dodKeys[dodKeys.length-1]; }
             }
             renderLiveTracking();
-        },
-        error: function(err) {
-            showToast('Live tracking sheet failed to load: ' + err, 'danger');
-        }
-    });
+            setLoadingState(loader, null);
+        })
+        .catch(err => {
+            console.error('[loadLiveCsv] failed:', err);
+            showLoadError('Live tracking: ' + (err instanceof Error ? err.message : String(err ?? 'Unknown error')));
+        });
 }
 
 /* ================================================================
@@ -1183,15 +1409,26 @@ function initSnapshots(){
 }
 
 function loadDataFromCSV() {
-    Papa.parse(csvUrl, {
-        download: true,
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {
+    const loader = document.getElementById('loader');
+    setLoadingState(loader, 'Loading trip data from Google Sheets…');
+    fetchCsvText(csvUrl)
+        .then(csvText => Papa.parse(csvText, {
+            header:true,
+            skipEmptyLines:true,
+            dynamicTyping:false
+        }))
+        .then(results => {
             console.log('CSV loaded:', results.data.length, 'rows');
             console.log('Headers:', results.meta.fields || []);
             console.log('First row:', results.data[0] || {});
-            const mappedTrips = results.data.map((row, idx) => {
+            if(results.errors && results.errors.length){
+                console.warn('PapaParse warnings/errors:', results.errors.slice(0,10));
+            }
+            const data = results.data || [];
+            if(!data.length){
+                throw new Error('CSV parsed but contains no data rows. Headers seen: ' + (results.meta.fields||[]).join(', '));
+            }
+            const mappedTrips = data.map((row, idx) => {
                 return {
                     rowIdx: idx + 2,
                     date: row['DATE'] || row['date'] || '',
@@ -1211,20 +1448,42 @@ function loadDataFromCSV() {
                     rankTrip: row['RANK_TRIP'] || '',
                     facility: row['Facility'] || '',
                     shipments: parseFloat(row['total_shipments']) || 0,
+                    countOfShipment: parseFloat(row['count_of_shipment']) || 0,
+                    targetCount: parseFloat(row['target_count']) || 0,
                     utilization: parseFloat(row['trip_stop_estimated_utilization']) || null,
+                    utilizationPercentage: parseFloat(row['utilization_percentage']) || null,
                     varMinutes: parseFloat(row['Var_in_Minutes_between_Actual_and_plan']) || null,
                     gateInToOpenMin: parseFloat(row['Gate_in_to_open']) || null,
                     openToSealMin: parseFloat(row['Open_to_seal_in_Minutes']) || null,
                     arrivedTatMin: parseFloat(row['Arrived_TAT_in_Minutes']) || null,
                     openToSealSlab: row['Open_to_Seal_Slab'] || '',
 
+                    // Additional sheet fields
+                    tripStatus: row['trip_status'] || '',
+                    routeCode: row['route_code'] || '',
+                    routeName: row['route_name'] || '',
+                    vendorCode: row['vendor_code'] || '',
+                    vehicleCapacity: row['vehicle_capacity'] || '',
+                    km: row['KM'] || '',
+                    countOfShipment2: row['count_of_shipment'] || '',
+                    shipmentTypeFlag: row['shipment_type_flag'] || '',
+                    targetCount2: row['target_count'] || '',
+                    utilizationPercentage2: parseFloat(row['utilization_percentage']) || null,
+                    percentageOfSort: parseFloat(row['precentage_of_sort']) || null,
+                    percentageOfNonSort: parseFloat(row['precentage_of_non_sort']) || null,
+                    dispatchStatus: row['dispatch_status'] || '',
+                    arrivalStatus: row['arrival_status'] || '',
+                    stopTripSealNr: row['stop_trip_seal_nr'] || '',
+                    cancelComment: row['cancel_comment'] || '',
+                    
                     // Map specific adherence columns to template keys
                     portalAdh: row['Portal_Adherence'] || '',
                     portalPlanVsActualAdh: row['Portal Actual Vs Portal Plan Adherence'] || '',
                     gateInToOpenAdh: row['gate in to open adherence'] || '',
                     openToSealAdh: row['Open_to_seal_Adhrence'] || '', 
                     arrivalAdh: row['Arrival_Adherence'] || '',
-                    vehicleAdh: row['Vendor_Adherence'] || '', 
+                    vehicleAdh: row['Vendor_Adherence'] || row['vehicle_adherence'] || '',
+                    lmAdherence: row['LM adherence'] || '',
 
                     // Live Tracking timestamps
                     srcGateOutRaw: row['Src_gate_out_ts'] || '',
@@ -1253,11 +1512,11 @@ function loadDataFromCSV() {
                 t.dateKey    = normDateKey(t.date);
             });
             initApp({ sheetName: 'Line Haul Live DB', generatedAt: new Date().toLocaleString(), trips: mappedTrips }, false);
-        },
-        error: function(err) {
-            showLoadError("Failed to load CSV: " + err);
-        }
-    });
+        })
+        .catch(err => {
+            console.error('[loadDataFromCSV] failed:', err);
+            showLoadError(err instanceof Error ? err.message : String(err ?? 'Unknown load error'));
+        });
 }
 
 function showLoadError(msg){
@@ -1282,8 +1541,16 @@ function initApp(res, preserve){
 
     rawTrips = res.trips || [];
     console.log('initApp: loaded', rawTrips.length, 'trips');
-    console.log('Sample trip:', rawTrips[0] || {});
-    
+    if(rawTrips[0]) console.log('Sample trip:', rawTrips[0]);
+
+    // Defensive sanity check: if the sheet came back empty, force an immediate retry.
+    if(!rawTrips.length){
+        console.warn('initApp received 0 trips; retrying in 2s…');
+        showLoadError('Loaded 0 trip rows. Retrying…');
+        setTimeout(()=>{ refreshData(); }, 2000);
+        return;
+    }
+
     document.getElementById('sheetMeta').innerText =
         `Source: ${res.sheetName} • ${fmt(rawTrips.length)} trips • Synced at ${res.generatedAt || ''}`;
 
@@ -1294,9 +1561,14 @@ function initApp(res, preserve){
         populateDashFilters();
     }, 100);
 
-    document.getElementById('loader').style.display = 'none';
+    // Clear any previous load-error overlay before showing the app.
+    const loader = document.getElementById('loader');
+    if(loader){
+        loader.style.display = 'none';
+        loader.innerHTML = '';
+    }
     document.getElementById('appPages').style.display = 'block';
-    initSnapshots();   // add camera buttons to all chart cards & table containers
+    initSnapshots && initSnapshots();   // add camera buttons to all chart cards & table containers
 }
 
 /* ================================================================
@@ -1677,49 +1949,91 @@ function buildDashboardTextReport(data){
     const srcSel = dashSrcSelection.length ? dashSrcSelection : [];
     const dstSel = dashDstSelection.length ? dashDstSelection : [];
     const venSel = dashVendorSelection.length ? dashVendorSelection : [];
+    const facSel = dashFacilitySelection.length ? dashFacilitySelection : [];
+    const statusSel = dashStatusSelection.length ? dashStatusSelection : [];
     const flagSel = dashFlagSelection.length ? dashFlagSelection : [];
     const perfectSel = dashPerfectSelection.length ? dashPerfectSelection : [];
 
     const scope = [
-        dashDateValue ? `Date: ${dashDateValue}` : 'Date: All Days',
+        dashDateFrom || dashDateTo ? `Date: ${dashDateFrom||''} ${dashDateFrom&&dashDateTo?'→':''} ${dashDateTo||''}` : 'Date: All Days',
         srcSel.length ? `Src Hubs: ${srcSel.join(', ')}` : 'Src Hubs: All',
         dstSel.length ? `Dst Hubs: ${dstSel.join(', ')}` : 'Dst Hubs: All',
         venSel.length ? `Vendors: ${venSel.join(', ')}` : 'Vendors: All',
+        facSel.length ? `Facility: ${facSel.join(', ')}` : 'Facility: All',
+        statusSel.length ? `Status: ${statusSel.join(', ')}` : 'Status: All',
         flagSel.length ? `Flag Hubs: ${flagSel.join(', ')}` : 'Flag Hubs: All',
         perfectSel.length ? `Perfect Flag: YES` : 'Perfect Flag: All'
     ].join(' | ');
 
-    L.push('============================================================');
-    L.push('LINE HAUL EXECUTIVE DASHBOARD REPORT');
-    L.push('============================================================');
+    L.push('════════════════════════════════════════════════════════════');
+    L.push('  LINE HAUL EXECUTIVE DASHBOARD REPORT');
+    L.push('════════════════════════════════════════════════════════════');
     L.push('');
     L.push(`Scope: ${scope}`);
     L.push('');
-    L.push('─'.repeat(60));
+    L.push('────────────────────────────────────────────────────────────');
     L.push('');
 
     // --- Executive Summary ---
-    L.push('EXECUTIVE SUMMARY');
-    L.push('='.repeat(60));
+    L.push('📊 EXECUTIVE SUMMARY');
+    L.push('════════════════════════════════════════════════════════════');
     const total = data.length;
     const totalShip = data.reduce((s,t)=>s+(t.shipments||0),0);
+    const totalTarget = data.reduce((s,t)=>s+(t.targetCount||0),0);
     const comp = composite(data);
     const perfect = data.filter(t => CORE_KEYS.every(k => isPass(t[k]))).length;
     const flagged = data.filter(t => String(t.flagHubs||'').trim() !== '').length;
     const perfectFlagged = data.filter(t => isPerfectFlag(t.perfectFlag)).length;
     const pendingRca = data.filter(rcaPendingTrip).length;
+    const completed = data.filter(t => t.tripStatus === 'completed').length;
+    const inProgress = data.filter(t => t.tripStatus === 'in_progress' || t.tripStatus === 'started').length;
+    const avgUtil = avg(data.map(t=>t.utilization));
 
-    L.push(`Total Trips: ${fmt(total)} (${fmt(totalShip)} shipments)`);
-    L.push(`Composite Adherence: ${Math.round(comp)}%`);
+    L.push(`Total Trips: ${fmt(total)}  |  Shipments: ${fmt(totalShip)}  |  Target: ${fmt(totalTarget)}`);
+    L.push(`Completion Rate: ${total?Math.round(completed/total*100):0}% (${fmt(completed)} completed, ${fmt(inProgress)} in progress)`);
+    L.push(`Composite Adherence: ${Math.round(comp)}%  |  Avg Utilization: ${avgUtil===null?'—':Math.round(avgUtil)+'%'}`);
     L.push(`Perfect Trips (all 4 core): ${fmt(perfect)} (${total?Math.round(perfect/total*100):0}% )`);
-    L.push(`Trips with Flag Hubs: ${fmt(flagged)} (${total?Math.round(flagged/total*100):0}%)`);
     L.push(`Perfect Flag Trips: ${fmt(perfectFlagged)} (${total?Math.round(perfectFlagged/total*100):0}%)`);
-    L.push(`RCA Pending: ${fmt(pendingRca)}`);
+    L.push(`Trips with Flag Hubs: ${fmt(flagged)} (${total?Math.round(flagged/total*100):0}%)`);
+    L.push(`RCA Pending: ${fmt(pendingRca)} failed checkpoints without RCA`);
     L.push('');
 
+    // --- Summary by Facility ---
+    const facilityG = {};
+    data.forEach(t => {
+        const f = t.facility || 'Unknown';
+        if (!facilityG[f]) facilityG[f] = { trips: 0, adhered: 0, perfect: 0 };
+        facilityG[f].trips++;
+        if (CORE_KEYS.every(k => isPass(t[k]))) facilityG[f].perfect++;
+    });
+    if (Object.keys(facilityG).length > 1) {
+        L.push('FACILITY BREAKDOWN');
+        L.push('────────────────────────────────────────────────────────────');
+        Object.entries(facilityG).sort((a,b)=>b[1].trips-a[1].trips).forEach(([name, stats]) => {
+            L.push(`  ${name}: ${fmt(stats.trips)} trips, ${Math.round(stats.perfect/stats.trips*100)}% perfect`);
+        });
+        L.push('');
+    }
+
+    // --- Summary by Status ---
+    const statusG = {};
+    data.forEach(t => {
+        const s = t.tripStatus || 'Unknown';
+        if (!statusG[s]) statusG[s] = 0;
+        statusG[s]++;
+    });
+    if (Object.keys(statusG).length > 1) {
+        L.push('TRIP STATUS');
+        L.push('────────────────────────────────────────────────────────────');
+        Object.entries(statusG).sort((a,b)=>b[1]-a[1]).forEach(([name, count]) => {
+            L.push(`  ${name}: ${fmt(count)} (${total?Math.round(count/total*100):0}%)`);
+        });
+        L.push('');
+    }
+
     // --- Metric Breakdown ---
-    L.push('METRIC BREAKDOWN (6 KEY METRICS)');
-    L.push('='.repeat(60));
+    L.push('📈 METRIC BREAKDOWN (6 KEY METRICS)');
+    L.push('════════════════════════════════════════════════════════════');
     L.push('');
     METRICS.forEach(m => {
         const pass = data.filter(t => isPass(t[m.key])).length;
@@ -1731,48 +2045,90 @@ function buildDashboardTextReport(data){
     L.push('');
 
     // --- Vendor Performance ---
-    L.push('VENDOR PERFORMANCE');
-    L.push('='.repeat(60));
+    L.push('🏢 VENDOR PERFORMANCE (TOP 10)');
+    L.push('════════════════════════════════════════════════════════════');
     const vs = vendorStats(data);
     vs.slice(0, 10).forEach(v => {
-        L.push(`${esc(v.name)}: ${fmt(v.trips)} trips, ${Math.round(v.composite)}% composite, RCA: ${v.rcaPct===null?'—':Math.round(v.rcaPct)}%`);
+        const icon = v.composite >= 90 ? '✅' : v.composite >= 75 ? '⚠️' : '❌';
+        L.push(`${icon} ${esc(v.name)}: ${fmt(v.trips)} trips, ${Math.round(v.composite)}% composite, RCA: ${v.rcaPct===null?'—':Math.round(v.rcaPct)}%`);
     });
     if (vs.length > 10) L.push(`... and ${vs.length - 10} more vendors`);
     L.push('');
 
     // --- Key Issues ---
-    L.push('KEY ISSUES');
-    L.push('='.repeat(60));
+    L.push('⚠️ KEY ISSUES & ACTION ITEMS');
+    L.push('════════════════════════════════════════════════════════════');
     L.push('');
 
     // Biggest leak
     const leak = METRICS.map(m => ({ m, f: data.filter(t=>!isPass(t[m.key])).length })).sort((a,b)=>b.f-a.f)[0];
     if (leak.f > 0) {
-        L.push(`🔴 Biggest SLA Leak: ${leak.m.label} — ${fmt(leak.f)} trips failed (${(data.length?Math.round(leak.f/data.length*100):0)}%)`);
+        L.push(`🔴 BIGGEST SLA LEAK: ${leak.m.label}`);
+        L.push(`   ${fmt(leak.f)} trips failed (${(data.length?Math.round(leak.f/data.length*100):0)}% of total)`);
     }
+    L.push('');
 
     // RCA accountability
     const rc = rcaCounts(data);
     if (rc.need > 0) {
         const rcComp = Math.round(rc.have/rc.need*100);
-        L.push(`📋 RCA Accountability: ${rcComp}% (${rc.have}/${rc.need} failures have RCA)`);
+        L.push(`📋 RCA ACCOUNTABILITY: ${rcComp}% (${rc.have}/${rc.need} failures have RCA)`);
         if (rc.need - rc.have > 0) {
-            L.push(`   ⚠️ ${rc.need - rc.have} checkpoints still missing RCA`);
+            L.push(`   ⚠️ ${rc.need - rc.have} checkpoints still missing RCA - ACTION REQUIRED`);
         }
     }
-
-    // Metric failures
-    METRICS.forEach(m => {
-        const fail = data.filter(t=>!isPass(t[m.key])).length;
-        if (fail > 0) {
-            const pct = data.length ? Math.round(fail/data.length*100) : 0;
-            L.push(`   ${m.label}: ${fmt(fail)} failures (${pct}%)`);
-        }
-    });
     L.push('');
 
-    // --- Detailed by Metric ---
-    METRICS.forEach(m => {
+    // Metric failures
+    const metricFailures = METRICS.map(m => ({ m, fail: data.filter(t=>!isPass(t[m.key])).length })).filter(x => x.fail > 0).sort((a,b)=>b.fail-a.fail);
+    if (metricFailures.length > 0) {
+        L.push('FAILURES BY METRIC:');
+        metricFailures.forEach(mf => {
+            const pct = data.length ? Math.round(mf.fail/data.length*100) : 0;
+            L.push(`   • ${mf.m.label}: ${fmt(mf.fail)} failures (${pct}%)`);
+        });
+    }
+    L.push('');
+
+    // --- Summary of not adhered trips ---
+    const notAdhered = data.filter(t => !CORE_KEYS.every(k => isPass(t[k])));
+    if (notAdhered.length > 0) {
+        L.push('📋 NOT ADHERED TRIPS SUMMARY');
+        L.push('════════════════════════════════════════════════════════════');
+        L.push(`Total not fully adhered: ${fmt(notAdhered.length)} (${total?Math.round(notAdhered.length/total*100):0}% of total)`);
+        L.push('');
+        
+        // Group by lane
+        const laneG = {};
+        notAdhered.forEach(t => {
+            const lane = `${t.srcHub} → ${t.dstHub}`;
+            if (!laneG[lane]) laneG[lane] = { trips: 0, failures: 0 };
+            laneG[lane].trips++;
+            if (!CORE_KEYS.every(k => isPass(t[k]))) laneG[lane].failures++;
+        });
+        L.push('By Lane:');
+        Object.entries(laneG).sort((a,b)=>b[1].failures-a[1].failures).slice(0, 10).forEach(([lane, stats]) => {
+            L.push(`   • ${lane}: ${fmt(stats.trips)} trips, ${stats.failures} with failures`);
+        });
+        L.push('');
+    }
+
+    // --- Final Summary ---
+    L.push('────────────────────────────────────────────────────────────');
+    L.push('');
+    const statusIcon = comp >= 90 ? '✅' : comp >= 75 ? '⚠️' : '❌';
+    L.push(`${statusIcon} OVERALL STATUS: ${Math.round(comp)}% Composite Adherence`);
+    L.push(`   • ${fmt(total)} trips analyzed`);
+    L.push(`   • ${fmt(perfect)} perfect trips (${(total?Math.round(perfect/total*100):0)}%)`);
+    L.push(`   • ${fmt(pendingRca)} RCA items pending`);
+    L.push('');
+    L.push(`Report generated: ${new Date().toLocaleString()}`);
+    L.push('');
+    L.push('════════════════════════════════════════════════════════════');
+    L.push('  Copy this report and send it with your dashboard screenshot');
+    L.push('════════════════════════════════════════════════════════════');
+    return L.join('\n');
+}
         const fail = data.filter(t=>!isPass(t[m.key])).length;
         if (fail > 0) {
             L.push(`
@@ -1852,6 +2208,7 @@ function renderDashboard(data){
 
     // ---- KPI mini strip ----
     const totalShip = data.reduce((s,t)=>s+(t.shipments||0),0);
+    const totalTarget = data.reduce((s,t)=>s+(t.targetCount||0),0);
     const comp = composite(data);
     const perfect = data.filter(t => CORE_KEYS.every(k => isPass(t[k]))).length;
     const avgO2S = avg(data.map(t=>t.openToSealMin));
@@ -1859,8 +2216,10 @@ function renderDashboard(data){
     const lowUtil = data.filter(t => t.utilization !== null && t.utilization < BIZ.LOW_UTIL).length;
     const rc = rcaCounts(data);
     const pendingTrips = data.filter(rcaPendingTrip).length;
-    const flagHubsOpacity = data.filter(t => String(t.flagHubs||'').trim() !== '').length;
+    const flagHubsCount = data.filter(t => String(t.flagHubs||'').trim() !== '').length;
     const perfectFlagCount = data.filter(t => isPerfectFlag(t.perfectFlag)).length;
+    const completedTrips = data.filter(t => t.tripStatus === 'completed').length;
+    const inProgressTrips = data.filter(t => t.tripStatus === 'in_progress' || t.tripStatus === 'started').length;
 
     document.getElementById('k-trips').innerText = fmt(total);
     document.getElementById('k-ship').innerText = fmt(totalShip);
@@ -1872,20 +2231,21 @@ function renderDashboard(data){
     document.getElementById('k-o2s-sub').innerText = avgO2S===null ? 'no timing data' : (avgO2S<=BIZ.O2S_TARGET? `within ${BIZ.O2S_TARGET}m target` : `above ${BIZ.O2S_TARGET}m target`);
     document.getElementById('k-util').innerText = avgUtil===null ? '—' : Math.round(avgUtil) + '%';
     document.getElementById('k-util-n').innerText = fmt(lowUtil);
-    document.getElementById('k-flag').innerText = total ? Math.round(flagHubsOpacity/total*100) + '%' : '—';
-    document.getElementById('k-flag-n').innerText = fmt(flagHubsOpacity);
+    document.getElementById('k-flag').innerText = total ? Math.round(flagHubsCount/total*100) + '%' : '—';
+    document.getElementById('k-flag-n').innerText = fmt(flagHubsCount);
 
     // ---- 6 core metric cards ----
     const metrics = ['portalAdh','portalPlanVsActualAdh','gateInToOpenAdh','openToSealAdh','arrivalAdh','vehicleAdh'];
     metrics.forEach(key => {
         const pass = data.filter(x => isPass(x[key])).length;
+        const fail = total - pass;
         const suffix = key.replace(/[()]/g, '');
         const pct = (total ? Math.round(pass/total*100) : 0);
         document.getElementById(`m-${suffix}-pct`).innerText = pct + '%';
         document.getElementById(`m-${suffix}-pct`).className = (key==='portalAdh'?'text-primary':key==='portalPlanVsActualAdh'?'':key==='gateInToOpenAdh'?'text-info':key==='openToSealAdh'?'text-success':key==='arrivalAdh'?'text-warning':'text-danger') + ' ' + 'kpi-main-pct';
         document.getElementById(`m-${suffix}-total`).innerText = fmt(total);
         document.getElementById(`m-${suffix}-pass`).innerText = fmt(pass);
-        document.getElementById(`m-${suffix}-fail`).innerText = fmt(total - pass);
+        document.getElementById(`m-${suffix}-fail`).innerText = fmt(fail);
     });
 
     // Individual metric visualizations
@@ -1897,6 +2257,7 @@ function renderDashboard(data){
     renderMetricViz(data, 'vehicleAdh', 'viz-vehicleAdh', '#ef4444');
 
     renderDashboardCharts(data);
+    renderTripDetailsTable(data);
 }
 
 function dailyAgg(data){
@@ -2283,6 +2644,98 @@ function renderPending(data){
     }).join('');
     document.getElementById('pendingTableBody').innerHTML = rows;
     pendingDT = makeTable('#pendingTable', { pageLength: 8, dom: 'tp', order: [[0,'desc']] });
+}
+
+/* ================================================================
+   TRIP DETAILS TABLE
+================================================================ */
+let tripDetailsDT = null;
+let tripSearchValue = '';
+
+function renderTripDetailsTable(data){
+    const tbody = document.getElementById('tripDetailsBody');
+    if (!tbody) return;
+    
+    const search = tripSearchValue.toLowerCase();
+    const filtered = search ? data.filter(t => 
+        t.tripId.toLowerCase().includes(search) || 
+        t.tripCode.toLowerCase().includes(search) || 
+        t.routeCode.toLowerCase().includes(search) ||
+        t.srcHub.toLowerCase().includes(search) ||
+        t.dstHub.toLowerCase().includes(search)
+    ) : data;
+
+    const rows = filtered.map((t, idx) => {
+        const statusColor = t.tripStatus === 'completed' ? 'text-success' : t.tripStatus === 'in_progress' || t.tripStatus === 'started' ? 'text-warning' : 'text-muted';
+        return `<tr>
+            <td>${idx + 1}</td>
+            <td>${esc(t.date||'')}</td>
+            <td><strong>${esc(t.tripId)}</strong></td>
+            <td class="text-muted small">${esc(t.tripCode||'')}</td>
+            <td>${esc(t.routeCode||'')}</td>
+            <td>${esc(t.srcHub)}</td>
+            <td>${esc(t.dstHub)}</td>
+            <td>${esc(t.vendor)}${t.plateNr?`<br/><small class="text-muted">${esc(t.plateNr)}</small>`:''}</td>
+            <td><span class="badge ${statusColor}">${esc(t.tripStatus||'')}</span></td>
+            <td>${esc(t.facility||'')}</td>
+            <td>${isPass(t.portalAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
+            <td>${isPass(t.portalPlanVsActualAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
+            <td>${isPass(t.gateInToOpenAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
+            <td>${isPass(t.openToSealAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
+            <td>${isPass(t.arrivalAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
+            <td>${isPass(t.vehicleAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
+            <td data-order="${t.shipments||0}">${fmt(t.shipments)}</td>
+            <td>${t.utilizationPercentage!==null?`${Math.round(t.utilizationPercentage*100)}%`:''}</td>
+            <td>${t.perfectFlag?`<span class="badge bg-success-subtle text-success">${esc(t.perfectFlag)}</span>`:''}</td>
+            <td>${esc(t.flagHubs||'')}</td>
+            <td>${missingRcaFor(t).length?`<span class="text-danger">${missingRcaFor(t).length}</span>`:`<span class="text-success">✓</span>`}</td>
+        </tr>`;
+    }).join('');
+    
+    tbody.innerHTML = rows || `<tr><td colspan="21" class="text-center text-muted py-3">No trips match the current filters</td></tr>`;
+    
+    if (tripDetailsDT) {
+        tripDetailsDT.destroy();
+        tripDetailsDT = null;
+    }
+    tripDetailsDT = $('#tripDetailsTable').DataTable({
+        pageLength: 15,
+        dom: 'lrtip',
+        order: [[2,'asc']],
+        columnDefs: [
+            { orderable: false, targets: [0,3,4,5,6,7,8,9,10,11,12,13,14,15,18,19,20] }
+        ]
+    });
+}
+
+function filterTripTable(){
+    tripSearchValue = document.getElementById('tripSearch').value;
+    const data = getFilteredDashboardData();
+    renderTripDetailsTable(data);
+}
+
+function exportTripTable(){
+    const data = getFilteredDashboardData();
+    if (!data.length) { showToast('Nothing to export', 'danger'); return; }
+
+    const headers = ['Date','Trip ID','Trip Code','Route','Src Hub','Dst Hub','Vendor','Plate','Status','Facility',
+        'Portal Adh','Act/Plan Adh','Gate-Open Adh','Open-Seal Adh','Arrival Adh','Vendor Adh',
+        'Shipments','Util %','Perfect Flag','Flag Hubs','Dispatch Variance (min)'];
+    const lines = [headers.map(csvCell).join(',')];
+    data.forEach(t => lines.push([
+        t.date, t.tripId, t.tripCode, t.routeCode, t.srcHub, t.dstHub, t.vendor, t.plateNr, t.tripStatus, t.facility,
+        t.portalAdh, t.portalPlanVsActualAdh, t.gateInToOpenAdh, t.openToSealAdh, t.arrivalAdh, t.vehicleAdh,
+        t.shipments, t.utilizationPercentage, t.perfectFlag, t.flagHubs, t.varMinutes
+    ].map(csvCell).join(',')));
+
+    const blob = new Blob(["\ufeff" + lines.join('\n')], { type:'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0,16).replace(/[-:T]/g,'');
+    a.href = URL.createObjectURL(blob);
+    a.download = `trip_details_${stamp}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+    showToast(`Exported ${data.length} trips to CSV`);
 }
 
 /* ================================================================
