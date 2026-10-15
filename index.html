@@ -1276,7 +1276,21 @@ window.onload = function() {
    Dispatch_adherence, Arriv_Time, arrival time, Arrival_adherence, FLAG_HUBS        */
 function loadLiveCsv() {
     const loader = document.getElementById('loader');
-    setLoadingState(loader, 'Loading live tracking data…');
+    const meta = document.getElementById('sheetMeta');
+
+    if(!loader){
+        console.error('[loadLiveCsv] #loader missing; cannot show progress.');
+        return;
+    }
+
+    loader.style.display = 'block';
+    loader.innerHTML = `
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status"><span class="visually-hidden">Loading…</span></div>
+        <p class="mt-3 text-muted fs-6 fw-semibold">Loading Operational Log &amp; Analytics...</p>
+      </div>`;
+    if(meta) meta.innerText = 'Connecting to sheet_';
+
     fetchCsvText(liveCsvUrl)
         .then(csvText => Papa.parse(csvText, {
             header:true,
@@ -1284,9 +1298,9 @@ function loadLiveCsv() {
             dynamicTyping:false
         }))
         .then(results => {
-            console.log('Live CSV loaded:', (results.data||[]).length, 'rows');
+            console.log('[loadLiveCsv] parsed rows:', (results.data||[]).length);
             if(results.errors && results.errors.length){
-                console.warn('Live PapaParse warnings/errors:', results.errors.slice(0,10));
+                console.warn('[loadLiveCsv] PapaParse issues:', results.errors.slice(0,10));
             }
             liveRows = (results.data || []).map((row, idx) => ({
                 rowIdx: idx + 2,
@@ -1304,17 +1318,28 @@ function loadLiveCsv() {
                 arrAdhRaw:  row['Arrival_adherence'] || '',
                 flagHubs:   row['FLAG_HUBS'] || ''
             }));
-            document.getElementById('sheetMeta').innerText =
-                `Source: Line Haul Live DB • ${fmt(rawTrips.length)} trips • Live occurrences: ${fmt(liveRows.length)} • Synced at ${new Date().toLocaleString()}`;
-            populateLiveFilters();
-            // Default the live tracking date to the most recent day in the live sheet
-            const liveDateEl = document.getElementById('live-date');
-            if (!liveDateEl.value) {
-                const dodKeys = liveRows.map(t=>normDateKey(t.dod)).filter(Boolean).sort();
-                if (dodKeys.length) { liveDateEl.value = dodKeys[dodKeys.length-1]; }
+            console.log('[loadLiveCsv] liveRows mapped:', liveRows.length);
+
+            if(meta){
+                meta.innerText = 'Source: Line Haul Live DB • ' + fmt(rawTrips.length) + ' trips • Live occurrences: ' + fmt(liveRows.length) + ' • Synced at ' + new Date().toLocaleString();
             }
-            renderLiveTracking();
-            setLoadingState(loader, null);
+
+            if(typeof populateLiveFilters === 'function'){
+                try{ populateLiveFilters(); }catch(e){ console.warn('[loadLiveCsv] populateLiveFilters failed:', e); }
+            }
+
+            const liveDateEl = document.getElementById('live-date');
+            if(liveDateEl && !liveDateEl.value){
+                const dodKeys = liveRows.map(t=>normDateKey(t.dod)).filter(Boolean).sort();
+                if(dodKeys.length) liveDateEl.value = dodKeys[dodKeys.length-1];
+            }
+
+            if(typeof renderLiveTracking === 'function'){
+                try{ renderLiveTracking(); }catch(e){ console.warn('[loadLiveCsv] renderLiveTracking failed:', e); }
+            }
+
+            loader.style.display = 'none';
+            loader.innerHTML = '';
         })
         .catch(err => {
             console.error('[loadLiveCsv] failed:', err);
@@ -1411,6 +1436,8 @@ function initSnapshots(){
 function loadDataFromCSV() {
     const loader = document.getElementById('loader');
     setLoadingState(loader, 'Loading trip data from Google Sheets…');
+    if(meta) meta.innerText = 'Connecting to sheet_';
+
     fetchCsvText(csvUrl)
         .then(csvText => Papa.parse(csvText, {
             header:true,
@@ -1502,8 +1529,7 @@ function loadDataFromCSV() {
             });
             // Pre-parse live tracking dates once
             mappedTrips.forEach(t => {
-                const base = parseSheetTs(t.date);
-                t.srcGateOut = parseSheetTs(t.srcGateOutRaw);
+                const base = parseSheetTs(t.date);                t.srcGateOut = parseSheetTs(t.srcGateOutRaw);
                 t.ctPlan     = parseTimeOn(t.ctPlanRaw, base);
                 const din    = parseSheetTs(t.dstGateInRaw);
                 const dock   = parseSheetTs(t.dstDockRaw);
@@ -1511,7 +1537,13 @@ function loadDataFromCSV() {
                 t.ctArrival  = parseTimeOn(t.ctArrivalRaw, base);
                 t.dateKey    = normDateKey(t.date);
             });
-            initApp({ sheetName: 'Line Haul Live DB', generatedAt: new Date().toLocaleString(), trips: mappedTrips }, false);
+
+            if(typeof initApp === 'function'){
+                initApp({ sheetName: 'Line Haul Live DB', generatedAt: new Date().toLocaleString(), trips: mappedTrips }, false);
+            } else {
+                console.error('[loadDataFromCSV] initApp is not a function; app may not start.');
+                showLoadError('Application initialization failed. Please reload.');
+            }
         })
         .catch(err => {
             console.error('[loadDataFromCSV] failed:', err);
@@ -1529,46 +1561,82 @@ function showLoadError(msg){
 }
 
 function refreshData(){
-    const btn=document.getElementById('btnRefresh'); btn.disabled=true;
-    showToast('Refreshing data from CSV...');
-    loadDataFromCSV();
-    loadLiveCsv();
-    setTimeout(() => { btn.disabled=false; }, 2000);
+    const btn = document.getElementById('btnRefresh');
+    if(btn){ btn.disabled = true; }
+    showToast('Refreshing data from sheet…');
+
+    // Start by clearing previous errors so a retry can be seen cleanly.
+    const loader = document.getElementById('loader');
+    if(loader){
+        loader.innerHTML = '';
+        loader.style.display = 'block';
+        loader.innerHTML = `
+          <div class="text-center py-5">
+            <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status"><span class="visually-hidden">Loading…</span></div>
+            <p class="mt-3 text-muted fs-6 fw-semibold">Loading Operational Log &amp; Analytics...</p>
+          </div>`;
+    }
+    const meta = document.getElementById('sheetMeta');
+    if(meta) meta.innerText = 'Connecting to sheet…';
+
+    try{ loadDataFromCSV && loadDataFromCSV(); }catch(e){ console.error('[refreshData] loadDataFromCSV threw:', e); }
+    try{ loadLiveCsv && loadLiveCsv(); }catch(e){ console.error('[refreshData] loadLiveCsv threw:', e); }
+
+    if(btn){
+        setTimeout(function(){ btn.disabled = false; }, 2000);
+    }
 }
 
 function initApp(res, preserve){
-    if(res.error){ showLoadError(res.error); return; }
+    const loader = document.getElementById('loader');
+    const meta = document.getElementById('sheetMeta');
 
-    rawTrips = res.trips || [];
-    console.log('initApp: loaded', rawTrips.length, 'trips');
-    if(rawTrips[0]) console.log('Sample trip:', rawTrips[0]);
-
-    // Defensive sanity check: if the sheet came back empty, force an immediate retry.
-    if(!rawTrips.length){
-        console.warn('initApp received 0 trips; retrying in 2s…');
-        showLoadError('Loaded 0 trip rows. Retrying…');
-        setTimeout(()=>{ refreshData(); }, 2000);
+    if(res && res.error){
+        showLoadError(res.error);
         return;
     }
 
-    document.getElementById('sheetMeta').innerText =
-        `Source: ${res.sheetName} • ${fmt(rawTrips.length)} trips • Synced at ${res.generatedAt || ''}`;
+    let trips = [];
+    if(res && res.trips && Array.isArray(res.trips)){
+        trips = res.trips.filter(function(t){ return t && typeof t === 'object'; });
+    }
+    rawTrips = trips;
 
-    applyGlobalFilters();
+    console.log('[initApp] trips loaded:', rawTrips.length);
+    if(rawTrips[0]) console.log('[initApp] sample trip:', rawTrips[0]);
 
-    // Initialize dashboard filters
-    setTimeout(() => {
-        populateDashFilters();
-    }, 100);
+    if(!rawTrips.length){
+        console.warn('[initApp] received 0 usable trips; will retry.');
+        if(meta) meta.innerText = 'Connecting to sheet…';
+        showLoadError('Loaded 0 trip rows. Retrying data fetch…');
+        setTimeout(function(){ try{ refreshData(); }catch(e){ loadDataFromCSV && loadDataFromCSV(); } }, 2000);
+        return;
+    }
 
-    // Clear any previous load-error overlay before showing the app.
-    const loader = document.getElementById('loader');
+    if(meta){
+        meta.innerText = 'Source: ' + (res.sheetName || 'Sheet') + ' • ' + fmt(rawTrips.length) + ' trips • Synced at ' + (res.generatedAt || new Date().toLocaleString());
+    }
+
+    applyGlobalFilters && applyGlobalFilters();
+
+    // Defer populating dashboard filters until the DOM is fully ready
+    setTimeout(function(){
+        if(typeof populateDashFilters === 'function') populateDashFilters();
+    }, 120);
+
+    // Reveal the app
     if(loader){
         loader.style.display = 'none';
         loader.innerHTML = '';
     }
-    document.getElementById('appPages').style.display = 'block';
-    initSnapshots && initSnapshots();   // add camera buttons to all chart cards & table containers
+    const appPages = document.getElementById('appPages');
+    if(appPages) appPages.style.display = 'block';
+
+    // Wire snapshot buttons if the function exists
+    if(typeof initSnapshots === 'function'){
+        try{ initSnapshots(); }catch(e){ console.warn('[initApp] initSnapshots failed:', e); }
+    }
+    console.log('[initApp] app shown with', rawTrips.length, 'trips');
 }
 
 /* ================================================================
