@@ -42,8 +42,12 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 .top-navbar { background: var(--brand-black); color: var(--brand-white); padding: 12px 24px; }
 .top-navbar h4 { color: var(--brand-white); font-weight: 800; font-size: 1.6rem; letter-spacing: .3px; }
 .top-navbar .brand-slogan { font-family: var(--font-head); font-size: .72rem; font-weight: 600; color: var(--brand-yellow3); letter-spacing: 1.2px; text-transform: uppercase; }
-.meta-line { font-size: .72rem; color: #cfcabc; font-family: var(--font-num); }
-.demo-pill { background:#f59e0b; color:#0f172a; font-size:.65rem; font-weight:800; border-radius:999px; padding:2px 8px; }
+.meta-line { font-size: .72rem; color: #cfcabc; font-family: var(--font-num); }    .demo-pill { background:#f59e0b; color:#0f172a; font-size:.65rem; font-weight:800; border-radius:999px; padding:2px 8px; }
+    /* Build stamp — tells you at a glance whether the browser is running the
+       latest file. It is filled in by JS, so the placeholder text below means
+       the script never ran (stale copy / blocked CDN). */
+    .build-tag { display:inline-block; margin-top:4px; font-family: var(--font-num); font-size:.62rem; font-weight:700;
+        background:#f59e0b; color:#1b1b1b; border-radius:999px; padding:1px 8px; }
 
 /* Numbers / metrics always Roboto Mono */
 .kpi-mini .val, .kpi-main-pct, .kpi-stat-val, .score-pill, .mini-tile .v,
@@ -190,6 +194,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
         <h4 class="m-0 fw-bold">Control Tower</h4>
         <div class="brand-slogan">We Build, Guide, Excel, and Control.</div>
         <div class="meta-line" id="sheetMeta">Connecting to sheet…</div>
+        <div class="build-tag" id="buildTag">script not running — this is an older copy of the file</div>
     </div>
     <div class="d-flex align-items-center gap-2">
         <ul class="nav nav-pills" id="pageTabs">
@@ -947,13 +952,16 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 /* ================================================================
    1. YOUR LIVE GOOGLE SHEETS CSV URL
 ================================================================ */
+/* Bump this whenever the file changes — it is shown in the header so you can
+   tell instantly whether the browser is running the copy you just edited. */
+const BUILD = 'v2 — 2026-10-15';
+
 const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVVwlkf3BVaI-4KDYTAOZYxhB3V0yAo9baAinrxjmtpG5_RYbndKXlvy7mflKg6A675LF5H41Sj4Cu/pub?gid=2084995103&single=true&output=csv';
 
 /* 2. LIVE TRACKING source — pre-computed occurrence sheet:
    Source, Destination, DOD, Vendor, trip_code, Trip_Sequence, Out_Time, plan time,
    Dispatch_adherence, Arriv_Time, arrival time, Arrival_adherence, FLAG_HUBS        */
 const liveCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=1243180451&single=true&output=csv';
-
 
 /* ================================================================
    CSV FETCH GUARD — Google Sheets redirects & transient 5xx/429
@@ -962,39 +970,75 @@ const liveCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPk
      (b) retry on HTTP errors / empty / HTML-only responses,
      (c) surface a friendly in-page message instead of a silent stall.
 ================================================================ */
-async function fetchCsvText(url, retries=2, baseDelayMs=1200){
+// Per-attempt limit. The Line Haul sheet is ~3 MB, so keep it generous — but
+// NEVER unbounded: a black-holed request used to leave the page on the spinner forever.
+let FETCH_TIMEOUT_MS = 25000;
+
+function xhrCsvText(url, timeoutMs){
+    return new Promise(function(resolve, reject){
+        let xhr;
+        try { xhr = new XMLHttpRequest(); } catch(e){ reject(new Error('XMLHttpRequest unavailable')); return; }
+        xhr.open('GET', url, true);
+        xhr.timeout = timeoutMs;
+        xhr.onload = function(){
+            if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.responseText);
+            else reject(new Error('HTTP ' + xhr.status + ' ' + (xhr.statusText || '')));
+        };
+        xhr.onerror   = function(){ reject(new Error('network error (XHR)')); };
+        xhr.ontimeout = function(){ reject(new Error('no response within ' + Math.round(timeoutMs/1000) + 's (XHR)')); };
+        xhr.onabort   = function(){ reject(new Error('request aborted (XHR)')); };
+        xhr.send();
+    });
+}
+
+// Tries fetch() first, then XMLHttpRequest (some proxies/ad-blockers filter one
+// transport but not the other), then fetch() again before giving up.
+async function fetchCsvText(url, onProgress){
     let lastErr = null;
-    for (let attempt=0; attempt<=retries; attempt++){
+    const transports = ['fetch', 'xhr', 'fetch'];
+    for (let i = 0; i < transports.length; i++){
+        const transport = transports[i];
+        if (i > 0) await sleep(1200 * i);
+        const started = Date.now();
         try {
-            const resp = await fetch(url, {
-                method:'GET',
-                headers:{ 'Accept':'text/csv,application/csv,text/plain;q=0.9' },
-                mode:'cors',
-                cache:'no-store'
-            });
-            if(!resp.ok){
-                lastErr = `HTTP ${resp.status} ${resp.statusText} for ${url}`;
-                console.warn('[CSV fetch] attempt', attempt+1, 'failed:', lastErr);
-                if(attempt<retries) await sleep(baseDelayMs*(1<<attempt));
-                continue;
+            let text;
+            if (transport === 'xhr') {
+                text = await xhrCsvText(url, FETCH_TIMEOUT_MS);
+            } else {
+                let ctrl = null, timer = null;
+                if (typeof AbortController !== 'undefined') {
+                    ctrl = new AbortController();
+                    timer = setTimeout(function(){ try { ctrl.abort(); } catch(e){} }, FETCH_TIMEOUT_MS);
+                }
+                try {
+                    const resp = await fetch(url, {
+                        method:'GET',
+                        headers:{ 'Accept':'text/csv,application/csv,text/plain;q=0.9' },
+                        mode:'cors',
+                        cache:'no-store',
+                        signal: ctrl ? ctrl.signal : undefined
+                    });
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ' + resp.statusText);
+                    text = await resp.text();
+                } finally {
+                    if (timer) clearTimeout(timer);
+                }
             }
-            const text = await resp.text();
-            const trimmed = (text||'').trim();
-            if(!trimmed || trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html') || trimmed.startsWith('<HTML')){
-                lastErr = `Empty or HTML response from Google Sheets (likely a temporary redirect/error page). URL: ${url}`;
-                console.warn('[CSV fetch] attempt', attempt+1, 'got non-CSV body (len=' + (trimmed.length||0) + ').');
-                if(attempt<retries) await sleep(baseDelayMs*(1<<attempt));
-                continue;
+            const trimmed = String(text || '').trim();
+            if (!trimmed) throw new Error('empty response body');
+            if (/^<\s*(!doctype|html)/i.test(trimmed.slice(0, 64))) {
+                throw new Error('the sheet returned an HTML page instead of CSV — the tab is probably no longer published to the web');
             }
-            console.log('[CSV fetch] OK attempt', attempt+1, 'bytes=', text.length, 'firstLine=', text.split(/\r?\n/)[0].slice(0,120));
+            console.log('[CSV fetch] OK via ' + transport + ' in ' + (Date.now()-started) + 'ms, bytes=' + text.length);
             return text;
-        } catch(e){
-            lastErr = String(e?.message ?? e ?? 'unknown fetch error');
-            console.warn('[CSV fetch] attempt', attempt+1, 'exception:', lastErr);
-            if(attempt<retries) await sleep(baseDelayMs*(1<<attempt));
+        } catch (e) {
+            lastErr = String((e && e.message) ? e.message : e);
+            console.warn('[CSV fetch] attempt ' + (i+1) + '/' + transports.length + ' via ' + transport +
+                         ' failed after ' + (Date.now()-started) + 'ms:', lastErr);
+            if (onProgress) onProgress('Attempt ' + (i+1) + ' of ' + transports.length + ' did not complete (' + lastErr + '). Retrying…');
         }
     }
-    throw new Error(lastErr ?? 'Could not fetch CSV after '+(retries+1)+' attempts');
+    throw new Error('Downloaded nothing after ' + transports.length + ' attempts. Last error: ' + lastErr);
 }
 function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
 
@@ -1018,11 +1062,23 @@ function setLoadingState(loader, msg){
 function showLoadError(msg){
     const loader = document.getElementById('loader');
     if(!loader) return;
+    const appVisible = document.getElementById('appPages') && document.getElementById('appPages').style.display === 'block';
+    if (appVisible) {
+        // The dashboard is already on screen: never cover it with a full-page
+        // error, just report the problem and keep the loaded data usable.
+        showToast('Sheet refresh failed: ' + msg, 'danger');
+        return;
+    }
     loader.innerHTML = `
-      <div class="alert alert-danger d-inline-block text-start mt-4" style="max-width:560px">
-        <h6 class="fw-bold"><i class="bi bi-exclamation-octagon me-1"></i> Could not load trip data</h6>
-        <div class="small">${esc(msg)}</div>
-        <button class="btn btn-sm btn-danger mt-2" onclick="location.reload()"><i class="bi bi-arrow-repeat me-1"></i>Retry</button>
+      <div class="alert alert-danger d-inline-block text-start mt-4" style="max-width:700px">
+        <h6 class="fw-bold"><i class="bi bi-exclamation-octagon me-1"></i> Could not load the Line Haul sheet</h6>
+        <div class="small mb-2">${esc(msg)}</div>
+        <div class="small text-muted mb-2">
+          The page reads a public CSV export of your Google Sheet. If it worked before, check that the tab is still
+          <strong>published to the web</strong> (File ▸ Share ▸ Publish to web) and that this network allows
+          <code>docs.google.com</code> and <code>*.googleusercontent.com</code>.
+        </div>
+        <button class="btn btn-sm btn-danger mt-1" onclick="location.reload()"><i class="bi bi-arrow-repeat me-1"></i>Retry</button>
       </div>`;
     loader.style.display = 'block';
 }
@@ -1451,7 +1507,52 @@ function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n + (s[(v-20
 /* ================================================================
    DATA LOADING (Using PapaParse to read CSV)
 ================================================================ */
-window.onload = function() {
+/* ================================================================
+   BOOT
+   Deliberately NOT tied to window.onload. The `load` event only fires once
+   EVERY sub-resource has finished — so one slow/blocked CDN request (fonts,
+   icons, html2canvas…) would leave the page spinning forever with the static
+   loader markup and a "Connecting to sheet…" header. Booting on
+   DOMContentLoaded means the CSF download starts immediately, and if a library
+   is genuinely unreachable we say so on screen instead of hanging.
+================================================================ */
+function diagnoseLibs(){
+    const missing = [];
+    if (typeof window.jQuery === 'undefined') missing.push('jQuery (code.jquery.com)');
+    else if (!window.jQuery.fn.DataTable)       missing.push('DataTables (cdn.datatables.net)');
+    else if (!window.jQuery.fn.select2)         missing.push('Select2 (cdn.jsdelivr.net)');
+    if (typeof window.bootstrap === 'undefined') missing.push('Bootstrap (cdn.jsdelivr.net)');
+    if (typeof window.Chart     === 'undefined') missing.push('Chart.js (cdn.jsdelivr.net)');
+    if (typeof window.Papa      === 'undefined') missing.push('PapaParse (cdnjs.cloudflare.com)');
+    if (typeof window.html2canvas === 'undefined') missing.push('html2canvas (cdn.jsdelivr.net) — only affects Snap buttons');
+    return missing;
+}
+
+function showBootDiagnostics(missing){
+    const loader = document.getElementById('loader');
+    if (!loader) return;
+    const hard = missing.filter(x => !x.startsWith('html2canvas'));
+    loader.innerHTML = `
+      <div class="alert ${hard.length ? 'alert-danger' : 'alert-warning'} d-inline-block text-start mt-4" style="max-width:760px">
+        <h6 class="fw-bold"><i class="bi bi-plug-fill me-1"></i> ${hard.length ? 'A required library could not be loaded' : 'Loaded, with one optional library missing'}</h6>
+        <div class="small mb-2">This dashboard pulls jQuery, Bootstrap, Chart.js, DataTables, Select2 and PapaParse from public CDNs. Your network blocked or could not reach:</div>
+        <ul class="small mb-2">${missing.map(m => `<li><code>${esc(m)}</code></li>`).join('')}</ul>
+        <div class="small mb-2"><strong>What to do:</strong> open this page on a network that allows <code>cdn.jsdelivr.net</code>, <code>code.jquery.com</code> and <code>cdnjs.cloudflare.com</code> (many office proxies block them), or ask for the offline copy with the libraries bundled next to the file.</div>
+        <button class="btn btn-sm ${hard.length ? 'btn-danger' : 'btn-warning'} mt-1" onclick="location.reload()"><i class="bi bi-arrow-repeat me-1"></i>Retry</button>
+      </div>`;
+    loader.style.display = 'block';
+}
+
+function bootApp() {
+    if (window.__ctBooted) return;
+    window.__ctBooted = true;
+
+    const bt = document.getElementById('buildTag');
+    if (bt) bt.innerText = 'build ' + BUILD;
+
+    const missing = diagnoseLibs();
+    if (missing.length) { showBootDiagnostics(missing); return; }
+
     rcaModalObj = new bootstrap.Modal(document.getElementById('rcaModal'));
     document.querySelector('[data-bs-target="#page-gap"]').addEventListener('shown.bs.tab', () => {
         if (gapState !== 'live' && rawTrips.length) { renderGap(getFilteredDashboardData()); gapState = 'live'; }
@@ -1480,7 +1581,15 @@ window.onload = function() {
 
     loadDataFromCSV();
     loadLiveCsv();
-};
+}
+
+// Start as soon as the DOM is parsed (the script sits at the end of <body>,
+// so every element it touches already exists).
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootApp);
+} else {
+    bootApp();
+}
 
 /* 2. LIVE TRACKING source — pre-computed occurrence sheet:
    Source, Destination, DOD, Vendor, trip_code, Trip_Sequence, Out_Time, plan time,
@@ -1494,15 +1603,13 @@ function loadLiveCsv() {
         return;
     }
 
-    loader.style.display = 'block';
-    loader.innerHTML = `
-      <div class="text-center py-5">
-        <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status"><span class="visually-hidden">Loading…</span></div>
-        <p class="mt-3 text-muted fs-6 fw-semibold">Loading Operational Log &amp; Analytics...</p>
-      </div>`;
-    if(meta) meta.innerText = 'Connecting to sheet_';
+    // Never take over the screen if the app is already up — the live sheet is
+    // the secondary source and a slow one must not hide the dashboard.
+    const appVisible = document.getElementById('appPages') && document.getElementById('appPages').style.display === 'block';
+    if (!appVisible) setLoadingState(loader, 'Downloading the Live Tracking sheet…');
+    if(meta) meta.innerText = appVisible ? 'Refreshing live board…' : 'Connecting to sheet…';
 
-    fetchCsvText(liveCsvUrl)
+    fetchCsvText(liveCsvUrl, function(msg){ if (!appVisible) setLoadingState(loader, msg); })
         .then(csvText => Papa.parse(csvText, {
             header:true,
             skipEmptyLines:true,
@@ -1553,12 +1660,19 @@ function loadLiveCsv() {
                 try{ renderLiveTracking(); }catch(e){ console.warn('[loadLiveCsv] renderLiveTracking failed:', e); }
             }
 
-            loader.style.display = 'none';
-            loader.innerHTML = '';
+            if (appVisible) { loader.style.display = 'none'; loader.innerHTML = ''; }
         })
         .catch(err => {
-            console.error('[loadLiveCsv] failed:', err);
-            showLoadError('Live tracking: ' + (err instanceof Error ? err.message : String(err ?? 'Unknown error')));
+            // Non-fatal: the Line Haul dashboard keeps working without the live board.
+            const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error');
+            console.error('[loadLiveCsv] failed:', msg);
+            showToast('Live Tracking sheet could not be loaded: ' + msg, 'danger');
+            const box = document.getElementById('liveTables');
+            if (box) box.innerHTML = `<div class="alert alert-warning border mb-0">
+                <strong><i class="bi bi-exclamation-triangle me-1"></i>Live Tracking data unavailable.</strong>
+                <div class="small mt-1">${esc(msg)}</div>
+                <button class="btn btn-sm btn-outline-secondary mt-2" onclick="loadLiveCsv()"><i class="bi bi-arrow-repeat me-1"></i>Retry live data</button>
+            </div>`;
         });
 }
 
@@ -1651,16 +1765,30 @@ function initSnapshots(){
 function loadDataFromCSV() {
     const loader = document.getElementById('loader');
     const meta = document.getElementById('sheetMeta');
-    setLoadingState(loader, 'Loading trip data from Google Sheets…');
-    if(meta) meta.innerText = 'Connecting to sheet…';
+    const startedAt = Date.now();
+    // The full-screen loader is only for the very first load. Once the dashboard
+    // is on screen a refresh must never replace it with a spinner — progress goes
+    // to the header line and a toast instead.
+    const appVisible = document.getElementById('appPages') && document.getElementById('appPages').style.display === 'block';
+    if (!appVisible) setLoadingState(loader, 'Downloading the Line Haul sheet… 0s');
+    if(meta) meta.innerText = appVisible ? 'Refreshing from sheet…' : 'Connecting to sheet…';
 
-    fetchCsvText(csvUrl)
+    // Visible heartbeat: the file is ~3 MB, so the spinner alone looks frozen.
+    const ticker = appVisible ? null : setInterval(function(){
+        const sec = Math.round((Date.now() - startedAt) / 1000);
+        setLoadingState(loader, 'Downloading the Line Haul sheet… ' + sec + 's' +
+            (sec >= 8 ? ' (large file — still working, max ' + Math.round(FETCH_TIMEOUT_MS/1000) + 's per attempt)' : ''));
+    }, 1000);
+    function stopTicker(){ if(ticker) clearInterval(ticker); }
+
+    fetchCsvText(csvUrl, function(msg){ if (!appVisible) setLoadingState(loader, msg); })
         .then(csvText => Papa.parse(csvText, {
             header:true,
             skipEmptyLines:true,
             dynamicTyping:false
         }))
         .then(results => {
+            stopTicker();
             console.log('CSV loaded:', results.data.length, 'rows');
             console.log('Headers:', results.meta.fields || []);
             console.log('First row:', results.data[0] || {});
@@ -1770,6 +1898,7 @@ function loadDataFromCSV() {
             }
         })
         .catch(err => {
+            stopTicker();
             console.error('[loadDataFromCSV] failed:', err);
             showLoadError(err instanceof Error ? err.message : String(err ?? 'Unknown load error'));
         });
@@ -1780,16 +1909,12 @@ function refreshData(){
     if(btn){ btn.disabled = true; }
     showToast('Refreshing data from sheet…');
 
-    // Start by clearing previous errors so a retry can be seen cleanly.
+    // A manual refresh must only show the big loader when the app is not up yet;
+    // otherwise it would wipe the dashboard the operator is reading.
+    const appVisible = document.getElementById('appPages') && document.getElementById('appPages').style.display === 'block';
     const loader = document.getElementById('loader');
-    if(loader){
-        loader.innerHTML = '';
-        loader.style.display = 'block';
-        loader.innerHTML = `
-          <div class="text-center py-5">
-            <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status"><span class="visually-hidden">Loading…</span></div>
-            <p class="mt-3 text-muted fs-6 fw-semibold">Loading Operational Log &amp; Analytics...</p>
-          </div>`;
+    if(loader && !appVisible){
+        setLoadingState(loader, 'Reloading from Google Sheets…');
     }
     const meta = document.getElementById('sheetMeta');
     if(meta) meta.innerText = 'Connecting to sheet…';
@@ -3021,4 +3146,679 @@ function renderTripDetailsTable(data){
             <td>${idx + 1}</td>
             <td>${esc(t.date||'')}</td>
             <td><strong>${esc(t.tripId)}</strong></td>
-       
+            <td class="text-muted small">${esc(t.tripCode||'')}</td>
+            <td>${esc(t.routeCode||'')}</td>
+            <td>${esc(t.srcHub)}</td>
+            <td>${esc(t.dstHub)}</td>
+            <td>${esc(t.vendor)}${t.plateNr?`<br/><small class="text-muted">${esc(t.plateNr)}</small>`:''}</td>
+            <td><span class="badge ${statusColor}">${esc(t.tripStatus||'')}</span></td>
+            <td>${esc(t.facility||'')}</td>
+            <td>${isPass(t.portalAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
+            <td>${isPass(t.portalPlanVsActualAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
+            <td>${isPass(t.gateInToOpenAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
+            <td>${isPass(t.openToSealAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
+            <td>${isPass(t.arrivalAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
+            <td>${isPass(t.vehicleAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
+            <td data-order="${t.shipments||0}">${fmt(t.shipments)}</td>
+            <td>${t.utilPct!==null&&t.utilPct!==undefined?`${Math.round(t.utilPct)}%`:''}</td>
+            <td>${t.perfectFlag?`<span class="badge bg-success-subtle text-success">${esc(t.perfectFlag)}</span>`:''}</td>
+            <td>${esc(t.flagHubs||'')}</td>
+            <td>${missingRcaFor(t).length?`<span class="text-danger">${missingRcaFor(t).length}</span>`:`<span class="text-success">✓</span>`}</td>
+        </tr>`;
+    }).join('');
+    
+    resetTable('#tripDetailsTable');
+    tripDetailsDT = null;
+    tbody.innerHTML = rows || `<tr><td colspan="21" class="text-center text-muted py-3">No trips match the current filters</td></tr>`;
+    if (!filtered.length) return;   // placeholder row only — DataTables cannot page over it
+
+    tripDetailsDT = $('#tripDetailsTable').DataTable({
+        pageLength: 15,
+        dom: 'lrtip',
+        order: [[2,'asc']],
+        columnDefs: [
+            { orderable: false, targets: [0,3,4,5,6,7,8,9,10,11,12,13,14,15,18,19,20] }
+        ]
+    });
+}
+
+function filterTripTable(){
+    tripSearchValue = document.getElementById('tripSearch').value;
+    const data = getFilteredDashboardData();
+    renderTripDetailsTable(data);
+}
+
+function exportTripTable(){
+    const data = getFilteredDashboardData();
+    if (!data.length) { showToast('Nothing to export', 'danger'); return; }
+
+    const headers = ['Date','Trip ID','Trip Code','Route','Src Hub','Dst Hub','Vendor','Plate','Status','Facility',
+        'Portal Adh','Act/Plan Adh','Gate-Open Adh','Open-Seal Adh','Arrival Adh','Vendor Adh',
+        'Shipments','Util %','Perfect Flag','Flag Hubs','Dispatch Variance (min)'];
+    const lines = [headers.map(csvCell).join(',')];
+    data.forEach(t => lines.push([
+        t.date, t.tripId, t.tripCode, t.routeCode, t.srcHub, t.dstHub, t.vendor, t.plateNr, t.tripStatus, t.facility,
+        t.portalAdh, t.portalPlanVsActualAdh, t.gateInToOpenAdh, t.openToSealAdh, t.arrivalAdh, t.vehicleAdh,
+        t.shipments, t.utilPct, t.perfectFlag, t.flagHubs, t.varMinutes
+    ].map(csvCell).join(',')));
+
+    const blob = new Blob(["\ufeff" + lines.join('\n')], { type:'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0,16).replace(/[-:T]/g,'');
+    a.href = URL.createObjectURL(blob);
+    a.download = `trip_details_${stamp}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+    showToast(`Exported ${data.length} trips to CSV`);
+}
+
+/* ================================================================
+   PAGE — TRIP ADHERENCE REPORT
+   Shows: trips by source → destination hub, every checkpoint with
+   what ADHERED and what did NOT, then a copy-paste text report with
+   the final summarized result.
+================================================================ */
+let reportState = 'pending';      // pending | live
+let reportTripMode = 'all';       // all | fail | anyfail
+let reportTripDT = null;
+
+function verdictOf(pct){
+    if (pct >= 95) return { cls:'v-good', label:'Excellent — on target', icon:'\u{1F7E2}' };
+    if (pct >= 85) return { cls:'v-good', label:'Good — minor gaps',      icon:'\u{1F7E2}' };
+    if (pct >= 70) return { cls:'v-mid',  label:'Needs improvement',      icon:'\u{1F7E1}' };
+    return { cls:'v-bad', label:'Critical — action required', icon:'\u{1F534}' };
+}
+function metricVerdict(pct){
+    if (pct >= 95) return 'On track';
+    if (pct >= 85) return 'Watch';
+    if (pct >= 70) return 'At risk';
+    return 'Critical';
+}
+function blanksFor(data, key){ return data.filter(t => !String(t[key]||'').trim()).length; }
+// 'Extra' rows have no plan time in the sheet, so they can never be early/late.
+function extrasFor(data, key){ return data.filter(t => String(t[key]||'').trim().toLowerCase() === 'extra').length; }
+function pct(n, d){ return d ? (n / d * 100) : 0; }
+
+function reportScopeText(){
+    const parts = [];
+    parts.push((dashDateFrom || dashDateTo) ? `${dashDateFrom||'start'} → ${dashDateTo||'today'}` : 'All dates');
+    parts.push(dashSrcSelection.length ? `Src: ${dashSrcSelection.join(', ')}` : 'Src: All');
+    parts.push(dashDstSelection.length ? `Dst: ${dashDstSelection.join(', ')}` : 'Dst: All');
+    parts.push(dashVendorSelection.length ? `Vendor: ${dashVendorSelection.join(', ')}` : 'Vendor: All');
+    parts.push(dashFacilitySelection.length ? `Facility: ${dashFacilitySelection.join(', ')}` : 'Facility: All');
+    parts.push(dashStatusSelection.length ? `Status: ${dashStatusSelection.join(', ')}` : 'Status: All');
+    parts.push(dashFlagSelection.length ? `Flag Hubs: ${dashFlagSelection.join(', ')}` : 'Flag Hubs: All');
+    if (dashPerfectSelection.length) parts.push('Perfect Flag: YES');
+    return parts.join('  •  ');
+}
+
+function jumpToDashboardFilters(){
+    const tab = document.querySelector('[data-bs-target="#page-dashboard"]');
+    if (tab) bootstrap.Tab.getOrCreateInstance(tab).show();
+    const el = document.getElementById('dash-date-from');
+    if (el) el.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+/* ---- metric summary rows: adhered vs not adhered, with real numbers ---- */
+function metricSummary(data){
+    return METRICS.map(m => {
+        const evaluated = data.length;
+        const passN = data.filter(t => isPass(t[m.key])).length;
+        const failN = evaluated - passN;
+        const blankN = blanksFor(data, m.key);
+        const extraN = extrasFor(data, m.key);
+        return { m, evaluated, passN, failN, blankN, extraN, noData: blankN + extraN, pct: pct(passN, evaluated) };
+    });
+}
+
+function hubPairStats(data){
+    const g = groupBy(data, t => `${t.srcHub || '?'}|${t.dstHub || '?'}`);
+    return Object.entries(g).map(([name, arr]) => {
+        const [src, dst] = name.split('|');
+        const perMetric = {};
+        let weak = METRICS[0], weakPct = 101;
+        METRICS.forEach(m => {
+            const p = pct(arr.filter(t => isPass(t[m.key])).length, arr.length);
+            perMetric[m.key] = p;
+            if (p < weakPct) { weakPct = p; weak = m; }
+        });
+        return {
+            src, dst, name, trips: arr.length,
+            ship: arr.reduce((s,t)=>s+(t.shipments||0),0),
+            perMetric, weak, weakPct,
+            comp: composite(arr),
+            fully: arr.filter(t => METRICS.every(m => isPass(t[m.key]))).length
+        };
+    }).sort((a,b) => a.comp - b.comp || b.trips - a.trips);
+}
+
+/* ---- on-screen report ---- */
+function renderTripReport(data){
+    data = data || getFilteredDashboardData();
+    if (!rawTrips.length) return;   // data not loaded yet — nothing to report on
+    const scopeEl = document.getElementById('reportScopeLine');
+    if (scopeEl) scopeEl.innerHTML = `<i class="bi bi-funnel me-1"></i>Scope — ${esc(reportScopeText())}`;
+
+    const total = data.length;
+    const totalShip = data.reduce((s,t)=>s+(t.shipments||0),0);
+    const comp = composite(data);
+    const verdict = verdictOf(comp);
+    const perfectAll = data.filter(t => METRICS.every(m => isPass(t[m.key]))).length;
+    const fullyCore  = data.filter(t => CORE_KEYS.every(k => isPass(t[k]))).length;
+    const anyFailN   = data.filter(t => METRICS.some(m => !isPass(t[m.key]))).length;
+    const pendingRca = data.filter(rcaPendingTrip).length;
+    const completed  = data.filter(t => t.tripStatus === 'completed').length;
+
+    // ---- FINAL RESULT banner ----
+    const vEl = document.getElementById('reportVerdict');
+    if (vEl) {
+        vEl.className = `verdict-card ${verdict.cls}`;
+        vEl.innerHTML = `
+            <div class="verdict-label">Final Result — Composite Adherence</div>
+            <div class="verdict-score" style="color:${adhColor(comp)}">${Math.round(comp)}%</div>
+            <div class="verdict-label mt-1">${verdict.icon} ${verdict.label}</div>
+            <div class="verdict-note mt-2">${fmt(fullyCore)} of ${fmt(total)} trips cleared all 4 core checkpoints &nbsp;•&nbsp; ${fmt(perfectAll)} cleared all 6</div>`;
+    }
+
+    // ---- KPI tiles ----
+    const kpis = [
+        { l:'Trips in Scope', v: fmt(total),                  s:`${fmt(totalShip)} shipments • ${fmt(completed)} completed` },
+        { l:'Fully Adhered (6/6)', v: `${fmt(perfectAll)}`,   s:`${pctTxt(pct(perfectAll,total))} of trips` },
+        { l:'Not Adhered (1+ fail)', v: `${fmt(anyFailN)}`,   s:`${pctTxt(pct(anyFailN,total))} of trips need action` },
+        { l:'RCA Pending', v: fmt(pendingRca),                s:'failed checkpoints with no RCA' }
+    ];
+    const kpEl = document.getElementById('reportKpis');
+    if (kpEl) kpEl.innerHTML = kpis.map(k => `
+        <div class="col-6 col-xl-3"><div class="kpi-mini">
+            <div class="lbl">${k.l}</div>
+            <div class="val">${k.v}</div>
+            <div class="sub">${k.s}</div>
+        </div></div>`).join('');
+
+    // ---- checkpoint table ----
+    const ms = metricSummary(data);
+    const totalFails = ms.reduce((s,x)=>s+x.failN,0) || 1;
+    const mBody = document.getElementById('reportMetricBody');
+    if (mBody) {
+        mBody.innerHTML = ms.map(x => `
+            <tr>
+                <td class="fw-semibold"><span class="stoplight" style="background:${x.m.color}"></span>${esc(x.m.label)}</td>
+                <td data-order="${x.evaluated}">${fmt(x.evaluated)}</td>
+                <td data-order="${x.passN}" class="text-success fw-bold">${fmt(x.passN)}</td>
+                <td data-order="${x.failN}" class="text-danger fw-bold">${fmt(x.failN - x.noData)}</td>
+                <td data-order="${x.noData}" class="text-muted">${x.noData ? `${fmt(x.blankN)} blank${x.extraN ? ` + ${fmt(x.extraN)} extra` : ''}` : '—'}</td>
+                <td data-order="${Math.round(x.pct)}" class="metric-mini">${pctTxt(x.pct)}</td>
+                <td data-order="${Math.round(x.failN/totalFails*100)}" class="metric-mini">${pctTxt(pct(x.failN,totalFails))}</td>
+                <td><div class="prog-track"><div class="prog-fill" style="width:${Math.round(x.pct)}%;background:${adhColor(x.pct)}"></div></div></td>
+                <td><span class="score-pill ${adhClass(x.pct)}">${metricVerdict(x.pct)}</span></td>
+            </tr>`).join('');
+    }
+
+    // ---- hub pair table ----
+    const hubs = hubPairStats(data);
+    const hBody = document.getElementById('reportHubBody');
+    if (hBody) {
+        hBody.innerHTML = hubs.length ? hubs.map(h => `
+            <tr>
+                <td class="fw-semibold">${esc(h.src)}</td>
+                <td class="fw-semibold">${esc(h.dst)}</td>
+                <td data-order="${h.trips}">${fmt(h.trips)}</td>
+                <td data-order="${h.ship}">${fmt(h.ship)}</td>
+                ${METRICS.map(m => `<td data-order="${Math.round(h.perMetric[m.key])}"><span class="adh-txt" style="color:${adhColor(h.perMetric[m.key])}">${pctTxt(h.perMetric[m.key])}</span></td>`).join('')}
+                <td data-order="${Math.round(h.comp)}">${pillHtml(h.comp)}</td>
+                <td data-order="${h.fully}">${fmt(h.fully)} / ${fmt(h.trips)}</td>
+                <td><span class="badge bg-danger-subtle text-danger">${esc(h.weak.label)} ${pctTxt(h.weakPct)}</span></td>
+            </tr>`).join('')
+            : `<tr><td colspan="14" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>No trips match the current filters</td></tr>`;
+    }
+
+    // ---- per-trip table ----
+    renderReportTrips(data);
+
+    // ---- text report ----
+    const pre = document.getElementById('reportText');
+    if (pre) pre.textContent = buildTripReportText(data);
+}
+
+function renderReportTrips(data){
+    const countEl = document.getElementById('reportTripCount');
+    const body = document.getElementById('reportTripBody');
+    if (!body) return;
+
+    let rows = data;
+    if (reportTripMode === 'fail')    rows = data.filter(t => !METRICS.every(m => isPass(t[m.key])));
+    if (reportTripMode === 'anyfail') rows = data.filter(t => METRICS.some(m => !isPass(t[m.key])));
+    if (countEl) countEl.innerText = fmt(rows.length);
+
+    const cellFor = (t, m) => {
+        const ok = isPass(t[m.key]);
+        const raw = String(t[m.key] === undefined || t[m.key] === null ? '' : t[m.key]).trim();
+        return `<td data-order="${ok?1:0}" title="${esc(m.label)}: ${esc(raw || 'blank')}" class="adh-txt ${ok?'text-success':'text-danger'}" style="white-space:nowrap">
+            ${ok ? 'Adhered' : 'Not adhered'}</td>`;
+    };
+
+    resetTable('#reportTripTable');
+    body.innerHTML = rows.length ? rows.map(t => {
+        const fails = METRICS.filter(m => !isPass(t[m.key])).length;
+        const stCls = t.tripStatus === 'completed' ? 'text-success' : (t.tripStatus === 'in_progress' || t.tripStatus === 'started') ? 'text-warning' : 'text-muted';
+        return `<tr>
+            <td style="white-space:nowrap">${esc(t.dateKey || t.date || '')}</td>
+            <td><strong>${esc(t.tripId)}</strong>${t.tripCode?`<br/><small class="text-muted">${esc(t.tripCode)}</small>`:''}</td>
+            <td class="fw-semibold">${esc(t.srcHub)}</td>
+            <td class="fw-semibold">${esc(t.dstHub)}</td>
+            <td>${esc(t.vendor)}${t.plateNr?`<br/><small class="text-muted">${esc(t.plateNr)}</small>`:''}</td>
+            <td>${esc(t.facility||'')}</td>
+            <td class="${stCls}">${esc(t.tripStatus||'')}</td>
+            ${METRICS.map(m => cellFor(t, m)).join('')}
+            <td data-order="${fails}">${fails === 0
+                ? '<span class="score-pill adh-good">All 6 adhered</span>'
+                : `<span class="score-pill adh-bad">${fails} failed</span>`}</td>
+            <td>${missingRcaFor(t).length
+                ? `<span class="text-danger fw-bold">${missingRcaFor(t).length} pending</span>`
+                : '<span class="text-success">\u2713</span>'}</td>
+        </tr>`;
+    }).join('') : `<tr><td colspan="15" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>Nothing to show for this mode</td></tr>`;
+
+    // Nothing to page through: leave the placeholder row alone. Initialising
+    // DataTables over a single colspan placeholder row throws, so skip it.
+    if (!rows.length) return;
+    try {
+        reportTripDT = $('#reportTripTable').DataTable({
+            pageLength: 15, dom: 'lrtip', order: [[13,'asc']],
+            columnDefs: [{ orderable:false, targets:[0,1,2,3,4,5,6,7,8,9,10,11,12,14] }]
+        });
+    } catch(e){ console.warn('[renderReportTrips] DataTable init failed', e); }
+}
+
+function setReportTripMode(mode){
+    reportTripMode = mode;
+    document.querySelectorAll('#reportTripChips button').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+    renderReportTrips(getFilteredDashboardData());
+}
+document.querySelectorAll('#reportTripChips button').forEach(b => {
+    b.addEventListener('click', () => setReportTripMode(b.dataset.mode));
+});
+
+/* ---- text report + final summary ---- */
+function buildTripReportText(data){
+    const L = [];
+    const line = '='.repeat(62);
+    const thin = '-'.repeat(62);
+    const total = data.length;
+    const totalShip = data.reduce((s,t)=>s+(t.shipments||0),0);
+    const comp = composite(data);
+    const v = verdictOf(comp);
+    const perfectAll = data.filter(t => METRICS.every(m => isPass(t[m.key]))).length;
+    const fullyCore  = data.filter(t => CORE_KEYS.every(k => isPass(t[k]))).length;
+    const anyFailN   = data.filter(t => METRICS.some(m => !isPass(t[m.key]))).length;
+    const ms = metricSummary(data);
+    const rc = rcaCounts(data);
+    const pendingRca = data.filter(rcaPendingTrip).length;
+
+    L.push(line);
+    L.push('  LINE HAUL — TRIP ADHERENCE REPORT');
+    L.push(line);
+    L.push(`Run at   : ${new Date().toLocaleString()}`);
+    L.push(`Scope    : ${reportScopeText()}`);
+    L.push('');
+
+    // ---- FINAL RESULT ----
+    L.push('FINAL RESULT');
+    L.push(thin);
+    L.push(`Composite adherence : ${Math.round(comp)}%   [${v.label}]`);
+    L.push(`Trips in scope      : ${fmt(total)}   (${fmt(totalShip)} shipments)`);
+    L.push(`Fully adhered 6/6   : ${fmt(perfectAll)}  (${pctTxt(pct(perfectAll,total))})`);
+    L.push(`Fully adhered 4 core: ${fmt(fullyCore)}  (${pctTxt(pct(fullyCore,total))})`);
+    L.push(`Trips needing action: ${fmt(anyFailN)}  (${pctTxt(pct(anyFailN,total))})`);
+    L.push(`RCA pending         : ${fmt(pendingRca)}`);
+    L.push('');
+
+    // ---- CHECKPOINTS ADHERED vs NOT ADHERED ----
+    L.push('CHECKPOINTS — ADHERED vs NOT ADHERED');
+    L.push(thin);
+    L.push('Checkpoint'.padEnd(26) + 'Adhered'.padStart(9) + 'NotAdh'.padStart(9) + 'NoData'.padStart(8) + 'Adh%'.padStart(7) + '   Verdict');
+    ms.forEach(x => {
+        L.push(
+            x.m.label.padEnd(26) +
+            fmt(x.passN).padStart(9) +
+            fmt(x.failN - x.noData).padStart(9) +
+            fmt(x.noData).padStart(8) +
+            pctTxt(x.pct).padStart(7) +
+            '   ' + metricVerdict(x.pct)
+        );
+    });
+    L.push('(*NoData = blank or Extra/no-plan cells; they are counted as Not Adhered.)');
+    L.push('');
+
+    // ---- HUB PAIR BREAKDOWN (src -> dst) ----
+    const hubs = hubPairStats(data);
+    L.push('SOURCE HUB -> DESTINATION HUB');
+    L.push(thin);
+    if (hubs.length) {
+        hubs.slice(0, 15).forEach(h => {
+            L.push(`${h.src} -> ${h.dst}`);
+            L.push(`   trips ${fmt(h.trips)} | shipments ${fmt(h.ship)} | composite ${pctTxt(h.comp)} | fully adhered ${h.fully}/${h.trips}`);
+            L.push(`   ` + ms.map(x => `${x.m.short} ${pctTxt(h.perMetric[x.m.key])}`).join('  '));
+            L.push(`   weakest checkpoint: ${h.weak.label} (${pctTxt(h.weakPct)})`);
+        });
+        if (hubs.length > 15) L.push(`... and ${hubs.length - 15} more hub pairs (see the dashboard)`);
+    } else {
+        L.push('  no trips in scope');
+    }
+    L.push('');
+
+    // ---- FACILITY / STATUS ----
+    const facG = groupBy(data, t => (t.facility || 'Unknown'));
+    L.push('FACILITY BREAKDOWN');
+    L.push(thin);
+    Object.entries(facG).sort((a,b)=>b[1].length-a[1].length).forEach(([name, arr]) => {
+        L.push(`${name.padEnd(14)} trips ${fmt(arr.length).padStart(6)} | composite ${pctTxt(composite(arr)).padStart(4)} | fully adhered ${arr.filter(t=>METRICS.every(m=>isPass(t[m.key]))).length}/${arr.length}`);
+    });
+    L.push('');
+    const stG = groupBy(data, t => (t.tripStatus || 'unknown'));
+    L.push('TRIP STATUS');
+    L.push(thin);
+    Object.entries(stG).sort((a,b)=>b[1].length-a[1].length).forEach(([name, arr]) => {
+        L.push(`${name.padEnd(14)} ${fmt(arr.length).padStart(6)} trips  (${pctTxt(pct(arr.length,total))})`);
+    });
+    L.push('');
+
+    // ---- WORST TRIPS ----
+    const worst = data
+        .map(t => ({ t, fails: METRICS.filter(m => !isPass(t[m.key])).length }))
+        .filter(x => x.fails > 0)
+        .sort((a,b) => b.fails - a.fails)
+        .slice(0, 20);
+    L.push('TRIPS THAT DID NOT ADHERE (top 20 by failures)');
+    L.push(thin);
+    if (worst.length) {
+        worst.forEach(({t, fails}) => {
+            const bad = METRICS.filter(m => !isPass(t[m.key])).map(m => `${m.short}:${String(t[m.key]||'blank').trim()||'blank'}`).join(', ');
+            L.push(`${t.tripId}  ${t.srcHub} -> ${t.dstHub}  ${t.vendor}  [${fails} failed]  ${bad}`);
+        });
+        if (anyFailN > worst.length) L.push(`... and ${anyFailN - worst.length} more not-fully-adhered trips`);
+    } else {
+        L.push('  nothing failed in this scope — all trips adhered \u2713');
+    }
+    L.push('');
+
+    // ---- ACTIONS ----
+    L.push('ACTIONS');
+    L.push(thin);
+    const worstMetric = ms.slice().sort((a,b)=>a.pct-b.pct)[0];
+    const worstHub    = hubs.slice().sort((a,b)=>a.comp-b.comp)[0];
+    if (worstMetric) L.push(`1. Fix ${worstMetric.m.label} — weakest checkpoint at ${pctTxt(worstMetric.pct)} (${fmt(worstMetric.failN)} trips failed).`);
+    if (worstHub)    L.push(`2. Work the ${worstHub.src} -> ${worstHub.dst} lane — lowest composite at ${pctTxt(worstHub.comp)} over ${fmt(worstHub.trips)} trips.`);
+    if (pendingRca)  L.push(`3. Close ${fmt(pendingRca)} missing RCA entries (${rc.need} failed checkpoints, ${rc.have} explained).`);
+    L.push(`${pendingRca ? 4 : 3}. Re-run this report after the fixes and compare the composite adherence.`);
+    L.push('');
+    L.push(line);
+    L.push('  FINAL SUMMARY');
+    L.push(line);
+    L.push(`Adherence is ${Math.round(comp)}% (${v.label.toLowerCase()}) across ${fmt(total)} trips / ${fmt(totalShip)} shipments.`);
+    L.push(`${fmt(anyFailN)} trips (${pctTxt(pct(anyFailN,total))}) missed at least one checkpoint; ${fmt(perfectAll)} trips cleared all six.`);
+    L.push(`Weakest checkpoint: ${worstMetric ? worstMetric.m.label + ' at ' + pctTxt(worstMetric.pct) : 'n/a'}.`);
+    if (worstHub) L.push(`Weakest lane: ${worstHub.src} -> ${worstHub.dst} at ${pctTxt(worstHub.comp)}.`);
+    L.push(`Open RCA items: ${fmt(pendingRca)}.`);
+    L.push(line);
+    return L.join('\n');
+}
+
+function copyReportText(){
+    const pre = document.getElementById('reportText');
+    const text = pre ? pre.textContent : '';
+    if (!text || text === '—') { showToast('Open the Trip Report tab first', 'danger'); return; }
+    const done = () => showToast('Trip report copied — paste it wherever you need');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(() => { fallbackCopy(text); done(); });
+    } else { fallbackCopy(text); done(); }
+}
+
+function exportReportCsv(){
+    const data = getFilteredDashboardData();
+    if (!data.length) { showToast('Nothing to export', 'danger'); return; }
+    const headers = ['Date','Trip ID','Trip Code','Source Hub','Destination Hub','Vendor','Plate','Facility','Status',
+        ...METRICS.map(m => m.label + ' (Adhered?)'),
+        'Failed Checkpoints','Failed Checkpoint List','RCA Pending'];
+    const lines = [headers.map(csvCell).join(',')];
+    data.forEach(t => {
+        const fails = METRICS.filter(m => !isPass(t[m.key]));
+        lines.push([
+            t.dateKey || t.date, t.tripId, t.tripCode, t.srcHub, t.dstHub, t.vendor, t.plateNr, t.facility, t.tripStatus,
+            ...METRICS.map(m => isPass(t[m.key]) ? 'Adhered' : 'Not adhered'),
+            fails.length,
+            fails.map(m => m.label).join(' | '),
+            missingRcaFor(t).length
+        ].map(csvCell).join(','));
+    });
+    const blob = new Blob(["\ufeff" + lines.join('\n')], { type:'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0,16).replace(/[-:T]/g,'');
+    a.href = URL.createObjectURL(blob);
+    a.download = `trip_adherence_report_${stamp}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+    showToast(`Exported ${fmt(data.length)} trips to CSV`);
+}
+
+function snapReportBoard(){
+    const el = document.getElementById('page-report');
+    if (!el) return;
+    snapshotEl(el, 'trip_adherence_report');
+}
+
+/* ================================================================
+   PAGE 5 — TRIP LOG
+================================================================ */
+function gotoLog(mode, metric){
+    logFilter = { mode: mode || 'all', metric: metric || null };
+    syncChipsUI();
+    const tabBtn = document.querySelector('[data-bs-target="#page-rca"]');
+    bootstrap.Tab.getOrCreateInstance(tabBtn).show();
+    renderTableLog(getLogData());
+}
+
+function syncChipsUI(){
+    document.querySelectorAll('#logChips button').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === logFilter.mode);
+    });
+    const chip = document.getElementById('metricFocusChip');
+    if (logFilter.metric) {
+        const m = METRICS.find(x=>x.key===logFilter.metric);
+        chip.style.display = 'inline-block';
+        chip.innerHTML = `Failures: ${esc(m ? m.label : logFilter.metric)}
+            <i class="bi bi-x-circle ms-1 clickable" onclick="gotoLog('failed', null)"></i>`;
+    } else {
+        chip.style.display = 'none';
+        chip.innerHTML = '';
+    }
+}
+
+document.querySelectorAll('#logChips button').forEach(b => {
+    b.addEventListener('click', () => { logFilter = { mode: b.dataset.mode, metric: null }; syncChipsUI(); renderTableLog(getLogData()); });
+});
+
+function getLogData(){
+    let d = [...filteredTrips];
+    if (logFilter.mode === 'failed') {
+        d = d.filter(t => logFilter.metric ? !isPass(t[logFilter.metric]) : anyFail(t));
+    } else if (logFilter.mode === 'rcaPending') {
+        d = d.filter(rcaPendingTrip);
+    }
+    return d;
+}
+
+function utilChip(u){
+    if (u===null || u===undefined || isNaN(u)) return dash();
+    return `<span class="score-pill ${u>=90?'adh-good':u>=BIZ.LOW_UTIL?'adh-mid':'adh-bad'}">${Math.round(u)}%</span>`;
+}
+function delayChip(v){
+    if (v===null || v===undefined || isNaN(v)) return dash();
+    const cls = v>BIZ.LATE_MIN ? (v>30?'adh-bad':'adh-mid') : 'adh-good';
+    return `<span class="score-pill ${cls}">${v>0?'+':''}${Math.round(v)}m</span>`;
+}
+
+function renderTableLog(data){
+    if ($.fn.DataTable.isDataTable('#tripTable')) { $('#tripTable').DataTable().destroy(); }
+
+    document.getElementById('tripTableBody').innerHTML = data.map(t => {
+        const badges = METRICS.map(m => {
+            const ok = isPass(t[m.key]);
+            const raw = String(t[m.key] || '').trim();
+            return `<span class="${ok?'badge-pass':'badge-fail'}" title="${esc(m.label)}: ${esc(raw || 'blank')}">${m.short}</span>`;
+        }).join('');
+        return `<tr>
+            <td>${esc(t.date||'')}</td>
+            <td>${t.slot?`<span class="badge text-bg-light border">${esc(t.slot)}</span>`:''}</td>
+            <td><strong>${esc(t.tripId)}</strong>${t.tripCode?`
+<small class="text-muted">${esc(t.tripCode)}</small>`:''}</td>
+            <td>${esc(t.srcHub)} → ${esc(t.dstHub)}</td>
+            <td>${esc(t.vendor)}
+<small class="text-muted">${esc(t.plateNr)}${t.vehicleType?` • ${esc(t.vehicleType)}`:''}</small></td>
+            <td data-order="${t.shipments||0}">${fmt(t.shipments)}</td>
+            <td data-order="${t.utilPct===null?-1:t.utilPct}">${utilChip(t.utilPct)}</td>
+            <td data-order="${t.varMinutes===null?-9999:t.varMinutes}">${delayChip(t.varMinutes)}</td>
+            <td><div class="d-flex gap-1 flex-wrap">${badges}</div></td>
+            <td><button class="btn btn-sm btn-outline-primary" onclick="openRcaModal(${t.rowIdx})"><i class="bi bi-pencil-square"></i> Inspect / RCA</button></td>
+        </tr>`;
+    }).join('');
+
+    dataTable = $('#tripTable').DataTable({ pageLength: 15, dom: 'lrtip', order: [[0,'desc']] });
+
+    const s = document.getElementById('log-search').value;
+    if (s) dataTable.search(s).draw();
+}
+
+document.getElementById('log-search').addEventListener('keyup', function() {
+    if (dataTable) dataTable.search(this.value).draw();
+});
+
+/* ================================================================
+   RCA MODAL (Updated to save locally only since this is CSV driven)
+================================================================ */
+function openRcaModal(rowIdx) {
+    const t = rawTrips.find(x => x.rowIdx === rowIdx);
+    if(!t) return;
+
+    const btn = document.getElementById('btnSaveRca');
+    btn.disabled = false;
+    btn.innerHTML = `<i class="bi bi-save me-1"></i> Save RCA Changes`;
+
+    document.getElementById('modalRowIdx').value = t.rowIdx;
+    document.getElementById('rcaModalTitle').innerText = `RCA Inspection: ${t.tripId}  (${t.srcHub} → ${t.dstHub})`;
+
+    // Trip context tiles
+    const tile = (l,v) => `<div class="col-6 col-md-3"><div class="mini-tile"><div class="l">${l}</div><div class="v">${v||'—'}</div></div></div>`;
+    document.getElementById('modalTripInfo').innerHTML =
+        tile('Date', esc(t.date)) + tile('Slot', esc(t.slot)) +
+        tile('Vendor', esc(t.vendor)) + tile('Truck', esc(t.plateNr)) +
+        tile('Vehicle Type', esc(t.vehicleType)) + tile('Shipments', fmt(t.shipments)) +
+        tile('Utilization (vs target)', t.utilPct===null||t.utilPct===undefined?'—':Math.round(t.utilPct)+'%') +
+        tile('Dispatch Variance', t.varMinutes===null?'—':(t.varMinutes>0?'+':'')+Math.round(t.varMinutes)+' min') +
+        tile('Open → Seal', t.openToSealMin===null?'—':Math.round(t.openToSealMin)+' min') +
+        tile('Arrival TAT', t.arrivedTatMin===null?'—':Math.round(t.arrivedTatMin)+' min') +
+        tile('Driver', esc(t.driver)) + tile('Adhoc', isYes(t.isAdhoc)?'Yes':'No');
+
+    const body = document.getElementById('rcaModalBody');
+    body.innerHTML =
+        createRcaSection("1. Portal Plan Vs Actual Adherence", t.portalPlanVsActualAdh, "portalRca", "portalRemark", t.portalRca, t.portalRemark) +
+        createRcaSection("2. Open to Seal (Hub Operations)", t.openToSealAdh, "openSealRca", "openSealRemark", t.openSealRca, t.openSealRemark) +
+        createRcaSection("3. Line Haul Arrival Adherence", t.arrivalAdh, "arrivalRca", "arrivalRemark", t.arrivalRca, t.arrivalRemark) +
+        createRcaSection("4. Vehicle Compliance & Type", t.vehicleAdh, "vehicleRca", "vehicleRemark", t.vehicleRca, t.vehicleRemark) +
+        `<div class="rca-box-${isPass(t.gateInToOpenAdh)?'pass':'fail'}">
+            <div class="d-flex justify-content-between align-items-center">
+                <strong>5. Gate-in to Open (informational)</strong>
+                <span class="badge ${isPass(t.gateInToOpenAdh)?'bg-success':'bg-secondary'}">${esc(String(t.gateInToOpenAdh||'').trim()||'No data')} — no RCA column in sheet</span>
+            </div>
+        </div>`;
+
+    rcaModalObj.show();
+}
+
+function createRcaSection(title, statusVal, rcaId, remarkId, existingRca, existingRemark) {
+    if (isPass(statusVal)) {
+        return `<div class="rca-box-pass">
+            <div class="d-flex justify-content-between align-items-center">
+                <strong>${title}</strong>
+                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Adhered — No RCA Required</span>
+            </div>
+        </div>`;
+    }
+    return `<div class="rca-box-fail">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i> ${title}</strong>
+            <span class="badge bg-danger">Not Adhered${String(statusVal||'').trim()==='' ? ' / blank' : ''}</span>
+        </div>
+        <div class="row g-2">
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">RCA Reason</label>
+                <input type="text" class="form-control form-control-sm" id="m-${rcaId}" list="dl-${rcaId}" value="${esc(existingRca)}" placeholder="Pick a standard reason or type your own...">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">RCA Details / Remarks</label>
+                <input type="text" class="form-control form-control-sm" id="m-${remarkId}" value="${esc(existingRemark)}" placeholder="Enter context, action taken...">
+            </div>
+        </div>
+    </div>`;
+}
+
+function saveRcas() {
+    const rowIdx = parseInt(document.getElementById('modalRowIdx').value);
+    const btn = document.getElementById('btnSaveRca');
+    const getVal = (id) => { const el = document.getElementById('m-'+id); return el ? el.value : undefined; };
+
+    const payload = {
+        rowIdx: rowIdx,
+        portalRca: getVal("portalRca"),       portalRemark: getVal("portalRemark"),
+        openSealRca: getVal("openSealRca"),   openSealRemark: getVal("openSealRemark"),
+        arrivalRca: getVal("arrivalRca"),     arrivalRemark: getVal("arrivalRemark"),
+        vehicleRca: getVal("vehicleRca"),     vehicleRemark: getVal("vehicleRemark")
+    };
+
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Saving Locally...`;
+
+    // Because we are using CSV, we save to the browser's memory for the session
+    setTimeout(() => {
+        const t = rawTrips.find(x => x.rowIdx === rowIdx);
+        if(t){
+            ['portalRca','portalRemark','openSealRca','openSealRemark','arrivalRca','arrivalRemark','vehicleRca','vehicleRemark']
+              .forEach(k => { if(payload[k] !== undefined) t[k] = payload[k]; });
+        }
+        rcaModalObj.hide();
+        applyGlobalFilters();
+        btn.disabled = false; btn.innerHTML = `<i class="bi bi-save me-1"></i> Save RCA Changes`;
+        showToast('RCA saved to temporary memory (CSV format cannot write back to Google)');
+    }, 500);
+}
+
+/* ================================================================
+   CSV EXPORT
+================================================================ */
+function csvCell(v){ if(v===null||v===undefined) v=''; return '"' + String(v).replace(/"/g,'""').replace(/[\r\n]+/g,' ') + '"'; }
+
+function exportCsv(){
+    const data = getLogData();
+    if (!data.length) { showToast('Nothing to export for current filters', 'danger'); return; }
+
+    const headers = ['Date','Slot','Trip ID','Trip Code','Source Hub','Destination Hub','Vendor','Vendor Type','Vehicle Type','Plate','Driver','Is Adhoc','Shipments','Utilization %','Variance (min)','GateIn-Open (min)','Open-Seal (min)','Arrival TAT (min)','Portal Adherence','Portal Actual vs Plan','Gate-in to Open','Open to Seal','Arrival','Vehicle','Portal RCA','Open-Seal RCA','Arrival RCA','Vehicle RCA'];
+    const lines = [headers.map(csvCell).join(',')];
+    data.forEach(t => lines.push([
+        t.date, t.slot, t.tripId, t.tripCode, t.srcHub, t.dstHub, t.vendor, t.vendorType, t.vehicleType, t.plateNr, t.driver,
+        isYes(t.isAdhoc)?'Yes':'No', t.shipments, t.utilPct, t.varMinutes, t.gateInToOpenMin, t.openToSealMin, t.arrivedTatMin,
+        t.portalAdh, t.portalPlanVsActualAdh, t.gateInToOpenAdh, t.openToSealAdh, t.arrivalAdh, t.vehicleAdh,
+        t.portalRca, t.openSealRca, t.arrivalRca, t.vehicleRca
+    ].map(csvCell).join(',')));
+
+    const blob = new Blob(["\ufeff" + lines.join('\n')], { type:'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0,16).replace(/[-:T]/g,'');
+    a.href = URL.createObjectURL(blob);
+    a.download = `line_haul_export_${stamp}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+    showToast(`Exported ${fmt(data.length)} trips to CSV`);
+}
+</script>
+</body>
+</html>
