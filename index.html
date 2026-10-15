@@ -166,6 +166,20 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
         font-family: var(--font-head); font-size: .8rem; font-weight: 700; padding: 8px 18px; border-radius: 999px; z-index: 3000; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
     /* Live tracking tables need a positioning context for their snap buttons */
     .table-container.snap-host { position: relative; }
+
+    /* ===== Trip Adherence Report ===== */
+    .verdict-card { background: var(--brand-white); border: 1px solid #e8e2cf; border-left: 6px solid var(--brand-black); border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.05); height: 100%; }
+    .verdict-card.v-good { border-left-color: #22c55e; } .verdict-card.v-mid { border-left-color: #f59e0b; }
+    .verdict-card.v-bad { border-left-color: var(--brand-red); }
+    .verdict-score { font-family: var(--font-num); font-size: 2.5rem; font-weight: 800; line-height: 1.05; }
+    .verdict-label { font-family: var(--font-head); font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; color: #6b6353; }
+    .verdict-note { font-size: .74rem; color: #6b6353; }
+    .prog-track { background:#efece2; border-radius:999px; height:9px; min-width:80px; overflow:hidden; }
+    .prog-fill { height:100%; border-radius:999px; }
+    .adh-txt { font-size:.68rem; font-weight:700; white-space:nowrap; }
+    .stoplight { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+    .rep-table th { position: sticky; top: 0; z-index: 2; }
+    .metric-mini { font-family: var(--font-num); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -180,6 +194,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
     <div class="d-flex align-items-center gap-2">
         <ul class="nav nav-pills" id="pageTabs">
             <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard"><i class="bi bi-speedometer2 me-1"></i> Executive Dashboard</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-report"><i class="bi bi-clipboard2-data me-1"></i> Trip Report</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live"><i class="bi bi-broadcast me-1"></i> Live Tracking</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-gap"><i class="bi bi-search-heart me-1"></i> Gap Analysis</button></li>
         </ul>
@@ -395,8 +410,8 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </div>
                 <div class="col-lg-6">
                     <div class="card p-3 border-0 shadow-sm chart-card">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line text-primary me-2"></i>Daily Volume vs Composite Adherence</h6>
-                        <div style="height:280px;position:relative;"><canvas id="chartVolAdh"></canvas></div>
+                        <h6 class="fw-bold mb-3"><i class="bi bi-building-gear text-primary me-2"></i>Composite Adherence by Facility <span class="text-muted fw-normal" style="font-size:.75rem">(% within bar)</span></h6>
+                        <div style="height:280px;position:relative;"><canvas id="chartFacilityAdh"></canvas></div>
                     </div>
                 </div>
             </div>
@@ -448,26 +463,34 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </div>
             </div>
 
-            <!-- VARIANCE / SLAB / ADHOC -->
+            <!-- VARIANCE / SLAB / ADHOC / STATUS -->
             <div class="row g-3 mb-2">
-                <div class="col-lg-4">
+                <div class="col-lg-3 col-md-6">
                     <div class="card p-3 border-0 shadow-sm chart-card h-100">
                         <h6 class="fw-bold mb-3"><i class="bi bi-clock-history text-warning me-2"></i>Dispatch Variance (Actual − Plan)</h6>
                         <div class="chart-box-sm"><canvas id="chartVariance"></canvas></div>
                         <div class="text-muted mt-2" style="font-size:.7rem">Positive = left later than plan. Blank variance rows are excluded.</div>
                     </div>
                 </div>
-                <div class="col-lg-4">
+                <div class="col-lg-3 col-md-6">
                     <div class="card p-3 border-0 shadow-sm chart-card h-100">
                         <h6 class="fw-bold mb-3"><i class="bi bi-hourglass-split text-success me-2"></i>Open → Seal Time Slabs</h6>
                         <div class="chart-box-sm"><canvas id="chartSlab"></canvas></div>
                     </div>
                 </div>
-                <div class="col-lg-4">
+                <div class="col-lg-3 col-md-6">
                     <div class="card p-3 border-0 shadow-sm chart-card h-100">
                         <h6 class="fw-bold mb-3"><i class="bi bi-lightning-charge text-info me-2"></i>Planned vs Adhoc Trips</h6>
                         <div class="chart-box-sm"><canvas id="chartAdhoc"></canvas></div>
                         <div class="text-muted mt-2 fw-semibold" style="font-size:.74rem" id="adhocNote">—</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="card p-3 border-0 shadow-sm chart-card h-100">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-diagram-2 text-primary me-2"></i>Trip Status Mix
+                            <span class="text-muted fw-normal" style="font-size:.7rem">(count · %)</span></h6>
+                        <div class="chart-box-sm"><canvas id="chartStatusMix"></canvas></div>
+                        <div class="text-muted mt-2" style="font-size:.7rem">Blank adherence on an unfinished trip still counts as not adhered.</div>
                     </div>
                 </div>
             </div>
@@ -475,7 +498,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             <!-- TRIP DETAILS TABLE - All trips with full metrics -->
             <div class="card p-3 mb-4 border-0 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                    <h5 class="fw-bold m-0"><i class="bi bi-list-ul me-2"></i>Trip Details <span class="text-muted fw-normal">(Showing ${total} trips)</span></h5>
+                    <h5 class="fw-bold m-0"><i class="bi bi-list-ul me-2"></i>Trip Details <span class="text-muted fw-normal" id="tripDetailsCount">(Showing 0 trips)</span></h5>
                     <div class="d-flex gap-2">
                         <input type="text" id="tripSearch" class="form-control form-control-sm" style="width:200px" placeholder="Search trip ID or route..." oninput="filterTripTable()">
                         <button class="btn btn-sm btn-outline-primary" onclick="exportTripTable()"><i class="bi bi-download me-1"></i> Export CSV</button>
@@ -514,13 +537,115 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </div>
         </div>
 
+        <!-- ============ PAGE 5: TRIP ADHERENCE REPORT ============ -->
+        <div class="tab-pane fade" id="page-report">
+
+            <!-- SCOPE + ACTIONS -->
+            <div class="card p-3 mb-4 border-0 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold m-0"><i class="bi bi-clipboard2-data me-2 text-primary"></i>Line Haul Trip Adherence Report
+                            <span class="text-muted fw-normal fs-6"> — trips, source → destination hubs, what adhered and what did not</span></h5>
+                        <div class="small text-muted mt-1" id="reportScopeLine">—</div>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="jumpToDashboardFilters()"><i class="bi bi-funnel me-1"></i> Change Filters</button>
+                        <button class="btn btn-sm btn-success" onclick="copyReportText()"><i class="bi bi-clipboard me-1"></i> Copy Text Report</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="exportReportCsv()"><i class="bi bi-download me-1"></i> Export CSV</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="snapReportBoard()"><i class="bi bi-camera me-1"></i> Snap Report</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FINAL RESULT VERDICT + KPI TILES -->
+            <div class="row g-3 mb-4">
+                <div class="col-lg-4">
+                    <div class="verdict-card" id="reportVerdict">
+                        <div class="verdict-label">Final Result — Composite Adherence</div>
+                        <div class="verdict-score">—</div>
+                    </div>
+                </div>
+                <div class="col-lg-8"><div class="row g-3 h-100" id="reportKpis"></div></div>
+            </div>
+
+            <!-- ALL 6 CHECKPOINTS -->
+            <div class="table-container mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <h5 class="fw-bold m-0"><i class="bi bi-list-check me-2"></i>All Checkpoints — Adhered vs Not Adhered</h5>
+                    <span class="badge text-bg-light border">*No Data = blank or <code>Extra</code> (no plan) in the sheet — still counted as Not Adhered, same rule the sheet uses</span>
+                </div>
+                <table id="reportMetricTable" class="table table-sm align-middle w-100 fs-7 mb-0">
+                    <thead class="table-light"><tr>
+                        <th>Checkpoint</th><th>Trips</th><th>Adhered</th><th>Not Adhered</th><th>No Data*</th>
+                        <th>Adherence %</th><th>Share of All Failures</th><th style="min-width:120px">Progress</th><th>Verdict</th>
+                    </tr></thead>
+                    <tbody id="reportMetricBody"></tbody>
+                </table>
+            </div>
+
+            <!-- HUB PAIR PERFORMANCE -->
+            <div class="table-container mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <h5 class="fw-bold m-0"><i class="bi bi-signpost-split me-2"></i>Source Hub → Destination Hub Performance</h5>
+                    <span class="small text-muted">Sorted by composite adherence (worst first)</span>
+                </div>
+                <div style="overflow-x:auto">
+                    <table id="reportHubTable" class="table table-sm align-middle fs-7 mb-0">
+                        <thead class="table-light"><tr>
+                            <th>Source Hub</th><th>Destination Hub</th><th>Trips</th><th>Shipments</th>
+                            <th>Portal</th><th>Act/Plan</th><th>Gate→Open</th><th>Open→Seal</th><th>Arrival</th><th>Vendor</th>
+                            <th>Composite</th><th>Fully Adhered</th><th>Weakest Checkpoint</th>
+                        </tr></thead>
+                        <tbody id="reportHubBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PER-TRIP ADHERENCE -->
+            <div class="table-container mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <h5 class="fw-bold m-0"><i class="bi bi-journal-check me-2"></i>Per-Trip Adherence
+                        <span class="text-muted fw-normal fs-6">(<span id="reportTripCount">0</span> trips in scope)</span></h5>
+                    <div class="btn-group btn-group-sm chip-bar" id="reportTripChips">
+                        <button class="btn btn-outline-secondary active" data-mode="all">All Trips</button>
+                        <button class="btn btn-outline-danger" data-mode="fail">Not Fully Adhered</button>
+                        <button class="btn btn-outline-warning" data-mode="anyfail">Any Checkpoint Failed</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto">
+                    <table id="reportTripTable" class="table table-sm align-middle fs-7 mb-0">
+                        <thead class="table-light"><tr>
+                            <th>Date</th><th>Trip ID</th><th>Source Hub</th><th>Destination Hub</th><th>Vendor / Truck</th>
+                            <th>Facility</th><th>Status</th><th>Portal</th><th>Act/Plan</th><th>Gate→Open</th><th>Open→Seal</th>
+                            <th>Arrival</th><th>Vendor</th><th>Result</th><th>RCA</th>
+                        </tr></thead>
+                        <tbody id="reportTripBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TEXT REPORT -->
+            <div class="table-container mb-2">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0" style="font-size:.9rem"><i class="bi bi-chat-left-text me-1 text-success"></i>Text Report &amp; Final Summary
+                        <span class="text-muted fw-normal" style="font-size:.78rem">(ready to send)</span></h6>
+                    <button class="btn btn-sm btn-success" onclick="copyReportText()"><i class="bi bi-clipboard me-1"></i>Copy Text Report</button>
+                </div>
+                <pre id="reportText" class="mb-0" style="white-space:pre-wrap; background:#fbf8ee; border:1px solid #e8e2cf; border-radius:8px; padding:12px 14px; font-size:.78rem; font-family:'Roboto Mono',monospace; color:#111111; max-height:520px; overflow:auto;">—</pre>
+            </div>
+        </div>
+
         <!-- ============ PAGE 2: LIVE TRACKING ============ -->
         <div class="tab-pane fade" id="page-live">
             <div class="card p-3 mb-4 border-0 shadow-sm">
                 <div class="row g-2 align-items-end">
                     <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted">Date</label>
-                        <input type="date" id="live-date" class="form-control form-control-sm" onchange="renderLiveTracking()">
+                        <label class="form-label fw-bold small text-muted">Date From</label>
+                        <input type="date" id="live-date-from" class="form-control form-control-sm" onchange="renderLiveTracking()">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted">Date To</label>
+                        <input type="date" id="live-date-to" class="form-control form-control-sm" onchange="renderLiveTracking()">
                     </div>
                     <div class="col-6 col-md-3">
                         <label class="form-label fw-bold small text-muted">Source Hubs</label>
@@ -863,7 +988,7 @@ async function fetchCsvText(url, retries=2, baseDelayMs=1200){
             console.log('[CSV fetch] OK attempt', attempt+1, 'bytes=', text.length, 'firstLine=', text.split(/\r?\n/)[0].slice(0,120));
             return text;
         } catch(e){
-            lastErr = String(e?.message || e ?? 'unknown fetch error');
+            lastErr = String(e?.message ?? e ?? 'unknown fetch error');
             console.warn('[CSV fetch] attempt', attempt+1, 'exception:', lastErr);
             if(attempt<retries) await sleep(baseDelayMs*(1<<attempt));
         }
@@ -900,51 +1025,6 @@ function showLoadError(msg){
       </div>`;
     loader.style.display = 'block';
 }
-
-
-/* ================================================================
-   CSV FETCH GUARD — Google Sheets redirects & transient 5xx/429
-   PapaParse only does HTTP. We fetch ourselves so we can:
-     (a) follow the GSE 307 redirect to the doc-* host reliably,
-     (b) retry on HTTP errors / empty / HTML-only responses,
-     (c) surface a friendly in-page message instead of a silent stall.
-================================================================ */
-async function fetchCsvText(url, retries=2, baseDelayMs=1200){
-    let lastErr = null;
-    for (let attempt=0; attempt<=retries; attempt++){
-        try {
-            const resp = await fetch(url, {
-                method:'GET',
-                headers:{ 'Accept':'text/csv,application/csv,text/plain;q=0.9' },
-                mode:'cors',
-                cache:'no-store'
-            });
-            if(!resp.ok){
-                lastErr = `HTTP ${resp.status} ${resp.statusText} for ${url}`;
-                console.warn('[CSV fetch] attempt', attempt+1, 'failed:', lastErr);
-                if(attempt<retries) await sleep(baseDelayMs*(1<<attempt));
-                continue;
-            }
-            const text = await resp.text();
-            const trimmed = (text||'').trim();
-            // Google Sheets occasionally hands back an HTML error page instead of CSV.
-            if(!trimmed || trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html') || trimmed.startsWith('<HTML')){
-                lastErr = `Empty or HTML response from Google Sheets (likely a temporary redirect/error page). URL: ${url}`;
-                console.warn('[CSV fetch] attempt', attempt+1, 'got non-CSV body (len=' + (trimmed.length||0) + ').');
-                if(attempt<retries) await sleep(baseDelayMs*(1<<attempt));
-                continue;
-            }
-            console.log('[CSV fetch] OK attempt', attempt+1, 'bytes=', text.length, 'firstLine=', text.split(/\r?\n/)[0].slice(0,120));
-            return text;
-        } catch(e){
-            lastErr = String(e?.message || e ?? 'unknown fetch error');
-            console.warn('[CSV fetch] attempt', attempt+1, 'exception:', lastErr);
-            if(attempt<retries) await sleep(baseDelayMs*(1<<attempt));
-        }
-    }
-    throw new Error(lastErr ?? 'Could not fetch CSV after '+(retries+1)+' attempts');
-}
-function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
 
 /* ================================================================
    STATE & CONFIG
@@ -999,6 +1079,88 @@ function destroyChart(name){ if(charts[name]){ charts[name].destroy(); delete ch
 function setChart(name, canvasId, cfg){ destroyChart(name); const el=document.getElementById(canvasId); if(el) charts[name]=new Chart(el,cfg); }
 function makeTable(selector, order){ if ($.fn.DataTable.isDataTable(selector)) { $(selector).DataTable().destroy(); } return $(selector).DataTable(order); }
 
+/* DataTables restores the rows it saw at init time when destroy() runs, so a
+   table that already exists MUST be destroyed BEFORE its <tbody> is rewritten —
+   otherwise the table keeps showing the first render's rows forever. */
+function resetTable(selector){
+    if ($.fn.DataTable && $.fn.DataTable.isDataTable(selector)) {
+        try { $(selector).DataTable().destroy(); } catch(e){ console.warn('[resetTable] destroy failed for', selector, e); }
+    }
+    return $(selector);
+}
+
+/* ================================================================
+   CHART VALUE LABELS — writes the NUMBER and the % directly on the
+   bars / lines / doughnut arcs (inline plugin, no extra CDN library).
+   Opt in per chart:   plugins: { valueLabels: { ... } }
+     formatter(v, sum, datasetIndex, index, chart) -> string
+     totals  : [datasetIndex,...] append " (x% of dataset total)"
+     percent : true | [datasetIndex,...] append " (x% of dataset total)"
+     lastOnly: true  -> only label the final point of a line dataset
+============================================================= */
+const valueLabels = {
+    id: 'valueLabels',
+    afterDatasetsDraw(chart, _args, opts){
+        if (!opts || opts.enabled === false) return;
+        const ctx = chart.ctx;
+        const fmtFn = typeof opts.formatter === 'function' ? opts.formatter : null;
+        const percentDs = opts.percent || [];
+        const totals = opts.totals || [];
+        const minShare = (opts.minShare === undefined) ? 0.05 : opts.minShare;
+        const colorOpt = opts.color;
+        ctx.save();
+        ctx.font = opts.font || "700 10px 'Roboto Mono', ui-monospace, monospace";
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(255,255,255,.88)';
+        ctx.lineJoin = 'round';
+        chart.data.datasets.forEach((ds, di) => {
+            const meta = chart.getDatasetMeta(di);
+            if (!meta || meta.hidden) return;
+            const sum = ds.data.reduce((s, v) => s + (Number(v) || 0), 0);
+            const type = meta.type || chart.config.type || 'bar';
+            const showPct = percentDs === true || percentDs.includes(di);
+            meta.data.forEach((el, i) => {
+                const rawV = ds.data[i];
+                if (rawV === null || rawV === undefined || rawV === '' || isNaN(rawV)) return;
+                if (opts.lastOnly && i !== ds.data.length - 1) return;
+                if (opts.everyN && opts.everyN > 1 && (i % opts.everyN) !== 0) return;
+                const v = Number(rawV);
+                let x, y, align = 'center', base = 'middle';
+                if (type === 'doughnut' || type === 'pie') {
+                    if (sum > 0 && (v / sum) < minShare) return;
+                    if (typeof el.getCenterPoint !== 'function') return;
+                    const p = el.getCenterPoint(); x = p.x; y = p.y;
+                } else if (type === 'bar') {
+                    if (chart.options.indexAxis === 'y') { x = Math.max(el.x, el.base) + 5; y = el.y; align = 'left'; }
+                    else { x = el.x; y = Math.min(el.y, el.base) - 4; base = 'bottom'; }
+                } else {
+                    x = el.x; y = el.y - 7; base = 'bottom';
+                }
+                let text = fmtFn ? fmtFn(v, sum, di, i, chart) : fmt(v);
+                if (text === null || text === undefined || text === '') return;
+                text = String(text);
+                if (totals.includes(di) && sum > 0 && !showPct) text += ` (${Math.round(v / sum * 100)}%)`;
+                let fill = '#111111';
+                if (Array.isArray(colorOpt)) fill = colorOpt[di] || '#111111';
+                else if (typeof colorOpt === 'string') fill = colorOpt;
+                ctx.fillStyle = fill;
+                ctx.textAlign = align; ctx.textBaseline = base;
+                text.split('\n').forEach((line, li) => {
+                    const ty = y + li * 11;
+                    ctx.strokeText(line, x, ty);
+                    ctx.fillText(line, x, ty);
+                });
+            });
+        });
+        ctx.restore();
+    }
+};
+if (typeof Chart !== 'undefined') { try { Chart.register(valueLabels); } catch(e){ console.warn('[valueLabels] register failed', e); } }
+
+// Small helpers used by the value-label formatters
+function pctOf(v, sum){ return sum ? Math.round(v / sum * 100) : 0; }
+function pctTxt(v){ return Math.round(v) + '%'; }
+
 function showToast(msg, type='success'){
     const wrap=document.getElementById('toastWrap');
     const el=document.createElement('div');
@@ -1021,7 +1183,9 @@ let dashFacilitySelection = [];
 let dashStatusSelection = [];
 let dashDateFrom = '';
 let dashDateTo = '';
-let selectedMetricKey = null;function applyDashboardFilters(){
+let selectedMetricKey = null;
+
+function applyDashboardFilters(){
     dashDateFrom = document.getElementById('dash-date-from').value || '';
     dashDateTo = document.getElementById('dash-date-to').value || '';
     dashSrcSelection = $('#dash-src').val() || [];
@@ -1034,12 +1198,7 @@ let selectedMetricKey = null;function applyDashboardFilters(){
 
     let data = [...rawTrips];
     if (dashDateFrom || dashDateTo) {
-        data = data.filter(t => {
-            const d = t.date ? (t.date.length > 10 ? t.date.substring(0,10) : t.date) : '';
-            if (dashDateFrom && d < dashDateFrom) return false;
-            if (dashDateTo && d > dashDateTo) return false;
-            return true;
-        });
+        data = data.filter(t => inDateRange(t.dateKey || normDateKey(t.date), dashDateFrom, dashDateTo));
     }
     if (dashSrcSelection.length) data = data.filter(t => dashSrcSelection.includes(t.srcHub));
     if (dashDstSelection.length) data = data.filter(t => dashDstSelection.includes(t.dstHub));
@@ -1068,6 +1227,27 @@ let selectedMetricKey = null;function applyDashboardFilters(){
     
 
     renderDashboard(data);
+
+    // Keep the Trip Report / Gap Analysis in step with the filters
+    reportState = 'pending';
+    gapState = 'pending';
+    renderActiveAuxPages();
+}
+
+/* Re-render whichever secondary page the operator is currently looking at,
+   so filters changed elsewhere are reflected without a manual tab switch. */
+function renderActiveAuxPages(){
+    if (!rawTrips.length) return;
+    const rep = document.getElementById('page-report');
+    if (rep && rep.classList.contains('active')) {
+        renderTripReport(getFilteredDashboardData());
+        reportState = 'live';
+    }
+    const gap = document.getElementById('page-gap');
+    if (gap && gap.classList.contains('active')) {
+        renderGap(getFilteredDashboardData());
+        gapState = 'live';
+    }
 }
 
 function resetDashFilters(){
@@ -1209,12 +1389,7 @@ function clearMetricSelection(){
 function getFilteredDashboardData(){
     let data = [...rawTrips];
     if (dashDateFrom || dashDateTo) {
-        data = data.filter(t => {
-            const d = t.date ? (t.date.length > 10 ? t.date.substring(0,10) : t.date) : '';
-            if (dashDateFrom && d < dashDateFrom) return false;
-            if (dashDateTo && d > dashDateTo) return false;
-            return true;
-        });
+        data = data.filter(t => inDateRange(t.dateKey || normDateKey(t.date), dashDateFrom, dashDateTo));
     }
     if (dashSrcSelection.length) data = data.filter(t => dashSrcSelection.includes(t.srcHub));
     if (dashDstSelection.length) data = data.filter(t => dashDstSelection.includes(t.dstHub));
@@ -1248,9 +1423,23 @@ function parseTimeOn(s, base){
     return new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, +m[2], m[3]?+m[3]:0);
 }
 // 'M/D/YYYY' -> 'YYYY-MM-DD' for date inputs
+// Anything the sheet may hold ('2026-10-01', '10/1/2026', '2026-10-01T07:00:00') -> 'YYYY-MM-DD'.
+// Returns '' when there is no recognisable date, so callers can skip those rows.
 function normDateKey(s){
-    const m = String(s||'').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    const t = String(s||'').trim();
+    let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(m) return `${m[1]}-${String(+m[2]).padStart(2,'0')}-${String(+m[3]).padStart(2,'0')}`;
+    m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     return m ? `${m[3]}-${String(+m[1]).padStart(2,'0')}-${String(+m[2]).padStart(2,'0')}` : '';
+}
+
+// Shared date-range test used by every page (ISO-safe).
+function inDateRange(dateKey, from, to){
+    if(!from && !to) return true;
+    if(!dateKey) return false;
+    if(from && dateKey < from) return false;
+    if(to   && dateKey > to)   return false;
+    return true;
 }
 function fmtClock(d){
     if(!d) return '';
@@ -1264,7 +1453,28 @@ function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n + (s[(v-20
 window.onload = function() {
     rcaModalObj = new bootstrap.Modal(document.getElementById('rcaModal'));
     document.querySelector('[data-bs-target="#page-gap"]').addEventListener('shown.bs.tab', () => {
-        if (gapState !== 'live') { renderGap(filteredTrips); gapState = 'live'; }
+        if (gapState !== 'live' && rawTrips.length) { renderGap(getFilteredDashboardData()); gapState = 'live'; }
+    });
+    // Chart.js measures its container when it draws. A tab that was hidden when a
+    // chart was built keeps a 0x0 canvas until something resizes it, so every tab
+    // switch re-measures all charts of the newly shown page.
+    document.querySelectorAll('#pageTabs .nav-link').forEach(function(btn){
+        btn.addEventListener('shown.bs.tab', function(){
+            setTimeout(function(){
+                Object.keys(charts).forEach(function(k){
+                    try { charts[k].resize(); } catch(e){ console.warn('[chart resize] failed for', k, e); }
+                });
+            }, 80);
+        });
+    });
+
+    // The report follows the dashboard filters; render it the first time the tab is opened
+    document.querySelector('[data-bs-target="#page-report"]').addEventListener('shown.bs.tab', () => {
+        // Only mark it rendered once data actually exists, otherwise an early
+        // click would pin the report to an empty state.
+        if (reportState !== 'live' && rawTrips.length) { renderTripReport(getFilteredDashboardData()); reportState = 'live'; }
+        else if (reportTripDT) { try { reportTripDT.columns.adjust().draw(false); } catch(e){} }
+        if (typeof initSnapshots === 'function') initSnapshots();
     });
 
     loadDataFromCSV();
@@ -1328,10 +1538,14 @@ function loadLiveCsv() {
                 try{ populateLiveFilters(); }catch(e){ console.warn('[loadLiveCsv] populateLiveFilters failed:', e); }
             }
 
-            const liveDateEl = document.getElementById('live-date');
-            if(liveDateEl && !liveDateEl.value){
+            const liveFromEl = document.getElementById('live-date-from');
+            const liveToEl   = document.getElementById('live-date-to');
+            if(liveFromEl && liveToEl && !liveFromEl.value && !liveToEl.value){
                 const dodKeys = liveRows.map(t=>normDateKey(t.dod)).filter(Boolean).sort();
-                if(dodKeys.length) liveDateEl.value = dodKeys[dodKeys.length-1];
+                if(dodKeys.length){
+                    liveFromEl.value = dodKeys[dodKeys.length-1];
+                    liveToEl.value   = dodKeys[dodKeys.length-1];
+                }
             }
 
             if(typeof renderLiveTracking === 'function'){
@@ -1435,8 +1649,9 @@ function initSnapshots(){
 
 function loadDataFromCSV() {
     const loader = document.getElementById('loader');
+    const meta = document.getElementById('sheetMeta');
     setLoadingState(loader, 'Loading trip data from Google Sheets…');
-    if(meta) meta.innerText = 'Connecting to sheet_';
+    if(meta) meta.innerText = 'Connecting to sheet…';
 
     fetchCsvText(csvUrl)
         .then(csvText => Papa.parse(csvText, {
@@ -1511,6 +1726,7 @@ function loadDataFromCSV() {
                     arrivalAdh: row['Arrival_Adherence'] || '',
                     vehicleAdh: row['Vendor_Adherence'] || row['vehicle_adherence'] || '',
                     lmAdherence: row['LM adherence'] || '',
+                    portalAdhRaw: row['Portal_Adherence'] || '',
 
                     // Live Tracking timestamps
                     srcGateOutRaw: row['Src_gate_out_ts'] || '',
@@ -1529,13 +1745,20 @@ function loadDataFromCSV() {
             });
             // Pre-parse live tracking dates once
             mappedTrips.forEach(t => {
-                const base = parseSheetTs(t.date);                t.srcGateOut = parseSheetTs(t.srcGateOutRaw);
+                const base = parseSheetTs(t.date);
+                t.srcGateOut = parseSheetTs(t.srcGateOutRaw);
                 t.ctPlan     = parseTimeOn(t.ctPlanRaw, base);
                 const din    = parseSheetTs(t.dstGateInRaw);
                 const dock   = parseSheetTs(t.dstDockRaw);
                 t.dstArrival = din || dock;
                 t.ctArrival  = parseTimeOn(t.ctArrivalRaw, base);
                 t.dateKey    = normDateKey(t.date);
+                // Utilisation accuracy: 'utilization_percentage' in the sheet is a 0..1
+                // fraction (shipments / target_count) and is the real fill rate, so it
+                // wins over the raw stop estimate. Both are normalised to 0..100 here.
+                t.utilPct = (!isNaN(t.utilizationPercentage) && t.utilizationPercentage !== null)
+                    ? t.utilizationPercentage * 100
+                    : ((!isNaN(t.utilization) && t.utilization !== null) ? t.utilization : null);
             });
 
             if(typeof initApp === 'function'){
@@ -1549,15 +1772,6 @@ function loadDataFromCSV() {
             console.error('[loadDataFromCSV] failed:', err);
             showLoadError(err instanceof Error ? err.message : String(err ?? 'Unknown load error'));
         });
-}
-
-function showLoadError(msg){
-    document.getElementById('loader').innerHTML = `
-      <div class="alert alert-danger d-inline-block text-start mt-4" style="max-width:560px">
-        <h6 class="fw-bold"><i class="bi bi-exclamation-octagon me-1"></i> Could not load trip data</h6>
-        <div class="small">${esc(msg)}</div>
-        <button class="btn btn-sm btn-danger mt-2" onclick="location.reload()"><i class="bi bi-arrow-repeat me-1"></i>Retry</button>
-      </div>`;
 }
 
 function refreshData(){
@@ -1669,8 +1883,11 @@ function applyGlobalFilters(){
     filteredTrips = rawTrips;
 
     renderDashboard(filteredTrips);
-    if (gapState === 'live') renderGap(filteredTrips);
     renderTableLog(getLogData());
+    // Both secondary pages re-render on next open (or immediately if visible)
+    reportState = 'pending';
+    gapState = 'pending';
+    renderActiveAuxPages();
 }
 
 function resetFilters(){}
@@ -1702,8 +1919,44 @@ function toggleAutoRefresh(){
 }
 
 function resetLiveFilters(){
-    document.getElementById('live-date').value = '';
+    const f = document.getElementById('live-date-from');
+    const t = document.getElementById('live-date-to');
+    if(f) f.value = '';
+    if(t) t.value = '';
     ['#live-src','#live-dst','#live-vendor','#live-flag'].forEach(id => $(id).val(null).trigger('change'));
+    renderLiveTracking();
+}
+
+// Single source of truth for the Live Tracking scope — every live section
+// (hub tables, adherence report, text summary) filters through this.
+function getLiveScopeRows(){
+    const fromEl = document.getElementById('live-date-from');
+    const toEl   = document.getElementById('live-date-to');
+    const from = fromEl ? fromEl.value : '';
+    const to   = toEl ? toEl.value : '';
+    const srcSel  = $('#live-src').val() || [];
+    const dstSel  = $('#live-dst').val() || [];
+    const venSel  = $('#live-vendor').val() || [];
+    const flagSel = $('#live-flag').val() || [];
+
+    let rows = liveRows;
+    if (from || to) rows = rows.filter(t => inDateRange(normDateKey(t.dod), from, to));
+    if (srcSel.length)  rows = rows.filter(t => srcSel.includes(t.srcHub));
+    if (dstSel.length)  rows = rows.filter(t => dstSel.includes(t.dstHub));
+    if (venSel.length)  rows = rows.filter(t => venSel.includes(t.vendor));
+    if (flagSel.length) rows = rows.filter(t => flagSel.includes(String(t.flagHubs).trim()));
+    return rows;
+}
+
+function liveScopeLabel(){
+    const fromEl = document.getElementById('live-date-from');
+    const toEl   = document.getElementById('live-date-to');
+    const from = fromEl ? fromEl.value : '';
+    const to   = toEl ? toEl.value : '';
+    if (from && to) return `${from} → ${to}`;
+    if (from) return `from ${from}`;
+    if (to)   return `up to ${to}`;
+    return 'all days';
 }
 
 function parseHhmm(s){
@@ -1723,18 +1976,12 @@ function renderLiveTracking(){
     const wrap = document.getElementById('liveTables');
     if (!wrap) return;
 
-    const dateVal = document.getElementById('live-date').value;   // YYYY-MM-DD
+    const rangeLabel = liveScopeLabel();
     const srcSel  = $('#live-src').val() || [];
     const dstSel  = $('#live-dst').val() || [];
     const venSel  = $('#live-vendor').val() || [];
     const flagSel = $('#live-flag').val() || [];
-
-    let rows = liveRows;
-    if (dateVal) rows = rows.filter(t => t.dod === normDateKey(dateVal) || normDateKey(t.dod) === dateVal);
-    if (srcSel.length) rows = rows.filter(t => srcSel.includes(t.srcHub));
-    if (dstSel.length) rows = rows.filter(t => dstSel.includes(t.dstHub));
-    if (venSel.length) rows = rows.filter(t => venSel.includes(t.vendor));
-    if (flagSel.length) rows = rows.filter(t => flagSel.includes(String(t.flagHubs).trim()));
+    const rows = getLiveScopeRows();
 
     // Summary KPIs (Extra rows have no plan → excluded from adherence)
     const planned  = rows.filter(t => String(t.outAdhRaw).trim() !== '' && String(t.outAdhRaw).trim().toLowerCase() !== 'extra');
@@ -1753,8 +2000,9 @@ function renderLiveTracking(){
     if (!rows.length) {
         const dodKeys = liveRows.map(t => normDateKey(t.dod)).filter(Boolean).sort();
         wrap.innerHTML = `<div class="alert alert-light border text-center">
-            <i class="bi bi-calendar-x me-1"></i> No occurrences found for <strong>${esc(dateVal || 'the selected scope')}</strong>${(srcSel.length||dstSel.length||venSel.length)?` with the selected hubs/vendors`:''}.
-            Pick another date (sheet data range: ${esc(dodKeys.length? dodKeys[0] : '')} → ${esc(dodKeys.length? dodKeys[dodKeys.length-1] : '')}).</div>`;
+            <i class="bi bi-calendar-x me-1"></i> No occurrences found for <strong>${esc(rangeLabel)}</strong>${(srcSel.length||dstSel.length||venSel.length)?` with the selected hubs/vendors`:''}.
+            Pick another date range (sheet data range: ${esc(dodKeys.length? dodKeys[0] : '')} → ${esc(dodKeys.length? dodKeys[dodKeys.length-1] : '')}).</div>`;
+        renderLiveReport([]);
         return;
     }
 
@@ -1797,7 +2045,7 @@ function renderLiveTracking(){
             <div class="table-container mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                 <div><span class="live-hub-title"><i class="bi bi-geo-alt text-primary me-1"></i>${esc(src)}</span>
-                    <span class="text-muted fs-7 ms-2">${esc(dateVal || '')}${dstSel.length?` • dst: ${esc(dstSel.join(', '))}`:''}${venSel.length?` • vendors: ${esc(venSel.join(', '))}`:''}</span></div>
+                    <span class="text-muted fs-7 ms-2">${esc(rangeLabel)}${dstSel.length?` • dst: ${esc(dstSel.join(', '))}`:''}${venSel.length?` • vendors: ${esc(venSel.join(', '))}`:''}</span></div>
                     <span class="badge text-bg-light border">${fmt(srcTrips.length)} occurrences • ${dstRows.length} destinations</span>
                 </div>
                 <div class="live-wrap">
@@ -1843,20 +2091,7 @@ function renderLiveReport(scopeRows){
     if (!body) return;
     const summary = document.getElementById('liveReportSummary');
     // Re-derive the current filter scope if not handed in
-    let rows = scopeRows;
-    if (!rows) {
-        rows = liveRows;
-        const dateVal = document.getElementById('live-date').value;
-        const srcSel  = $('#live-src').val() || [];
-        const dstSel  = $('#live-dst').val() || [];
-        const venSel  = $('#live-vendor').val() || [];
-        const flagSel = $('#live-flag').val() || [];
-        if (dateVal) rows = rows.filter(t => t.dod === normDateKey(dateVal) || normDateKey(t.dod) === dateVal);
-        if (srcSel.length) rows = rows.filter(t => srcSel.includes(t.srcHub));
-        if (dstSel.length) rows = rows.filter(t => dstSel.includes(t.dstHub));
-        if (venSel.length) rows = rows.filter(t => venSel.includes(t.vendor));
-        if (flagSel.length) rows = rows.filter(t => flagSel.includes(String(t.flagHubs).trim()));
-    }
+    const rows = scopeRows || getLiveScopeRows();
     const show = rows.filter(t => {
         const so = liveAdhState(t.outAdhRaw), sa = liveAdhState(t.arrAdhRaw);
         if (liveReportMode === 'fail') return so.label.startsWith('not adhered') || sa.label.startsWith('not adhered');
@@ -1891,12 +2126,12 @@ function renderLiveReport(scopeRows){
 /* ===== Text summary — lane-level early/late/adhered counts + arrival %, copyable to send ===== */
 function buildTextSummary(rows){
     const L = [];
-    const dateVal = document.getElementById('live-date').value;
+    const rangeLabel = liveScopeLabel();
     const srcSel  = $('#live-src').val() || [];
     const dstSel  = $('#live-dst').val() || [];
     const venSel  = $('#live-vendor').val() || [];
     const flagSel = $('#live-flag').val() || [];
-    const scope = [dateVal ? `Date: ${dateVal}` : 'Date: all days']
+    const scope = [`Date: ${rangeLabel}`]
         .concat(srcSel.length ? [`Src: ${srcSel.join(', ')}`] : [])
         .concat(dstSel.length ? [`Dst: ${dstSel.join(', ')}`] : [])
         .concat(venSel.length ? [`Vendors: ${venSel.join(', ')}`] : [])
@@ -1913,7 +2148,7 @@ function buildTextSummary(rows){
     // --- Core KPIs ---
     L.push('LINE HAUL LIVE REPORT');
     L.push('=====================');
-    L.push(`Date: ${dateVal || 'All Days'}`);
+    L.push(`Date: ${rangeLabel}`);
     L.push(`Occurrences: ${rows.length} (${dispatched.length} with plan, ${rows.length - dispatched.length} extra/no‑plan)`);
     L.push(`Dispatch adherence: ${outPct}% (${outOk}/${dispatched.length} on‑plan)`);
     L.push(`Arrival adherence:  ${arrPct}% (${arrOk}/${arrived.length} on‑time)`);
@@ -2055,7 +2290,7 @@ function buildDashboardTextReport(data){
     const pendingRca = data.filter(rcaPendingTrip).length;
     const completed = data.filter(t => t.tripStatus === 'completed').length;
     const inProgress = data.filter(t => t.tripStatus === 'in_progress' || t.tripStatus === 'started').length;
-    const avgUtil = avg(data.map(t=>t.utilization));
+    const avgUtil = avg(data.map(t=>t.utilPct));
 
     L.push(`Total Trips: ${fmt(total)}  |  Shipments: ${fmt(totalShip)}  |  Target: ${fmt(totalTarget)}`);
     L.push(`Completion Rate: ${total?Math.round(completed/total*100):0}% (${fmt(completed)} completed, ${fmt(inProgress)} in progress)`);
@@ -2197,28 +2432,6 @@ function buildDashboardTextReport(data){
     L.push('════════════════════════════════════════════════════════════');
     return L.join('\n');
 }
-        const fail = data.filter(t=>!isPass(t[m.key])).length;
-        if (fail > 0) {
-            L.push(`
-─────────────────────────────────────────────────────────────`);
-            L.push(`${m.label} — FAILURES (${fmt(fail)} trips)`);
-            L.push('─────────────────────────────────────────────────────────────');
-            const failing = data.filter(t=>!isPass(t[m.key])).slice(0, 20);
-            failing.forEach(t => {
-                L.push(`  • ${esc(t.tripId)} | ${esc(t.srcHub)}→${esc(t.dstHub)} | ${esc(t.vendor)} | ${esc(String(t[m.key]||'').trim()||'blank')}`);
-            });
-            if (fail > 20) L.push(`  ... and ${fail - 20} more`);
-            L.push('');
-        }
-    });
-
-    L.push('------------------------------------------------------------');
-    L.push('Report generated: ' + new Date().toLocaleString());
-    L.push('============================================================');
-    L.push('');
-    L.push('Copy this report and send it with your dashboard screenshot.');
-    return L.join('\n');
-}
 
 function copyDashboardReport(){
     const data = getFilteredDashboardData();
@@ -2273,6 +2486,8 @@ function showDashboardReportPopup(){
 ================================================================ */
 function renderDashboard(data){
     const total = data.length;
+    const countEl = document.getElementById('tripDetailsCount');
+    if (countEl) countEl.innerText = `(Showing ${fmt(total)} trips)`;
 
     // ---- KPI mini strip ----
     const totalShip = data.reduce((s,t)=>s+(t.shipments||0),0);
@@ -2280,8 +2495,8 @@ function renderDashboard(data){
     const comp = composite(data);
     const perfect = data.filter(t => CORE_KEYS.every(k => isPass(t[k]))).length;
     const avgO2S = avg(data.map(t=>t.openToSealMin));
-    const avgUtil = avg(data.map(t=>t.utilization));
-    const lowUtil = data.filter(t => t.utilization !== null && t.utilization < BIZ.LOW_UTIL).length;
+    const avgUtil = avg(data.map(t=>t.utilPct));
+    const lowUtil = data.filter(t => t.utilPct !== null && t.utilPct < BIZ.LOW_UTIL).length;
     const rc = rcaCounts(data);
     const pendingTrips = data.filter(rcaPendingTrip).length;
     const flagHubsCount = data.filter(t => String(t.flagHubs||'').trim() !== '').length;
@@ -2330,38 +2545,49 @@ function renderDashboard(data){
 
 function dailyAgg(data){
     const m = {};
-    data.forEach(t => { if(!t.date) return; (m[t.date]=m[t.date]||[]).push(t); });
+    data.forEach(t => { const k = t.dateKey || t.date; if(!k) return; (m[k]=m[k]||[]).push(t); });
     const dates = Object.keys(m).sort();
     return { dates, dayTrips: dates.map(d => m[d]) };
 }
 
 function renderDashboardCharts(data){
     const agg = dailyAgg(data);
+    const dayCounts = agg.dayTrips.map(a => a.length);
+    const dayComp   = agg.dayTrips.map(a => Math.round(composite(a)));
+    // On long date ranges only every Nth column gets a printed label, so the
+    // numbers stay readable instead of overlapping each other.
+    const everyN = agg.dates.length > 14 ? Math.ceil(agg.dates.length / 12) : 1;
 
-    // 1) Volume vs composite adherence
+    // 1) Volume vs composite adherence — bar = trip COUNT, line = adherence %
     setChart('volAdh','chartVolAdh',{
         data: { labels: agg.dates, datasets: [
-            { type:'bar', label:'Trips', data: agg.dayTrips.map(a=>a.length), backgroundColor:'#cbd5e1', borderRadius:4, yAxisID:'y1', order:2 },
-            { type:'line', label:'Composite Adherence %', data: agg.dayTrips.map(a=>Math.round(composite(a))), borderColor:'#2563eb', backgroundColor:'#2563eb', tension:.3, yAxisID:'y', order:1, pointRadius:3 }
+            { type:'bar', label:'Trips', data: dayCounts, backgroundColor:'#cbd5e1', borderRadius:4, yAxisID:'y1', order:2 },
+            { type:'line', label:'Composite Adherence %', data: dayComp, borderColor:'#2563eb', backgroundColor:'#2563eb', tension:.3, yAxisID:'y', order:1, pointRadius:3 }
         ]},
         options: { responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-            plugins:{ legend:{position:'bottom'} },
+            layout:{ padding:{ top: 14 } },
+            plugins:{ legend:{position:'bottom'},
+                valueLabels:{ everyN: everyN, formatter:(v,sum,di)=> di===0 ? fmt(v) : Math.round(v)+'%', color:['#475569','#2563eb'] } },
             scales:{ y:{min:0,max:100,title:{display:true,text:'Adherence %'}},
                      y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'Trips'},ticks:{precision:0}},
                      x:{ticks:{autoSkip:true,maxTicksLimit:20}} } }
     });
 
-    // 2) Failures per checkpoint
+    // 2) Failures per checkpoint — count + share of all checkpoint failures
     const failCounts = METRICS.map(m => data.filter(t => !isPass(t[m.key])).length);
+    const failSum = failCounts.reduce((s,v)=>s+v,0);
     setChart('stageFail','chartStageFail',{
         type:'bar',
         data: { labels: METRICS.map(m=>m.label), datasets:[{ data: failCounts, backgroundColor: METRICS.map(m=>m.color), borderRadius:6 }] },
         options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
-            plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.parsed.x} trips failed (${data.length?Math.round(ctx.parsed.x/data.length*100):0}%)` } } },
+            layout:{ padding:{ right: 78 } },
+            plugins:{ legend:{display:false},
+                valueLabels:{ formatter:(v)=> failSum ? `${fmt(v)} fails · ${pctTxt(pctOf(v,failSum))}` : '—' },
+                tooltip:{ callbacks:{ label:(ctx)=>` ${fmt(ctx.parsed.x)} trips failed (${data.length?pctTxt(ctx.parsed.x/data.length*100):'0%'})` } } },
             scales:{ x:{ beginAtZero:true, ticks:{precision:0} } } }
     });
 
-    // 3) Trend of ALL 6 metrics
+    // 3) Trend of ALL 6 metrics — latest value printed at the end of each line
     setChart('trend','chartTrend',{
         type:'line',
         data: { labels: agg.dates, datasets: METRICS.map(m => ({
@@ -2369,55 +2595,98 @@ function renderDashboardCharts(data){
             data: agg.dayTrips.map(day => day.length ? Math.round(day.filter(t=>isPass(t[m.key])).length/day.length*100) : 0),
             borderColor: m.color, backgroundColor: m.color, tension:.3, pointRadius:2
         }))},
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom'} },
-            scales:{ y:{ max:100, beginAtZero:true }, x:{ ticks:{autoSkip:true,maxTicksLimit:20} } } }
+        options:{ responsive:true, maintainAspectRatio:false,
+            layout:{ padding:{ right: 34 } },
+            plugins:{ legend:{position:'bottom'},
+                valueLabels:{ lastOnly:true, enabled: agg.dates.length > 0, formatter:(v)=> pctTxt(v) } },
+            scales:{ y:{ max:100, beginAtZero:true, title:{display:true,text:'Adherence %'} }, x:{ ticks:{autoSkip:true,maxTicksLimit:20} } } }
     });
 
-    // 4) Dispatch variance histogram
+    // 4) Dispatch variance histogram — count + % of trips with variance data
     const buckets = [0,0,0,0,0,0];
     data.forEach(t => { const v=t.varMinutes; if(v===null||v===undefined||isNaN(v)) return;
         if (v < -30) buckets[0]++; else if (v < -BIZ.LATE_MIN) buckets[1]++; else if (v <= BIZ.LATE_MIN) buckets[2]++;
         else if (v <= 30) buckets[3]++; else if (v <= 60) buckets[4]++; else buckets[5]++;
     });
+    const varSum = buckets.reduce((s,v)=>s+v,0);
     setChart('variance','chartVariance',{
         type:'bar',
         data: { labels:['Early >30m','Early 15–30m','On-time (±15m)','Late 15–30m','Late 30–60m','Late >60m'],
             datasets:[{ data:buckets, borderRadius:6,
                 backgroundColor:['#22c55e','#86efac','#cbd5e1','#fbbf24','#fb923c','#ef4444'] }]},
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true,ticks:{precision:0}} } }
+        options:{ responsive:true, maintainAspectRatio:false,
+            layout:{ padding:{ top: 14 } },
+            plugins:{legend:{display:false},
+                valueLabels:{ formatter:(v)=> varSum ? `${fmt(v)}\n${pctTxt(pctOf(v,varSum))}` : '—', minShare:0 } },
+            scales:{ y:{beginAtZero:true,ticks:{precision:0}} } }
     });
 
-    // 5) Open -> Seal slab doughnut
+    // 5) Open -> Seal slab doughnut — count + % on each slice
     const slabG = groupBy(data.filter(t=>t.openToSealSlab && String(t.openToSealSlab).trim()!==''), t=>String(t.openToSealSlab).trim());
     const slabLabels = Object.keys(slabG).sort();
     setChart('slab','chartSlab',{
         type:'doughnut',
         data: { labels: slabLabels, datasets:[{ data: slabLabels.map(l=>slabG[l].length),
             backgroundColor:['#10b981','#84cc16','#f59e0b','#f97316','#ef4444','#94a3b8','#0ea5e9'] }]},
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom'} } }
+        options:{ responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{position:'bottom', labels:{font:{size:10}}},
+                valueLabels:{ formatter:(v,sum)=> `${fmt(v)}\n${pctTxt(pctOf(v,sum))}`, minShare:0.07 } } }
     });
 
-    // 6) Planned vs adhoc
+    // 6) Planned vs adhoc — count + %
     const adhoc = data.filter(t=>isYes(t.isAdhoc));
     const planned = data.filter(t=>!isYes(t.isAdhoc));
     setChart('adhoc','chartAdhoc',{
         type:'doughnut',
         data: { labels:['Planned','Adhoc'], datasets:[{ data:[planned.length, adhoc.length], backgroundColor:['#6366f1','#f59e0b'] }]},
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom'} } }
+        options:{ responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{position:'bottom', labels:{font:{size:10}}},
+                valueLabels:{ formatter:(v,sum)=> `${fmt(v)}\n${pctTxt(pctOf(v,sum))}`, minShare:0 } } }
     });
     document.getElementById('adhocNote').innerHTML =
         `Adhoc share <strong>${data.length?Math.round(adhoc.length/data.length*100):0}%</strong> • adherence: adhoc <strong>${Math.round(composite(adhoc))}%</strong> vs planned <strong>${Math.round(composite(planned))}%</strong>`;
+
+    // 7) Trip status mix — tells you how much of the scope is actually completed
+    const stG = groupBy(data, t => (t.tripStatus || 'unknown'));
+    const stLabels = Object.keys(stG).sort((a,b)=> stG[b].length - stG[a].length);
+    setChart('statusMix','chartStatusMix',{
+        type:'doughnut',
+        data: { labels: stLabels.map(l=>l.replace(/_/g,' ')), datasets:[{ data: stLabels.map(l=>stG[l].length),
+            backgroundColor:['#22c55e','#f59e0b','#94a3b8','#ef4444','#3b82f6','#8b5cf6','#14b8a6'] }]},
+        options:{ responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{position:'bottom', labels:{font:{size:10}}},                valueLabels:{ formatter:(v,sum)=> `${fmt(v)}\n${pctTxt(pctOf(v,sum))}`, minShare:0.05 } } }});
+
+    // 8) Composite adherence by facility
+    const facG = groupBy(data, t => (t.facility || 'Unknown'));
+    const facStats = Object.entries(facG)
+        .map(([name, arr]) => ({ name, trips: arr.length, comp: composite(arr) }))
+        .sort((a,b) => a.comp - b.comp)
+        .slice(0, 12);
+    setChart('facilityAdh','chartFacilityAdh',{
+        type:'bar',
+        data:{ labels: facStats.map(f=>f.name), datasets:[{ data: facStats.map(f=>Math.round(f.comp*10)/10),
+            backgroundColor: facStats.map(f=>adhColor(f.comp)), borderRadius:6 }]},
+        options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+            layout:{ padding:{ right: 96 } },
+            plugins:{ legend:{display:false},
+                valueLabels:{ formatter:(v,sum,di,i)=> (facStats[i] ? `${pctTxt(v)} · ${fmt(facStats[i].trips)} trips` : pctTxt(v)) },
+                tooltip:{ callbacks:{ label:(ctx)=>` ${pctTxt(ctx.parsed.x)} composite • ${facStats[ctx.dataIndex] ? fmt(facStats[ctx.dataIndex].trips) : 0} trips` } } },
+            scales:{ x:{ min:0, max:100, ticks:{ callback:(v)=>v+'%' } } } }
+    });
 }
 
 /* ================================================================
    INDIVIDUAL METRIC VISUALIZATIONS
 ================================================================ */
 function renderMetricViz(data, key, canvasId, color){
-    const failCounts = [data.filter(t => isPass(t[key])).length, data.filter(t => !isPass(t[key])).length];
+    const passN = data.filter(t => isPass(t[key])).length;
+    const failN = data.length - passN;
+    const failCounts = [passN, failN];
+    const tot = data.length || 1;
     setChart(canvasId, canvasId, {
         type: 'doughnut',
         data: {
-            labels: ['Adhered', 'Failed'],
+            labels: ['Adhered', 'Not Adhered'],
             datasets: [{
                 data: failCounts,
                 backgroundColor: [color, '#fee2e2'],
@@ -2430,25 +2699,26 @@ function renderMetricViz(data, key, canvasId, color){
             maintainAspectRatio: false,
             plugins: {
                 legend: { position: 'bottom', labels: { font: { size: 10 } } },
+                // number + % printed straight on the slice
+                valueLabels: { formatter: (v)=> `${fmt(v)}\n${pctTxt(v/tot*100)}`, minShare: 0.1 },
                 tooltip: {
                     callbacks: {
-                        label: (ctx) => ` ${ctx.label}: ${failCounts[ctx.dataIndex]} trips (${(data.length?Math.round(failCounts[ctx.dataIndex]/data.length*100):0)}%)`
+                        label: (ctx) => ` ${ctx.label}: ${fmt(failCounts[ctx.dataIndex])} trips (${pctTxt(failCounts[ctx.dataIndex]/tot*100)})`
                     }
                 }
             }
         }
     });
 
-    // Update badge and info
-    const pass = data.filter(t => isPass(t[key])).length;
-    const pct = data.length ? Math.round(pass/data.length*100) : 0;
+    // Update badge and info — always show BOTH the count and the percentage
+    const pct = data.length ? Math.round(passN/data.length*100) : 0;
     const badge = document.getElementById(`${canvasId.replace('viz-','')}-badge`);
     if (badge) badge.innerText = pct + '%';
 
     const info = document.getElementById(`${canvasId.replace('viz-','')}-info`);
     if (info) {
         const metric = METRICS.find(m => m.key === key);
-        info.innerHTML = `<strong>${metric ? metric.label : key}:</strong> ${pass}/${data.length} passed (${pct}%)`;
+        info.innerHTML = `<strong>${metric ? metric.label : key}:</strong> ${fmt(passN)} adhered / ${fmt(failN)} not adhered of ${fmt(data.length)} trips — <strong>${pct}%</strong>`;
     }
 }
 
@@ -2473,7 +2743,9 @@ function renderMetricDetailChart(data, key){
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            layout: { padding: { top: 14 } },
+            plugins: { legend: { display: false },
+                valueLabels: { everyN: agg.dates.length > 12 ? Math.ceil(agg.dates.length/12) : 1, formatter:(v)=> Math.round(v)+'%' } },
             scales: {
                 y: { min: 0, max: 100, title: { display: true, text: 'Adherence %' } },
                 x: { ticks: { autoSkip: true, maxTicksLimit: 15 } }
@@ -2494,7 +2766,7 @@ function vendorStats(data){
             name, trips: arr.length,
             ship: arr.reduce((s,t)=>s+(t.shipments||0),0),
             r: { p:rates[0], pa:rates[1], os:rates[2], ar:rates[3] },
-            util: avg(arr.map(t=>t.utilization)),
+            util: avg(arr.map(t=>t.utilPct)),
             composite: (rates[0]+rates[1]+rates[2]+rates[3])/4,
             rcaPct: rc.need ? rc.have/rc.need*100 : null
         };
@@ -2590,7 +2862,7 @@ function renderInsights(data){
         sub: `${fmt(late.length)} trips left >${BIZ.LATE_MIN} min after plan (${Math.round(late.length/data.length*100)}%)` });
 
     // 9) Capacity waste
-    const low = data.filter(t => t.utilization !== null && t.utilization < BIZ.LOW_UTIL);
+    const low = data.filter(t => t.utilPct !== null && t.utilPct < BIZ.LOW_UTIL);
     if (low.length) cards.push({ tone:'info', title:'📦 Capacity Wasted',
         main: `${fmt(low.length)} under-loaded trips`,
         sub: `utilization below ${BIZ.LOW_UTIL}% (${Math.round(low.length/data.length*100)}% of filtered trips)` });
@@ -2611,8 +2883,11 @@ function renderGapCharts(data){
         data:{ labels: vs.map(v=>v.name), datasets:[{ data: vs.map(v=>Math.round(v.composite*10)/10),
             backgroundColor: vs.map(v=>adhColor(v.composite)), borderRadius:6 }]},
         options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
-            plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.parsed.x}% composite • ${vs[ctx.dataIndex].trips} trips` } } },
-            scales:{ x:{ min:0, max:100 } } }
+            layout:{ padding:{ right: 104 } },
+            plugins:{ legend:{display:false},
+                valueLabels:{ formatter:(v,sum,di,i)=> vs[i] ? `${pctTxt(v)} · ${fmt(vs[i].trips)} trips · ${fmt(vs[i].ship)} shp` : pctTxt(v) },
+                tooltip:{ callbacks:{ label:(ctx)=>` ${ctx.parsed.x}% composite • ${vs[ctx.dataIndex].trips} trips` } } },
+            scales:{ x:{ min:0, max:100, ticks:{ callback:(v)=>v+'%' } } } }
     });
 
     // Avg stage durations
@@ -2623,8 +2898,11 @@ function renderGapCharts(data){
         type:'bar',
         data:{ labels:['Gate-in → Open','Open → Seal','Arrival TAT'],
             datasets:[{ data:[g2o||0, o2s||0, tat||0], backgroundColor:['#06b6d4','#10b981','#f59e0b'], borderRadius:8 }]},
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false},
-            tooltip:{ callbacks:{ label:(ctx)=>` ${Math.round(ctx.parsed.y)} minutes avg` } } },
+        options:{ responsive:true, maintainAspectRatio:false,
+            layout:{ padding:{ top: 16 } },
+            plugins:{ legend:{display:false},
+                valueLabels:{ formatter:(v)=> Math.round(v)+' min' },
+                tooltip:{ callbacks:{ label:(ctx)=>` ${Math.round(ctx.parsed.y)} minutes avg` } } },
             scales:{ y:{ beginAtZero:true, title:{display:true,text:'minutes'} } } }
     });
 }
@@ -2644,6 +2922,7 @@ function renderVendorScorecard(data){
             <td data-order="${v.rcaPct===null?101:Math.round(v.rcaPct)}">${v.rcaPct===null?dash():pillHtml(v.rcaPct)}</td>
             <td data-order="${Math.round(v.composite)}">${pillHtml(v.composite)}</td>
         </tr>`).join('');
+    resetTable('#vendorTable');
     document.getElementById('vendorTableBody').innerHTML = rows;
     vendorDT = makeTable('#vendorTable', { pageLength: 8, dom: 'tp', order: [[9,'asc']] });
 }
@@ -2661,6 +2940,7 @@ function renderLanes(data){
             <td data-order="${l.o2s===null?-1:Math.round(l.o2s)}">${l.o2s===null?dash():
                 `<span class="score-pill ${l.o2s>BIZ.O2S_TARGET?'adh-mid':'adh-good'}">${Math.round(l.o2s)}m</span>`}</td>
         </tr>`).join('');
+    resetTable('#laneTable');
     document.getElementById('laneTableBody').innerHTML = rows;
     laneDT = makeTable('#laneTable', { pageLength: 8, dom: 'tp', order: [[3,'asc']] });
 }
@@ -2710,6 +2990,7 @@ function renderPending(data){
             <td><button class="btn btn-sm btn-outline-primary" onclick="openRcaModal(${t.rowIdx})"><i class="bi bi-pencil-square"></i> Add RCA</button></td>
         </tr>`;
     }).join('');
+    resetTable('#pendingTable');
     document.getElementById('pendingTableBody').innerHTML = rows;
     pendingDT = makeTable('#pendingTable', { pageLength: 8, dom: 'tp', order: [[0,'desc']] });
 }
@@ -2739,285 +3020,4 @@ function renderTripDetailsTable(data){
             <td>${idx + 1}</td>
             <td>${esc(t.date||'')}</td>
             <td><strong>${esc(t.tripId)}</strong></td>
-            <td class="text-muted small">${esc(t.tripCode||'')}</td>
-            <td>${esc(t.routeCode||'')}</td>
-            <td>${esc(t.srcHub)}</td>
-            <td>${esc(t.dstHub)}</td>
-            <td>${esc(t.vendor)}${t.plateNr?`<br/><small class="text-muted">${esc(t.plateNr)}</small>`:''}</td>
-            <td><span class="badge ${statusColor}">${esc(t.tripStatus||'')}</span></td>
-            <td>${esc(t.facility||'')}</td>
-            <td>${isPass(t.portalAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
-            <td>${isPass(t.portalPlanVsActualAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
-            <td>${isPass(t.gateInToOpenAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
-            <td>${isPass(t.openToSealAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
-            <td>${isPass(t.arrivalAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
-            <td>${isPass(t.vehicleAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
-            <td data-order="${t.shipments||0}">${fmt(t.shipments)}</td>
-            <td>${t.utilizationPercentage!==null?`${Math.round(t.utilizationPercentage*100)}%`:''}</td>
-            <td>${t.perfectFlag?`<span class="badge bg-success-subtle text-success">${esc(t.perfectFlag)}</span>`:''}</td>
-            <td>${esc(t.flagHubs||'')}</td>
-            <td>${missingRcaFor(t).length?`<span class="text-danger">${missingRcaFor(t).length}</span>`:`<span class="text-success">✓</span>`}</td>
-        </tr>`;
-    }).join('');
-    
-    tbody.innerHTML = rows || `<tr><td colspan="21" class="text-center text-muted py-3">No trips match the current filters</td></tr>`;
-    
-    if (tripDetailsDT) {
-        tripDetailsDT.destroy();
-        tripDetailsDT = null;
-    }
-    tripDetailsDT = $('#tripDetailsTable').DataTable({
-        pageLength: 15,
-        dom: 'lrtip',
-        order: [[2,'asc']],
-        columnDefs: [
-            { orderable: false, targets: [0,3,4,5,6,7,8,9,10,11,12,13,14,15,18,19,20] }
-        ]
-    });
-}
-
-function filterTripTable(){
-    tripSearchValue = document.getElementById('tripSearch').value;
-    const data = getFilteredDashboardData();
-    renderTripDetailsTable(data);
-}
-
-function exportTripTable(){
-    const data = getFilteredDashboardData();
-    if (!data.length) { showToast('Nothing to export', 'danger'); return; }
-
-    const headers = ['Date','Trip ID','Trip Code','Route','Src Hub','Dst Hub','Vendor','Plate','Status','Facility',
-        'Portal Adh','Act/Plan Adh','Gate-Open Adh','Open-Seal Adh','Arrival Adh','Vendor Adh',
-        'Shipments','Util %','Perfect Flag','Flag Hubs','Dispatch Variance (min)'];
-    const lines = [headers.map(csvCell).join(',')];
-    data.forEach(t => lines.push([
-        t.date, t.tripId, t.tripCode, t.routeCode, t.srcHub, t.dstHub, t.vendor, t.plateNr, t.tripStatus, t.facility,
-        t.portalAdh, t.portalPlanVsActualAdh, t.gateInToOpenAdh, t.openToSealAdh, t.arrivalAdh, t.vehicleAdh,
-        t.shipments, t.utilizationPercentage, t.perfectFlag, t.flagHubs, t.varMinutes
-    ].map(csvCell).join(',')));
-
-    const blob = new Blob(["\ufeff" + lines.join('\n')], { type:'text/csv;charset=utf-8;' });
-    const a = document.createElement('a');
-    const stamp = new Date().toISOString().slice(0,16).replace(/[-:T]/g,'');
-    a.href = URL.createObjectURL(blob);
-    a.download = `trip_details_${stamp}.csv`;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(a.href);
-    showToast(`Exported ${data.length} trips to CSV`);
-}
-
-/* ================================================================
-   PAGE 5 — TRIP LOG
-================================================================ */
-function gotoLog(mode, metric){
-    logFilter = { mode: mode || 'all', metric: metric || null };
-    syncChipsUI();
-    const tabBtn = document.querySelector('[data-bs-target="#page-rca"]');
-    bootstrap.Tab.getOrCreateInstance(tabBtn).show();
-    renderTableLog(getLogData());
-}
-
-function syncChipsUI(){
-    document.querySelectorAll('#logChips button').forEach(b => {
-        b.classList.toggle('active', b.dataset.mode === logFilter.mode);
-    });
-    const chip = document.getElementById('metricFocusChip');
-    if (logFilter.metric) {
-        const m = METRICS.find(x=>x.key===logFilter.metric);
-        chip.style.display = 'inline-block';
-        chip.innerHTML = `Failures: ${esc(m ? m.label : logFilter.metric)}
-            <i class="bi bi-x-circle ms-1 clickable" onclick="gotoLog('failed', null)"></i>`;
-    } else {
-        chip.style.display = 'none';
-        chip.innerHTML = '';
-    }
-}
-
-document.querySelectorAll('#logChips button').forEach(b => {
-    b.addEventListener('click', () => { logFilter = { mode: b.dataset.mode, metric: null }; syncChipsUI(); renderTableLog(getLogData()); });
-});
-
-function getLogData(){
-    let d = [...filteredTrips];
-    if (logFilter.mode === 'failed') {
-        d = d.filter(t => logFilter.metric ? !isPass(t[logFilter.metric]) : anyFail(t));
-    } else if (logFilter.mode === 'rcaPending') {
-        d = d.filter(rcaPendingTrip);
-    }
-    return d;
-}
-
-function utilChip(u){
-    if (u===null || u===undefined || isNaN(u)) return dash();
-    return `<span class="score-pill ${u>=90?'adh-good':u>=BIZ.LOW_UTIL?'adh-mid':'adh-bad'}">${Math.round(u)}%</span>`;
-}
-function delayChip(v){
-    if (v===null || v===undefined || isNaN(v)) return dash();
-    const cls = v>BIZ.LATE_MIN ? (v>30?'adh-bad':'adh-mid') : 'adh-good';
-    return `<span class="score-pill ${cls}">${v>0?'+':''}${Math.round(v)}m</span>`;
-}
-
-function renderTableLog(data){
-    if ($.fn.DataTable.isDataTable('#tripTable')) { $('#tripTable').DataTable().destroy(); }
-
-    document.getElementById('tripTableBody').innerHTML = data.map(t => {
-        const badges = METRICS.map(m => {
-            const ok = isPass(t[m.key]);
-            const raw = String(t[m.key] || '').trim();
-            return `<span class="${ok?'badge-pass':'badge-fail'}" title="${esc(m.label)}: ${esc(raw || 'blank')}">${m.short}</span>`;
-        }).join('');
-        return `<tr>
-            <td>${esc(t.date||'')}</td>
-            <td>${t.slot?`<span class="badge text-bg-light border">${esc(t.slot)}</span>`:''}</td>
-            <td><strong>${esc(t.tripId)}</strong>${t.tripCode?`
-<small class="text-muted">${esc(t.tripCode)}</small>`:''}</td>
-            <td>${esc(t.srcHub)} → ${esc(t.dstHub)}</td>
-            <td>${esc(t.vendor)}
-<small class="text-muted">${esc(t.plateNr)}${t.vehicleType?` • ${esc(t.vehicleType)}`:''}</small></td>
-            <td data-order="${t.shipments||0}">${fmt(t.shipments)}</td>
-            <td data-order="${t.utilization===null?-1:t.utilization}">${utilChip(t.utilization)}</td>
-            <td data-order="${t.varMinutes===null?-9999:t.varMinutes}">${delayChip(t.varMinutes)}</td>
-            <td><div class="d-flex gap-1 flex-wrap">${badges}</div></td>
-            <td><button class="btn btn-sm btn-outline-primary" onclick="openRcaModal(${t.rowIdx})"><i class="bi bi-pencil-square"></i> Inspect / RCA</button></td>
-        </tr>`;
-    }).join('');
-
-    dataTable = $('#tripTable').DataTable({ pageLength: 15, dom: 'lrtip', order: [[0,'desc']] });
-
-    const s = document.getElementById('log-search').value;
-    if (s) dataTable.search(s).draw();
-}
-
-document.getElementById('log-search').addEventListener('keyup', function() {
-    if (dataTable) dataTable.search(this.value).draw();
-});
-
-/* ================================================================
-   RCA MODAL (Updated to save locally only since this is CSV driven)
-================================================================ */
-function openRcaModal(rowIdx) {
-    const t = rawTrips.find(x => x.rowIdx === rowIdx);
-    if(!t) return;
-
-    const btn = document.getElementById('btnSaveRca');
-    btn.disabled = false;
-    btn.innerHTML = `<i class="bi bi-save me-1"></i> Save RCA Changes`;
-
-    document.getElementById('modalRowIdx').value = t.rowIdx;
-    document.getElementById('rcaModalTitle').innerText = `RCA Inspection: ${t.tripId}  (${t.srcHub} → ${t.dstHub})`;
-
-    // Trip context tiles
-    const tile = (l,v) => `<div class="col-6 col-md-3"><div class="mini-tile"><div class="l">${l}</div><div class="v">${v||'—'}</div></div></div>`;
-    document.getElementById('modalTripInfo').innerHTML =
-        tile('Date', esc(t.date)) + tile('Slot', esc(t.slot)) +
-        tile('Vendor', esc(t.vendor)) + tile('Truck', esc(t.plateNr)) +
-        tile('Vehicle Type', esc(t.vehicleType)) + tile('Shipments', fmt(t.shipments)) +
-        tile('Utilization', t.utilization===null?'—':Math.round(t.utilization)+'%') +
-        tile('Dispatch Variance', t.varMinutes===null?'—':(t.varMinutes>0?'+':'')+Math.round(t.varMinutes)+' min') +
-        tile('Open → Seal', t.openToSealMin===null?'—':Math.round(t.openToSealMin)+' min') +
-        tile('Arrival TAT', t.arrivedTatMin===null?'—':Math.round(t.arrivedTatMin)+' min') +
-        tile('Driver', esc(t.driver)) + tile('Adhoc', isYes(t.isAdhoc)?'Yes':'No');
-
-    const body = document.getElementById('rcaModalBody');
-    body.innerHTML =
-        createRcaSection("1. Portal Plan Vs Actual Adherence", t.portalPlanVsActualAdh, "portalRca", "portalRemark", t.portalRca, t.portalRemark) +
-        createRcaSection("2. Open to Seal (Hub Operations)", t.openToSealAdh, "openSealRca", "openSealRemark", t.openSealRca, t.openSealRemark) +
-        createRcaSection("3. Line Haul Arrival Adherence", t.arrivalAdh, "arrivalRca", "arrivalRemark", t.arrivalRca, t.arrivalRemark) +
-        createRcaSection("4. Vehicle Compliance & Type", t.vehicleAdh, "vehicleRca", "vehicleRemark", t.vehicleRca, t.vehicleRemark) +
-        `<div class="rca-box-${isPass(t.gateInToOpenAdh)?'pass':'fail'}">
-            <div class="d-flex justify-content-between align-items-center">
-                <strong>5. Gate-in to Open (informational)</strong>
-                <span class="badge ${isPass(t.gateInToOpenAdh)?'bg-success':'bg-secondary'}">${esc(String(t.gateInToOpenAdh||'').trim()||'No data')} — no RCA column in sheet</span>
-            </div>
-        </div>`;
-
-    rcaModalObj.show();
-}
-
-function createRcaSection(title, statusVal, rcaId, remarkId, existingRca, existingRemark) {
-    if (isPass(statusVal)) {
-        return `<div class="rca-box-pass">
-            <div class="d-flex justify-content-between align-items-center">
-                <strong>${title}</strong>
-                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Adhered — No RCA Required</span>
-            </div>
-        </div>`;
-    }
-    return `<div class="rca-box-fail">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <strong class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i> ${title}</strong>
-            <span class="badge bg-danger">Not Adhered${String(statusVal||'').trim()==='' ? ' / blank' : ''}</span>
-        </div>
-        <div class="row g-2">
-            <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted">RCA Reason</label>
-                <input type="text" class="form-control form-control-sm" id="m-${rcaId}" list="dl-${rcaId}" value="${esc(existingRca)}" placeholder="Pick a standard reason or type your own...">
-            </div>
-            <div class="col-md-6">
-                <label class="form-label small fw-bold text-muted">RCA Details / Remarks</label>
-                <input type="text" class="form-control form-control-sm" id="m-${remarkId}" value="${esc(existingRemark)}" placeholder="Enter context, action taken...">
-            </div>
-        </div>
-    </div>`;
-}
-
-function saveRcas() {
-    const rowIdx = parseInt(document.getElementById('modalRowIdx').value);
-    const btn = document.getElementById('btnSaveRca');
-    const getVal = (id) => { const el = document.getElementById('m-'+id); return el ? el.value : undefined; };
-
-    const payload = {
-        rowIdx: rowIdx,
-        portalRca: getVal("portalRca"),       portalRemark: getVal("portalRemark"),
-        openSealRca: getVal("openSealRca"),   openSealRemark: getVal("openSealRemark"),
-        arrivalRca: getVal("arrivalRca"),     arrivalRemark: getVal("arrivalRemark"),
-        vehicleRca: getVal("vehicleRca"),     vehicleRemark: getVal("vehicleRemark")
-    };
-
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Saving Locally...`;
-
-    // Because we are using CSV, we save to the browser's memory for the session
-    setTimeout(() => {
-        const t = rawTrips.find(x => x.rowIdx === rowIdx);
-        if(t){
-            ['portalRca','portalRemark','openSealRca','openSealRemark','arrivalRca','arrivalRemark','vehicleRca','vehicleRemark']
-              .forEach(k => { if(payload[k] !== undefined) t[k] = payload[k]; });
-        }
-        rcaModalObj.hide();
-        applyGlobalFilters();
-        btn.disabled = false; btn.innerHTML = `<i class="bi bi-save me-1"></i> Save RCA Changes`;
-        showToast('RCA saved to temporary memory (CSV format cannot write back to Google)');
-    }, 500);
-}
-
-/* ================================================================
-   CSV EXPORT
-================================================================ */
-function csvCell(v){ if(v===null||v===undefined) v=''; return '"' + String(v).replace(/"/g,'""').replace(/[\r\n]+/g,' ') + '"'; }
-
-function exportCsv(){
-    const data = getLogData();
-    if (!data.length) { showToast('Nothing to export for current filters', 'danger'); return; }
-
-    const headers = ['Date','Slot','Trip ID','Trip Code','Source Hub','Destination Hub','Vendor','Vendor Type','Vehicle Type','Plate','Driver','Is Adhoc','Shipments','Utilization %','Variance (min)','GateIn-Open (min)','Open-Seal (min)','Arrival TAT (min)','Portal Adherence','Portal Actual vs Plan','Gate-in to Open','Open to Seal','Arrival','Vehicle','Portal RCA','Open-Seal RCA','Arrival RCA','Vehicle RCA'];
-    const lines = [headers.map(csvCell).join(',')];
-    data.forEach(t => lines.push([
-        t.date, t.slot, t.tripId, t.tripCode, t.srcHub, t.dstHub, t.vendor, t.vendorType, t.vehicleType, t.plateNr, t.driver,
-        isYes(t.isAdhoc)?'Yes':'No', t.shipments, t.utilization, t.varMinutes, t.gateInToOpenMin, t.openToSealMin, t.arrivedTatMin,
-        t.portalAdh, t.portalPlanVsActualAdh, t.gateInToOpenAdh, t.openToSealAdh, t.arrivalAdh, t.vehicleAdh,
-        t.portalRca, t.openSealRca, t.arrivalRca, t.vehicleRca
-    ].map(csvCell).join(',')));
-
-    const blob = new Blob(["\ufeff" + lines.join('\n')], { type:'text/csv;charset=utf-8;' });
-    const a = document.createElement('a');
-    const stamp = new Date().toISOString().slice(0,16).replace(/[-:T]/g,'');
-    a.href = URL.createObjectURL(blob);
-    a.download = `line_haul_export_${stamp}.csv`;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(a.href);
-    showToast(`Exported ${fmt(data.length)} trips to CSV`);
-}
-</script>
-</body>
-</html>
+       
