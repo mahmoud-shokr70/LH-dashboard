@@ -3799,6 +3799,7 @@ function renderVendorTripCounts(data){
     const stats = vendorTripStats(data);
     const body = document.getElementById('vendorTripTableBody');
     if (!body) return;
+    resetTable('#vendorTripTable');
     body.innerHTML = stats.map(v => `
         <tr>
             <td class="fw-semibold">${esc(v.name)}</td>
@@ -3806,7 +3807,6 @@ function renderVendorTripCounts(data){
             <td data-order="${v.rows}">${fmt(v.rows)}${v.rows !== v.distinct ? ' <span class="text-warning small">(+'+fmt(v.rows-v.distinct)+' dup)</span>' : ''}</td>
             <td data-order="${v.share}">${v.share.toFixed(1)}%</td>
         </tr>`).join('');
-    resetTable('#vendorTripTable');
     makeTable('#vendorTripTable', { pageLength: 10, dom: 'tp', order: [[1,'desc']] });
 }
 
