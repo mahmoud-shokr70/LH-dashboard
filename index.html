@@ -259,6 +259,15 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-gap"><i class="bi bi-search-heart me-1"></i> Gap Analysis</button></li>
         </ul>
         <button class="btn btn-sm btn-outline-light" id="btnRefresh" title="Reload data from sheet" onclick="refreshData()"><i class="bi bi-arrow-repeat"></i></button>
+        <div class="dropdown d-inline-block">
+            <button class="btn btn-sm btn-outline-light dropdown-toggle" id="autoRefreshBtn" data-bs-toggle="dropdown" title="Auto-reload from the sheet so edits appear here automatically"><i class="bi bi-clock-history me-1"></i><span id="autoRefreshLabel">Auto</span></button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setAutoRefresh(0)">Off</a></li>
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setAutoRefresh(1)">Every 1 minute</a></li>
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setAutoRefresh(5)">Every 5 minutes</a></li>
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setAutoRefresh(15)">Every 15 minutes</a></li>
+            </ul>
+        </div>
     </div>
 </div>
 
@@ -495,7 +504,8 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </div>
                 <div class="col-lg-4">
                     <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-diagram-3 text-danger me-2"></i>Where Trips Fail — Failures per Checkpoint</h6>
+                        <h6 class="fw-bold mb-3"><i class="bi bi-diagram-3 text-danger me-2"></i>Where Trips Fail — Failures per Checkpoint
+                            <span class="text-muted fw-normal" style="font-size:.7rem">(Late = after plan · Early = before plan)</span></h6>
                         <div class="chart-box"><canvas id="chartStageFail"></canvas></div>
                     </div>
                 </div>
@@ -919,6 +929,18 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </table>
             </div>
 
+            <!-- VENDORS — DISTINCT TRIPS -->
+            <div class="table-container mb-4">
+                <h5 class="fw-bold mb-1"><i class="bi bi-truck me-2"></i>Vendors — Distinct Trips</h5>
+                <p class="text-muted small mb-3">Number of <strong>unique trips</strong> run by each vendor. “Rows” counts sheet rows; when it is higher than Distinct Trips the sheet has duplicate rows for the same trip.</p>
+                <table id="vendorTripTable" class="table table-hover align-middle w-100 fs-7 table-sm">
+                    <thead class="table-light"><tr>
+                        <th>Vendor</th><th>Distinct Trips</th><th>Rows</th><th>Share of Trips</th>
+                    </tr></thead>
+                    <tbody id="vendorTripTableBody"></tbody>
+                </table>
+            </div>
+
             <div class="row g-3 mb-4">
                 <!-- LANE PERFORMANCE -->
                 <div class="col-lg-7">
@@ -1076,7 +1098,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'v5 — 2026-10-17';
+const BUILD = 'v8 — 2026-10-17';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -1124,10 +1146,13 @@ async function fetchCsvText(url, onProgress){
         const transport = transports[i];
         if (i > 0) await sleep(1200 * i);
         const started = Date.now();
+        // A throwaway param on every attempt defeats the browser/GSE cache, so a
+        // refresh actually pulls the latest edited values instead of a stale copy.
+        const bustUrl = cacheBusted(url, i);
         try {
             let text;
             if (transport === 'xhr') {
-                text = await xhrCsvText(url, FETCH_TIMEOUT_MS);
+                text = await xhrCsvText(bustUrl, FETCH_TIMEOUT_MS);
             } else {
                 let ctrl = null, timer = null;
                 if (typeof AbortController !== 'undefined') {
@@ -1135,7 +1160,7 @@ async function fetchCsvText(url, onProgress){
                     timer = setTimeout(function(){ try { ctrl.abort(); } catch(e){} }, FETCH_TIMEOUT_MS);
                 }
                 try {
-                    const resp = await fetch(url, {
+                    const resp = await fetch(bustUrl, {
                         method:'GET',
                         headers:{ 'Accept':'text/csv,application/csv,text/plain;q=0.9' },
                         mode:'cors',
@@ -1165,6 +1190,14 @@ async function fetchCsvText(url, onProgress){
     throw new Error('Downloaded nothing after ' + transports.length + ' attempts. Last error: ' + lastErr);
 }
 function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+/* Adds a unique throwaway query param so the browser and Google's CDN are forced
+   to hand back the current sheet instead of a cached copy. */
+function cacheBusted(url, salt){
+    const sep = url.indexOf('?') === -1 ? '?' : '&';
+    return url + sep + '_cb=' + Date.now() + '_' + (salt === undefined ? 0 : salt) +
+           '_' + Math.random().toString(36).slice(2, 7);
+}
 
 /* ================================================================
    LOADER POLISH — clearer in-page states, empty-data retry, logs
@@ -1253,7 +1286,9 @@ let rcaModalObj;
 let charts = {};
 let logFilter = { mode: 'all', metric: null };   // all | failed | rcaPending
 let gapState = 'pending';                        // pending | live
-let liveTimer = null;                            // auto-refresh handle
+let liveTimer = null;                            // live-page auto-refresh handle
+let autoTimer = null;                            // global auto-refresh handle
+let autoMins  = 0;                               // 0 = off
 
 /* ================================================================
    HELPERS
@@ -1618,7 +1653,15 @@ const valueLabels = {
                     if (typeof el.getCenterPoint !== 'function') return;
                     const p = el.getCenterPoint(); x = p.x; y = p.y;
                 } else if (type === 'bar') {
-                    if (chart.options.indexAxis === 'y') {
+                    const segLen = Math.abs((el.x || 0) - (el.base || 0));
+                    if (opts.centerOnBar && chart.options.indexAxis === 'y') {
+                        // Stacked horizontal bars: print the count inside the segment
+                        if (segLen < (opts.minPx || 20)) return;
+                        x = ((el.x || 0) + (el.base || 0)) / 2; y = el.y; align = 'center';
+                    } else if (opts.centerOnBar) {
+                        if (segLen < (opts.minPx || 20)) return;
+                        x = el.x; y = ((el.y || 0) + (el.base || 0)) / 2; align = 'center';
+                    } else if (chart.options.indexAxis === 'y') {
                         // Diverging bars: put the label outside the bar end, not on the axis
                         const negative = el.x < el.base;
                         if (negative) { x = el.x - 5; align = 'right'; }
@@ -2605,10 +2648,10 @@ function loadDataFromCSV() {
         });
 }
 
-function refreshData(){
+function refreshData(silent){
     const btn = document.getElementById('btnRefresh');
     if(btn){ btn.disabled = true; }
-    showToast('Refreshing data from sheet…');
+    if(!silent) showToast('Refreshing data from sheet…');
 
     // A manual refresh must only show the big loader when the app is not up yet;
     // otherwise it would wipe the dashboard the operator is reading.
@@ -2746,10 +2789,34 @@ function liveAdhChip(raw){
 function toggleAutoRefresh(){
     if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
     if (document.getElementById('live-auto').checked) {
-        liveTimer = setInterval(() => loadDataFromCSV(), 60000);
-        showToast('Live auto-refresh enabled (every 60s)');
+        liveTimer = setInterval(autoRefreshBoth, 60000);
+        autoRefreshBoth();
+        showToast('Auto-refresh enabled (every 60s)');
     } else {
-        showToast('Live auto-refresh disabled');
+        showToast('Auto-refresh disabled');
+    }
+}
+
+/* Reload BOTH sheets (dashboard + live occurrence) quietly — used by the
+   auto-refresh timers so sheet edits show up without pressing Refresh. */
+function autoRefreshBoth(){
+    try{ loadDataFromCSV && loadDataFromCSV(); }catch(e){ console.error('[autoRefresh] main threw:', e); }
+    try{ loadLiveCsv && loadLiveCsv(); }catch(e){ console.error('[autoRefresh] live threw:', e); }
+}
+
+/* Global header auto-refresh. mins = 0 turns it off. */
+function setAutoRefresh(mins){
+    autoMins = mins || 0;
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+    const lbl = document.getElementById('autoRefreshLabel');
+    if (autoMins > 0){
+        autoTimer = setInterval(function(){ autoRefreshBoth(); }, autoMins * 60000);
+        if (lbl) lbl.innerText = 'Auto ' + autoMins + 'm';
+        showToast('Auto-refresh every ' + autoMins + ' min');
+        autoRefreshBoth();
+    } else {
+        if (lbl) lbl.innerText = 'Auto';
+        showToast('Auto-refresh off');
     }
 }
 
@@ -3045,10 +3112,9 @@ function renderLiveReport(scopeRows){
     }).join('') : `<tr><td colspan="12" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>No occurrences match this report mode</td></tr>`;
 }
 
-/* ===== Text summary — VARIANCE per metric, in minutes (no adherence counts) =====
-   Every number below is "actual − plan": − = early, + = late. */
+/* ===== Text summary — short, plain headline of the live board =====
+   Variance is "actual − plan": − = early, + = late. */
 function buildTextSummary(rows){
-    const L = [];
     const rangeLabel = liveScopeLabel();
     const srcSel  = selValues('#live-src');
     const dstSel  = selValues('#live-dst');
@@ -3063,13 +3129,7 @@ function buildTextSummary(rows){
     const outStat = varStats(rows, 'outVarMin');
     const arrStat = varStats(rows, 'arrVarMin');
 
-    L.push('LINE HAUL LIVE — VARIANCE REPORT');
-    L.push('=================================');
-    L.push('Scope : ' + scope);
-    L.push(`Rows  : ${fmt(rows.length)} occurrences`);
-    L.push('');
-
-    // ---- TL;DR — the headline numbers, before the detail ----
+    // Headline adherence (rows with a real plan only)
     const hasPlan = (raw) => { const s = String(raw || '').trim().toLowerCase(); return s !== '' && s !== 'extra'; };
     const outPlanned = rows.filter(t => hasPlan(t.outAdhRaw));
     const arrPlanned = rows.filter(t => hasPlan(t.arrAdhRaw));
@@ -3080,32 +3140,8 @@ function buildTextSummary(rows){
     const extraN = rows.filter(t => !hasPlan(t.outAdhRaw) || !hasPlan(t.arrAdhRaw)).length;
     const notAdhN = rows.filter(t => liveAdhState(t.outAdhRaw).label.startsWith('not adhered') ||
                                      liveAdhState(t.arrAdhRaw).label.startsWith('not adhered')).length;
-    const combPct = Math.round((outPct + arrPct) / 2);
-    const verdict = combPct >= 90 ? 'ON TARGET — hold the line'
-                  : combPct >= 75 ? 'WATCH — a few lanes are slipping'
-                  : 'ACTION NEEDED — dispatch and/or arrival are off plan';
 
-    L.push('SUMMARY');
-    L.push('-'.repeat(64));
-    L.push(`Verdict            : ${verdict}`);
-    L.push(`Occurrences        : ${fmt(rows.length)}   (${fmt(extraN)} with no plan)`);
-    L.push(`Dispatch adherence : ${outPct}%   (${fmt(outOk)} of ${fmt(outPlanned.length)} planned)`);
-    L.push(`Arrival adherence  : ${arrPct}%   (${fmt(arrOk)} of ${fmt(arrPlanned.length)} planned)`);
-    L.push(`Not adhered        : ${fmt(notAdhN)} occurrences missed a clock`);
-    L.push(`Average variance   : dispatch ${outStat ? fmtVar(outStat.avg) : '—'} · arrival ${arrStat ? fmtVar(arrStat.avg) : '—'}   (− early / + late)`);
-    L.push('');
-
-    L.push('VARIANCE BY METRIC  (minutes · − early / + late)');
-    L.push('-'.repeat(64));
-    L.push(outStat
-        ? `Dispatch (out) : average ${fmtVar(outStat.avg)} | median ${fmtVar(outStat.median)} | worst late ${fmtVar(outStat.worstLate)} | worst early ${fmtVar(outStat.worstEarly)}`
-        : 'Dispatch (out) : no planned clock in this scope');
-    L.push(arrStat
-        ? `Arrival        : average ${fmtVar(arrStat.avg)} | median ${fmtVar(arrStat.median)} | worst late ${fmtVar(arrStat.worstLate)} | worst early ${fmtVar(arrStat.worstEarly)}`
-        : 'Arrival        : no planned clock in this scope');
-    L.push('');
-
-    // Average variance per source → destination lane
+    // Worst lane by combined dispatch + arrival drift
     const laneMap = {};
     rows.forEach(t => {
         const key = `${t.srcHub} → ${t.dstHub}`;
@@ -3114,60 +3150,24 @@ function buildTextSummary(rows){
         if (t.arrVarMin !== null && t.arrVarMin !== undefined) g.arr.push(t.arrVarMin);
     });
     const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
-    const lanes = Object.keys(laneMap).map(k => ({
-        lane: k,
-        o: mean(laneMap[k].out),
-        a: mean(laneMap[k].arr)
-    })).filter(x => x.o !== null || x.a !== null)
-      .sort((x, y) => (Math.abs(y.a || 0) + Math.abs(y.o || 0)) - (Math.abs(x.a || 0) + Math.abs(x.o || 0)));
+    const worstLane = Object.keys(laneMap)
+        .map(k => ({ lane: k, o: mean(laneMap[k].out), a: mean(laneMap[k].arr) }))
+        .filter(x => x.o !== null || x.a !== null)
+        .sort((x, y) => (Math.abs(y.a || 0) + Math.abs(y.o || 0)) - (Math.abs(x.a || 0) + Math.abs(x.o || 0)))[0];
 
-    L.push('AVERAGE VARIANCE BY LANE  (worst first)');
-    L.push('-'.repeat(64));
-    if (lanes.length) {
-        lanes.slice(0, 12).forEach(x => {
-            L.push(`${x.lane.padEnd(22)} dispatch ${fmtVar(x.o).padStart(8)} | arrival ${fmtVar(x.a).padStart(8)}`);
-        });
-        if (lanes.length > 12) L.push(`… ${lanes.length - 12} more lanes on the board`);
-    } else {
-        L.push('  no planned clocks in this scope');
-    }
+    const L = [];
+    L.push('LINE HAUL LIVE — SUMMARY');
+    L.push('─'.repeat(46));
+    L.push(`Scope      : ${scope}`);
+    L.push(`Occurrences: ${fmt(rows.length)}   (no plan: ${fmt(extraN)})`);
     L.push('');
-
-    // Single biggest late and biggest early, per checkpoint
-    const ext = (key) => {
-        let hi = null, lo = null;
-        rows.forEach(t => {
-            const v = t[key];
-            if (v === null || v === undefined || isNaN(v)) return;
-            if (!hi || v > hi.v) hi = { v, t };
-            if (!lo || v < lo.v) lo = { v, t };
-        });
-        return { hi, lo };
-    };
-    const devLine = (label, key, actualField, planField) => {
-        const e = ext(key);
-        if (!e.hi || e.hi.v <= 0) { L.push(`${label} late  : none`); }
-        else L.push(`${label} late  : ${fmtVar(e.hi.v)} — ${e.hi.t.srcHub} → ${e.hi.t.dstHub} · ${e.hi.t.dod} · ${String(e.hi.t[actualField] || '').trim()} vs plan ${String(e.hi.t[planField] || '').trim()}`);
-        if (!e.lo || e.lo.v >= 0) { L.push(`${label} early : none`); }
-        else L.push(`${label} early : ${fmtVar(e.lo.v)} — ${e.lo.t.srcHub} → ${e.lo.t.dstHub} · ${e.lo.t.dod} · ${String(e.lo.t[actualField] || '').trim()} vs plan ${String(e.lo.t[planField] || '').trim()}`);
-    };
-
-    L.push('BIGGEST SINGLE DEVIATIONS');
-    L.push('-'.repeat(64));
-    devLine('Dispatch', 'outVarMin', 'outRaw', 'planOutRaw');
-    devLine('Arrival ', 'arrVarMin', 'arrRaw', 'planArrRaw');
+    L.push(`Dispatch   : ${outPct}% adhered${outStat ? '   ·   avg ' + fmtVar(outStat.avg) : ''}`);
+    L.push(`Arrival    : ${arrPct}% adhered${arrStat ? '   ·   avg ' + fmtVar(arrStat.avg) : ''}`);
     L.push('');
-
-    // Short narrative
-    L.push('READ OUT');
-    L.push('-'.repeat(64));
-    if (outStat) L.push(`Dispatch runs ${fmtVar(outStat.avg)} against plan on average (median ${fmtVar(outStat.median)}).`);
-    if (arrStat) L.push(`Arrival runs ${fmtVar(arrStat.avg)} against plan on average (median ${fmtVar(arrStat.median)}).`);
-    if (lanes.length) {
-        const w = lanes[0];
-        L.push(`Worst lane: ${w.lane} — dispatch ${fmtVar(w.o)}, arrival ${fmtVar(w.a)}.`);
-    }
-    L.push('− early / + late. Variance = actual clock − plan clock, wrapped to a 24h day.');
+    L.push(`Not adhered: ${fmt(notAdhN)} of ${fmt(rows.length)}`);
+    if (worstLane) L.push(`Worst lane : ${worstLane.lane}   (dispatch ${fmtVar(worstLane.o)} / arrival ${fmtVar(worstLane.a)})`);
+    L.push('');
+    L.push('− early / + late');
     return L.join('\n');
 }
 
@@ -3574,18 +3574,41 @@ function renderDashboardCharts(data){
                      x:{ticks:{autoSkip:true,maxTicksLimit:20}} } }
     });
 
-    // 2) Failures per checkpoint — count + share of all checkpoint failures
-    const failCounts = METRICS.map(m => data.filter(t => !isPass(t[m.key])).length);
-    const failSum = failCounts.reduce((s,v)=>s+v,0);
+    // 2) Failures per checkpoint — split into Late / Early so the direction is
+    //    obvious at a glance. Late = actual after plan, Early = before plan;
+    //    "No time" = the checkpoint carries no clock (e.g. vehicle compliance)
+    //    or the sheet's verdict does not line up with a measurable variance.
+    const failLate = [], failEarly = [], failOther = [], failTotals = [];
+    METRICS.forEach(m => {
+        let late = 0, early = 0, other = 0;
+        data.forEach(t => {
+            if (isPass(t[m.key])) return;
+            const v = metricVariance(t, m.key);
+            if (!v || v.dir === 'na' || v.dir === 'ok') other++;
+            else if (v.dir === 'early') early++;
+            else late++;
+        });
+        failLate.push(late); failEarly.push(early); failOther.push(other);
+        failTotals.push(late + early + other);
+    });
     setChart('stageFail','chartStageFail',{
         type:'bar',
-        data: { labels: METRICS.map(m=>m.label), datasets:[{ data: failCounts, backgroundColor: METRICS.map(m=>m.color), borderRadius:6 }] },
+        data: { labels: METRICS.map(m=>m.label), datasets:[
+            { label:'Late (after plan)',  data: failLate,  backgroundColor:'#ef4444', borderRadius:3, stack:'fails' },
+            { label:'Early (before plan)',data: failEarly, backgroundColor:'#f59e0b', borderRadius:3, stack:'fails' },
+            { label:'No time / other',    data: failOther, backgroundColor:'#94a3b8', borderRadius:3, stack:'fails' }
+        ]},
         options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
-            layout:{ padding:{ right: 78 } },
-            plugins:{ legend:{display:false},
-                valueLabels:{ formatter:(v)=> failSum ? `${fmt(v)} fails · ${pctTxt(pctOf(v,failSum))}` : '—' },
-                tooltip:{ callbacks:{ label:(ctx)=>` ${fmt(ctx.parsed.x)} trips failed (${data.length?pctTxt(ctx.parsed.x/data.length*100):'0%'})` } } },
-            scales:{ x:{ beginAtZero:true, ticks:{precision:0} } } }
+            layout:{ padding:{ right: 20 } },
+            plugins:{ legend:{ display:true, position:'bottom', labels:{ boxWidth:12, font:{size:10} } },
+                valueLabels:{ centerOnBar:true, minPx:16, formatter:(v)=> v ? fmt(v) : '' },
+                tooltip:{ callbacks:{
+                    label:(ctx)=> ` ${ctx.dataset.label}: ${fmt(ctx.parsed.x)} trips`,
+                    footer:(items)=> items.length
+                        ? `Total ${fmt(failTotals[items[0].dataIndex])} fails (${data.length?pctTxt(failTotals[items[0].dataIndex]/data.length*100):'0%'} of trips)`
+                        : ''
+                } } },
+            scales:{ x:{ beginAtZero:true, stacked:true, ticks:{precision:0} }, y:{ stacked:true } } }
     });
 
     // 3) Trend of ALL 6 metrics — latest value printed at the end of each line
@@ -3774,6 +3797,45 @@ function vendorStats(data){
     }).sort((a,b)=>b.trips-a.trips);
 }
 
+/* Unique-trip key for a row: prefer the trip id, fall back to the trip code,
+   and as a last resort treat the row itself as its own trip. */
+function tripKey(t){
+    const id = t.tripId && String(t.tripId).trim();
+    if (id) return id;
+    const code = t.tripCode && String(t.tripCode).trim();
+    if (code) return code;
+    return 'row:' + (t.rowIdx !== undefined ? t.rowIdx : (t.date + '|' + t.srcHub + '|' + t.dstHub + '|' + t.vendor));
+}
+
+/* Vendor → distinct trip count (and raw row count for comparison). */
+function vendorTripStats(data){
+    const g = groupBy(data, t => t.vendor || '—');
+    const totals = Object.entries(g).map(([name, arr]) => ({
+        name,
+        distinct: new Set(arr.map(tripKey)).size,
+        rows: arr.length
+    }));
+    const grand = totals.reduce((s,v)=>s+v.distinct, 0) || 1;
+    return totals
+        .map(v => ({ ...v, share: v.distinct / grand * 100 }))
+        .sort((a,b) => b.distinct - a.distinct);
+}
+
+function renderVendorTripCounts(data){
+    const stats = vendorTripStats(data);
+    const body = document.getElementById('vendorTripTableBody');
+    if (!body) return;
+    body.innerHTML = stats.map(v => `
+        <tr>
+            <td class="fw-semibold">${esc(v.name)}</td>
+            <td data-order="${v.distinct}">${fmt(v.distinct)}</td>
+            <td data-order="${v.rows}">${fmt(v.rows)}${v.rows !== v.distinct ? ' <span class="text-warning small">(+'+fmt(v.rows-v.distinct)+' dup)</span>' : ''}</td>
+            <td data-order="${v.share}">${v.share.toFixed(1)}%</td>
+        </tr>`).join('');
+    resetTable('#vendorTripTable');
+    makeTable('#vendorTripTable', { pageLength: 10, dom: 'tp', order: [[1,'desc']] });
+}
+
 function laneStats(data){
     const g = groupBy(data, t => `${t.srcHub || '?'} → ${t.dstHub || '?'}`);
     return Object.entries(g).map(([name, arr]) => ({
@@ -3789,6 +3851,7 @@ function renderGap(data){
     renderInsights(data);
     renderGapCharts(data);
     renderVendorScorecard(data);
+    renderVendorTripCounts(data);
     renderLanes(data);
     renderOffenders(data);
     renderPending(data);
