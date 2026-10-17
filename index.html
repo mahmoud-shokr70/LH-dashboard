@@ -184,6 +184,35 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
     .stoplight { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; vertical-align:middle; }
     .rep-table th { position: sticky; top: 0; z-index: 2; }
     .metric-mini { font-family: var(--font-num); font-weight: 700; }
+
+    /* ===== Checkbox multi-select: open once, tick as many as you want ===== */
+    .mcs { position: relative; }
+    .mcs-btn { width:100%; min-height:31px; text-align:left; background:#fff; border:1px solid #d8d2c0;
+        border-radius:6px; padding:3px 8px; font-size:.76rem; display:flex; align-items:center;
+        justify-content:space-between; gap:6px; line-height:1.2; color:#111; }
+    .mcs-btn:disabled { background:#f4f1e6; color:#9a9282; cursor:not-allowed; }
+    .mcs-btn .mcs-sum { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mcs-btn.mcs-active { border-color:#111; font-weight:700; }
+    /* Panel matches the field width so it never covers the neighbouring filter
+       (otherwise the next filter's button is unclickable while this one is open). */
+    .mcs-panel { display:none; position:absolute; z-index:1200; top:calc(100% + 2px); left:0;
+        width:100%; min-width:150px; background:#fff; border:1px solid #d8d2c0; border-radius:8px;
+        box-shadow:0 10px 24px rgba(0,0,0,.16); }
+    .mcs-panel.open { display:block; }
+    .mcs-actions { display:flex; justify-content:space-between; align-items:center; gap:8px;
+        padding:4px 8px; border-bottom:1px solid #efece2; background:#fbf8ee; border-radius:8px 8px 0 0; }
+    .mcs-actions button { font-size:.68rem; font-weight:700; text-decoration:none; }
+    .mcs-list { max-height:230px; overflow:auto; padding:4px 0; }
+    .mcs-opt { display:flex; align-items:center; gap:7px; padding:3px 10px; font-size:.76rem; cursor:pointer; margin:0; }
+    .mcs-opt:hover { background:#fbf8ee; }
+    .mcs-opt input { margin:0; }
+
+    /* ===== Late / Early variance pills ===== */
+    .var-pill { font-family:var(--font-num); font-size:.67rem; font-weight:700; border-radius:999px; padding:2px 8px; white-space:nowrap; display:inline-block; }
+    .var-late { background:#fdecea; color:var(--brand-red); }
+    .var-early { background:#fff3cd; color:#8a6d1a; }
+    .var-ok { background:#e5f3e0; color:#1e7a2e; }
+    .var-na { background:#efece2; color:#6b6353; }
 </style>
 </head>
 <body>
@@ -243,17 +272,21 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                         <label class="form-label fw-bold small text-muted">Vendor</label>
                         <select id="dash-vendor" class="form-select select2-dash" multiple="multiple"></select>
                     </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted">Facility</label>
-                        <select id="dash-facility" class="form-select select2-dash" multiple="multiple"></select>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label fw-bold small text-muted">Facility SRC <span class="fw-normal">(Facility_SRC)</span></label>
+                        <select id="dash-fac-src" class="form-select" multiple="multiple"></select>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label fw-bold small text-muted">Facility DST <span class="fw-normal">(Facility_DST)</span></label>
+                        <select id="dash-fac-dst" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted">Trip Status</label>
-                        <select id="dash-status" class="form-select select2-dash" multiple="multiple"></select>
+                        <label class="form-label fw-bold small text-muted">Flag Hubs <span class="fw-normal">(FLAG_HUBS)</span></label>
+                        <select id="dash-flag" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted">Flag Hubs</label>
-                        <select id="dash-flag" class="form-select select2-dash" multiple="multiple"></select>
+                        <label class="form-label fw-bold small text-muted">Trip Flag</label>
+                        <select id="dash-status" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-12 col-md-auto ms-auto">
                         <button class="btn btn-sm btn-outline-secondary" onclick="resetDashFilters()"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
@@ -296,6 +329,36 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                     <div class="val" style="color:#f59e0b" id="k-flag">—</div>
                     <div class="sub"><span id="k-flag-n">0</span> with flags</div>
                 </div></div>
+            </div>
+
+            <!-- SHIPMENTS CARD (count_of_shipment + sort split) -->
+            <div class="card p-3 mb-4 border-0 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-box-seam me-2 text-primary"></i>Shipments</h6>
+                    <span class="small text-muted"><code>count_of_shipment</code> &middot; <code>precentage_of_sort</code> &middot; <code>precentage_of_non_sort</code></span>
+                </div>
+                <div class="row g-2">
+                    <div class="col-6 col-md-3"><div class="mini-tile">
+                        <div class="l">Total Shipments</div>
+                        <div class="v" id="ship-total">0</div>
+                        <div class="small text-muted" id="ship-trips">0 trips in scope</div>
+                    </div></div>
+                    <div class="col-6 col-md-3"><div class="mini-tile">
+                        <div class="l">Avg / Trip</div>
+                        <div class="v" id="ship-avg">0</div>
+                        <div class="small text-muted" id="ship-target">target 0</div>
+                    </div></div>
+                    <div class="col-6 col-md-3"><div class="mini-tile">
+                        <div class="l">Sorted %</div>
+                        <div class="v text-success" id="ship-sort">&mdash;</div>
+                        <div class="small text-muted" id="ship-sort-n">0 shipments</div>
+                    </div></div>
+                    <div class="col-6 col-md-3"><div class="mini-tile">
+                        <div class="l">Non-Sort %</div>
+                        <div class="v text-warning" id="ship-nonsort">&mdash;</div>
+                        <div class="small text-muted" id="ship-nonsort-n">0 shipments</div>
+                    </div></div>
+                </div>
             </div>
 
             <!-- 6 CORE METRIC CARDS - Click to select a metric for detailed view -->
@@ -379,9 +442,16 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                             <div class="fw-bold" id="metricDetailDesc"></div>
                             <div class="small text-muted mt-2" id="metricDetailStats"></div>
                         </div>
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-2 flex-wrap">
+                            <div class="btn-group btn-group-sm chip-bar" id="metricDetailChips">
+                                <button class="btn btn-outline-danger active" data-mode="fail">Not Adhered</button>
+                                <button class="btn btn-outline-success" data-mode="pass">Adhered</button>
+                            </div>
+                            <span class="small text-muted" id="metricDetailCount"></span>
+                        </div>
                         <div class="table-container p-0">
                             <table class="table table-sm table-hover align-middle fs-7" id="metricDetailTable">
-                                <thead class="table-light"><tr><th>Trip ID</th><th>Route</th><th>Vendor</th><th>Value</th><th>RCA</th></tr></thead>
+                                <thead class="table-light"><tr><th>Trip ID</th><th>Route</th><th>Vendor / Truck</th><th>Status</th><th>Measured</th><th>Late / Early</th><th>RCA</th></tr></thead>
                                 <tbody id="metricDetailBody"></tbody>
                             </table>
                         </div>
@@ -415,7 +485,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </div>
                 <div class="col-lg-6">
                     <div class="card p-3 border-0 shadow-sm chart-card">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-building-gear text-primary me-2"></i>Composite Adherence by Facility <span class="text-muted fw-normal" style="font-size:.75rem">(% within bar)</span></h6>
+                        <h6 class="fw-bold mb-3"><i class="bi bi-building-gear text-primary me-2"></i>Composite Adherence by Facility SRC <span class="text-muted fw-normal" style="font-size:.75rem">(% within bar)</span></h6>
                         <div style="height:280px;position:relative;"><canvas id="chartFacilityAdh"></canvas></div>
                     </div>
                 </div>
@@ -522,7 +592,8 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                                 <th>Dst Hub</th>
                                 <th>Vendor</th>
                                 <th>Status</th>
-                                <th>Facility</th>
+                                <th>Facility SRC</th>
+                                <th>Facility DST</th>
                                 <th>Portal</th>
                                 <th>Act/Plan</th>
                                 <th>Gate→Open</th>
@@ -621,7 +692,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                     <table id="reportTripTable" class="table table-sm align-middle fs-7 mb-0">
                         <thead class="table-light"><tr>
                             <th>Date</th><th>Trip ID</th><th>Source Hub</th><th>Destination Hub</th><th>Vendor / Truck</th>
-                            <th>Facility</th><th>Status</th><th>Portal</th><th>Act/Plan</th><th>Gate→Open</th><th>Open→Seal</th>
+                            <th>Facility SRC</th><th>Facility DST</th><th>Status</th><th>Portal</th><th>Act/Plan</th><th>Gate→Open</th><th>Open→Seal</th>
                             <th>Arrival</th><th>Vendor</th><th>Result</th><th>RCA</th>
                         </tr></thead>
                         <tbody id="reportTripBody"></tbody>
@@ -954,9 +1025,11 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'v2 — 2026-10-15';
+const BUILD = 'v3 — 2026-10-17';
 
-const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVVwlkf3BVaI-4KDYTAOZYxhB3V0yAo9baAinrxjmtpG5_RYbndKXlvy7mflKg6A675LF5H41Sj4Cu/pub?gid=2084995103&single=true&output=csv';
+/* Line Haul sheet (gid=536648407) — the operational sheet with
+   FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
+const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=536648407&single=true&output=csv';
 
 /* 2. LIVE TRACKING source — pre-computed occurrence sheet:
    Source, Destination, DOD, Vendor, trip_code, Trip_Sequence, Out_Time, plan time,
@@ -1079,8 +1152,26 @@ function showLoadError(msg){
           <code>docs.google.com</code> and <code>*.googleusercontent.com</code>.
         </div>
         <button class="btn btn-sm btn-danger mt-1" onclick="location.reload()"><i class="bi bi-arrow-repeat me-1"></i>Retry</button>
+        <button class="btn btn-sm btn-outline-secondary mt-1 ms-1" onclick="openLiveFromError()"><i class="bi bi-broadcast me-1"></i>Open Live Tracking anyway</button>
       </div>`;
     loader.style.display = 'block';
+}
+
+/* Line Haul sheet down but the live board is available: still let the
+   operator open Live Tracking instead of staring at an error page. */
+function openLiveFromError(){
+    if (!liveRows || !liveRows.length) {
+        showToast('Live Tracking has not loaded either — nothing to show yet', 'danger');
+        return;
+    }
+    const loader = document.getElementById('loader');
+    if (loader) { loader.style.display = 'none'; loader.innerHTML = ''; }
+    const app = document.getElementById('appPages');
+    if (app) app.style.display = 'block';
+    const tab = document.querySelector('[data-bs-target="#page-live"]');
+    if (tab) bootstrap.Tab.getOrCreateInstance(tab).show();
+    if (typeof initSnapshots === 'function') { try { initSnapshots(); } catch(e){} }
+    showToast('Line Haul sheet unavailable — showing Live Tracking only', 'warning');
 }
 
 /* ================================================================
@@ -1131,6 +1222,151 @@ function adhClass(p){ return p>=90?'adh-good':p>=75?'adh-mid':'adh-bad'; }
 function adhColor(p){ return p>=90?'#16a34a':p>=75?'#ca8a04':'#dc2626'; }
 function pillHtml(p){ return `<span class="score-pill ${adhClass(p)}">${Math.round(p)}%</span>`; }
 function dash(){ return '<span class="text-muted">—</span>'; }
+
+/* ---- tolerant number readers (blank / 'Extra' / commas -> null) ---- */
+function toNum(v){
+    if(v===null || v===undefined) return null;
+    const s = String(v).trim().replace(/,/g,'');
+    if(!s) return null;
+    const n = Number(s);
+    return isFinite(n) ? n : null;
+}
+function firstNumOrNull(){
+    for(let i=0;i<arguments.length;i++){ const n = toNum(arguments[i]); if(n!==null) return n; }
+    return null;
+}
+function firstNum(){
+    const n = firstNumOrNull.apply(null, arguments);
+    return n===null ? 0 : n;
+}
+
+/* ---- hidden <select multiple> value helpers ---- */
+function selValues(sel){
+    const el = document.querySelector(sel);
+    if(!el) return [];
+    return Array.prototype.slice.call(el.options).filter(o=>o.selected && o.value!=='').map(o=>o.value);
+}
+function setSelectValues(sel, vals){
+    const el = document.querySelector(sel);
+    if(!el) return;
+    const list = vals || [];
+    Array.prototype.slice.call(el.options).forEach(o => { o.selected = list.indexOf(o.value) !== -1; });
+    mcsSync(el);
+}
+
+/* ================================================================
+   CHECKBOX MULTI-SELECT  (replaces Select2 for the filter bar)
+   Click the field once, the panel stays open, tick as many values as
+   you need. "Select all" / "Clear" are one click. The native <select
+   multiple> stays in the DOM as the single source of truth, so every
+   existing filter/report/export path keeps working unchanged.
+================================================================ */
+const MCS_CARET = '<i class="bi bi-chevron-down" style="font-size:.65rem;opacity:.6"></i>';
+
+function mcsInit(el, onChange){
+    if(!el) return;
+    if(el.__mcs){ el.__mcs.onChange = onChange; mcsSync(el); return; }
+
+    const wrap = document.createElement('div');
+    wrap.className = 'mcs';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'mcs-btn';
+    const panel = document.createElement('div');
+    panel.className = 'mcs-panel';
+    panel.innerHTML = '<div class="mcs-actions">' +
+        '<span><button type="button" class="btn btn-sm btn-link p-0 mcs-all">Select all</button>' +
+        ' <button type="button" class="btn btn-sm btn-link p-0 text-muted mcs-none">Clear</button></span>' +
+        '<button type="button" class="btn btn-sm btn-dark py-0 px-2 mcs-done">Done</button></div>' +
+        '<div class="mcs-list"></div>';
+    wrap.appendChild(btn);
+    wrap.appendChild(panel);
+    el.parentNode.insertBefore(wrap, el.nextSibling);
+    el.style.display = 'none';
+
+    const list = panel.querySelector('.mcs-list');
+    el.__mcs = { wrap: wrap, btn: btn, panel: panel, list: list, onChange: onChange };
+
+    btn.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        if(btn.disabled) return;
+        document.querySelectorAll('.mcs-panel.open').forEach(function(p){ if(p !== panel) p.classList.remove('open'); });
+        panel.classList.toggle('open');
+    });
+    panel.addEventListener('click', function(ev){ ev.stopPropagation(); });
+    panel.querySelector('.mcs-all').addEventListener('click', function(){
+        Array.prototype.slice.call(el.options).forEach(function(o){ if(o.value!=='') o.selected = true; });
+        mcsSync(el); mcsFire(el);
+    });
+    panel.querySelector('.mcs-none').addEventListener('click', function(){
+        Array.prototype.slice.call(el.options).forEach(function(o){ o.selected = false; });
+        mcsSync(el); mcsFire(el);
+    });
+    panel.querySelector('.mcs-done').addEventListener('click', function(){
+        panel.classList.remove('open');
+    });
+    // Delegated: ticking a box must NOT rebuild the list (that would steal the pointer)
+    list.addEventListener('change', function(ev){
+        const cb = ev.target;
+        if(!cb || cb.type !== 'checkbox') return;
+        const opt = Array.prototype.slice.call(el.options).filter(function(o){ return o.value === cb.value; })[0];
+        if(opt) opt.selected = cb.checked;
+        mcsSyncSummary(el);
+        mcsFire(el);
+    });
+
+    if(!window.__mcsOutside){
+        window.__mcsOutside = true;
+        document.addEventListener('click', function(){
+            document.querySelectorAll('.mcs-panel.open').forEach(function(p){ p.classList.remove('open'); });
+        });
+    }
+    mcsSync(el);
+}
+
+function mcsSyncSummary(el){
+    const st = el.__mcs; if(!st) return;
+    const opts = Array.prototype.slice.call(el.options).filter(function(o){ return o.value !== ''; });
+    const chosen = opts.filter(function(o){ return o.selected; });
+    st.btn.disabled = el.disabled || !opts.length;
+    st.btn.classList.toggle('mcs-active', chosen.length > 0);
+    let txt;
+    if(el.disabled || !opts.length) txt = 'No data';
+    else if(!chosen.length) txt = 'All (' + opts.length + ')';
+    else if(chosen.length === 1) txt = chosen[0].value;
+    else txt = chosen.length + ' selected';
+    st.btn.innerHTML = '<span class="mcs-sum">' + esc(txt) + '</span>' + MCS_CARET;
+    st.btn.title = chosen.length ? chosen.map(function(o){ return o.value; }).join(', ') : 'All values';
+}
+
+function mcsRenderList(el){
+    const st = el.__mcs; if(!st) return;
+    const opts = Array.prototype.slice.call(el.options).filter(function(o){ return o.value !== ''; });
+    st.list.innerHTML = opts.length ? opts.map(function(o){
+        return '<label class="mcs-opt"><input type="checkbox" class="form-check-input" value="' + esc(o.value) + '"' +
+               (o.selected ? ' checked' : '') + '><span>' + esc(o.value) + '</span></label>';
+    }).join('') : '<div class="small text-muted p-2">No options</div>';
+}
+
+function mcsSync(el){
+    if(!el || !el.__mcs) return;
+    mcsSyncSummary(el);
+    mcsRenderList(el);
+}
+
+function mcsFire(el){
+    const h = el && el.__mcs && el.__mcs.onChange;
+    if(typeof h === 'function') h();
+}
+
+/* Wrapped clock difference: a trip that crosses midnight must not read as 23h. */
+function wrapDelta(mins){
+    if(mins===null || mins===undefined || isNaN(mins)) return null;
+    let d = mins;
+    while(d > 720)  d -= 1440;
+    while(d < -720) d += 1440;
+    return Math.round(d);
+}
 
 function destroyChart(name){ if(charts[name]){ charts[name].destroy(); delete charts[name]; } }
 function setChart(name, canvasId, cfg){ destroyChart(name); const el=document.getElementById(canvasId); if(el) charts[name]=new Chart(el,cfg); }
@@ -1236,22 +1472,25 @@ let dashDstSelection = [];
 let dashVendorSelection = [];
 let dashFlagSelection = [];
 let dashPerfectSelection = [];
-let dashFacilitySelection = [];
+let dashFacilitySrcSelection = [];
+let dashFacilityDstSelection = [];
 let dashStatusSelection = [];
 let dashDateFrom = '';
 let dashDateTo = '';
 let selectedMetricKey = null;
+let metricDetailMode = 'fail';
 
 function applyDashboardFilters(){
     dashDateFrom = document.getElementById('dash-date-from').value || '';
     dashDateTo = document.getElementById('dash-date-to').value || '';
-    dashSrcSelection = $('#dash-src').val() || [];
-    dashDstSelection = $('#dash-dst').val() || [];
-    dashVendorSelection = $('#dash-vendor').val() || [];
-    dashFlagSelection = $('#dash-flag').val() || [];
-    dashPerfectSelection = $('#dash-perfect').val() || [];
-    dashFacilitySelection = $('#dash-facility').val() || [];
-    dashStatusSelection = $('#dash-status').val() || [];
+    dashSrcSelection = selValues('#dash-src');
+    dashDstSelection = selValues('#dash-dst');
+    dashVendorSelection = selValues('#dash-vendor');
+    dashFlagSelection = selValues('#dash-flag');
+    dashPerfectSelection = selValues('#dash-perfect');
+    dashFacilitySrcSelection = selValues('#dash-fac-src');
+    dashFacilityDstSelection = selValues('#dash-fac-dst');
+    dashStatusSelection = selValues('#dash-status');
 
     let data = [...rawTrips];
     if (dashDateFrom || dashDateTo) {
@@ -1262,7 +1501,8 @@ function applyDashboardFilters(){
     if (dashVendorSelection.length) data = data.filter(t => dashVendorSelection.includes(t.vendor));
     if (dashFlagSelection.length) data = data.filter(t => dashFlagSelection.includes(String(t.flagHubs||'').trim()));
     if (dashPerfectSelection.length) data = data.filter(t => isPerfectFlag(t.perfectFlag));
-    if (dashFacilitySelection.length) data = data.filter(t => dashFacilitySelection.includes(t.facility));
+    if (dashFacilitySrcSelection.length) data = data.filter(t => dashFacilitySrcSelection.includes(t.facilitySrc || t.facility));
+    if (dashFacilityDstSelection.length) data = data.filter(t => dashFacilityDstSelection.includes(t.facilityDst));
     if (dashStatusSelection.length) data = data.filter(t => dashStatusSelection.includes(t.tripStatus));
 
     document.getElementById('dashFilterInfo').innerHTML = `
@@ -1270,7 +1510,8 @@ function applyDashboardFilters(){
         ${dashSrcSelection.length?`<strong>Src:</strong> ${dashSrcSelection.join(', ')}`:'<strong>Src:</strong> All'} • 
         ${dashDstSelection.length?`<strong>Dst:</strong> ${dashDstSelection.join(', ')}`:'<strong>Dst:</strong> All'} • 
         ${dashVendorSelection.length?`<strong>Vendor:</strong> ${dashVendorSelection.join(', ')}`:'<strong>Vendor:</strong> All'} • 
-        ${dashFacilitySelection.length?`<strong>Facility:</strong> ${dashFacilitySelection.join(', ')}`:'<strong>Facility:</strong> All'} • 
+        ${dashFacilitySrcSelection.length?`<strong>Facility SRC:</strong> ${dashFacilitySrcSelection.join(', ')}`:'<strong>Facility SRC:</strong> All'} • 
+        ${dashFacilityDstSelection.length?`<strong>Facility DST:</strong> ${dashFacilityDstSelection.join(', ')}`:'<strong>Facility DST:</strong> All'} • 
         ${dashStatusSelection.length?`<strong>Status:</strong> ${dashStatusSelection.join(', ')}`:'<strong>Status:</strong> All'} • 
         ${dashFlagSelection.length?`<strong>Flag Hubs:</strong> ${dashFlagSelection.join(', ')}`:'<strong>Flag Hubs:</strong> All'} • 
         ${dashPerfectSelection.length?'<strong>Perfect:</strong> YES': '<strong>Perfect:</strong> All'}`;
@@ -1289,6 +1530,13 @@ function applyDashboardFilters(){
     reportState = 'pending';
     gapState = 'pending';
     renderActiveAuxPages();
+
+    // An open metric detail panel must follow the new scope too, otherwise it
+    // keeps showing the previous filter's numbers.
+    if (selectedMetricKey) {
+        const card = document.querySelector('.metric-card.selected');
+        if (card) selectMetricCard(card, selectedMetricKey);
+    }
 }
 
 /* Re-render whichever secondary page the operator is currently looking at,
@@ -1312,11 +1560,13 @@ function resetDashFilters(){
     document.getElementById('dash-date-to').value = '';
     dashDateFrom = '';
     dashDateTo = '';
-    ['#dash-src','#dash-dst','#dash-vendor','#dash-facility','#dash-status','#dash-flag','#dash-perfect'].forEach(id => $(id).val(null).trigger('change'));
+    ['#dash-src','#dash-dst','#dash-vendor','#dash-fac-src','#dash-fac-dst','#dash-status','#dash-flag','#dash-perfect']
+        .forEach(id => setSelectValues(id, []));
     dashSrcSelection = [];
     dashDstSelection = [];
     dashVendorSelection = [];
-    dashFacilitySelection = [];
+    dashFacilitySrcSelection = [];
+    dashFacilityDstSelection = [];
     dashStatusSelection = [];
     dashFlagSelection = [];
     dashPerfectSelection = [];
@@ -1325,19 +1575,21 @@ function resetDashFilters(){
 }
 
 function populateDashFilters(){
-    const curSrc = $('#dash-src').val() || [];
-    const curDst = $('#dash-dst').val() || [];
-    const curVen = $('#dash-vendor').val() || [];
-    const curFlag = $('#dash-flag').val() || [];
-    const curPerfect = $('#dash-perfect').val() || [];
-    const curFacility = $('#dash-facility').val() || [];
-    const curStatus = $('#dash-status').val() || [];
+    const curSrc = selValues('#dash-src');
+    const curDst = selValues('#dash-dst');
+    const curVen = selValues('#dash-vendor');
+    const curFlag = selValues('#dash-flag');
+    const curPerfect = selValues('#dash-perfect');
+    const curFacSrc = selValues('#dash-fac-src');
+    const curFacDst = selValues('#dash-fac-dst');
+    const curStatus = selValues('#dash-status');
     const uniq = (fn) => [...new Set(rawTrips.map(fn).filter(x => x !== null && x !== undefined && String(x).trim() !== ''))].sort();
     const outlets = uniq(t => t.srcHub);
     const dests  = uniq(t => t.dstHub);
     const vendors = uniq(t => t.vendor);
-    const flags   = uniq(t => t.flagHubs);
-    const facilities = uniq(t => t.facility);
+    const flags    = uniq(t => t.flagHubs);
+    const facSrcs  = uniq(t => t.facilitySrc || t.facility);
+    const facDsts  = uniq(t => t.facilityDst);
     const statuses = uniq(t => t.tripStatus);
 
     fillDashSelect('#dash-src', outlets, curSrc);
@@ -1345,32 +1597,28 @@ function populateDashFilters(){
     fillDashSelect('#dash-vendor', vendors, curVen);
     fillDashSelect('#dash-flag', flags, curFlag);
     fillDashSelect('#dash-perfect', ['YES','TRUE','1','Y','PERFECT','Perfect'], curPerfect);
-    fillDashSelect('#dash-facility', facilities.length ? facilities : ['—'], curFacility);
-    fillDashSelect('#dash-status', statuses.length ? statuses : ['—'], curStatus);
+    fillDashSelect('#dash-fac-src', facSrcs, curFacSrc);
+    fillDashSelect('#dash-fac-dst', facDsts, curFacDst);
+    fillDashSelect('#dash-status', statuses, curStatus);
 }
 
 function fillDashSelect(sel, values, keepVals){
-    const $el = $(sel);
-    if($el.length === 0) return;
-    if ($el.hasClass('select2-hidden-accessible')){ try{ $el.select2('destroy'); }catch(e){} }
-    $el.empty();
-    if(!values || !values.length){
-        $el.append(new Option('— no values —', '', false, false));
-        $el.prop('disabled', true);
-        try{ $el.select2({ theme:'bootstrap-5', placeholder:'No data', width:'100%' }); }catch(e){}
-        return;
+    const el = document.querySelector(sel);
+    if(!el) return;
+    const list = (values || []).map(String);
+    const prev = (keepVals || []).map(String).filter(v => list.indexOf(v) !== -1);
+
+    el.innerHTML = '';
+    if(!list.length){
+        el.appendChild(new Option('— no values —', '', false, false));
+        el.disabled = true;
+    } else {
+        el.disabled = false;
+        list.forEach(v => el.appendChild(new Option(v, v, false, false)));
+        Array.prototype.slice.call(el.options).forEach(o => { o.selected = prev.indexOf(o.value) !== -1; });
     }
-    $el.prop('disabled', false);
-    values.forEach(v => $el.append(new Option(String(v), String(v), false, false)));
-    try{
-        $el.select2({ theme:'bootstrap-5', placeholder:'All', allowClear:true, width:'100%' })
-           .on('change', applyDashboardFilters);
-    }catch(e){ console.warn('[fillDashSelect] select2 init failed for', sel, e); }
-    if(keepVals && keepVals.length){
-        const valid = keepVals.filter(x => x && values.includes(String(x)));
-        if(valid.length) $el.val(valid);
-    }
-    $el.trigger('change.select2');
+    mcsInit(el, applyDashboardFilters);
+    mcsSync(el);
 }
 
 function selectMetricCard(el, metricKey){
@@ -1390,50 +1638,172 @@ function selectMetricCard(el, metricKey){
     const data = getFilteredDashboardData();
 
     // Update title
+    const def = METRIC_DEF[metricKey] || {};
     document.getElementById('metricDetailTitle').innerHTML = `
-        <i class="bi bi-circle-check text-success me-2"></i>${metric ? metric.label : metricKey} — Detailed View`;
+        <i class="bi bi-circle-check text-success me-2"></i>${metric ? metric.label : metricKey} — Detailed View
+        <span class="text-muted fw-normal" style="font-size:.8rem">${esc(def.target || '')}</span>`;
 
     // Update description
     const pass = data.filter(t => isPass(t[metricKey])).length;
     const fail = data.length - pass;
+    const withVar = data.map(t => metricVariance(t, metricKey)).filter(Boolean);
+    const late  = withVar.filter(v => v.dir === 'late').length;
+    const early = withVar.filter(v => v.dir === 'early').length;
+    const ok    = withVar.filter(v => v.dir === 'ok').length;
+
     document.getElementById('metricDetailDesc').innerHTML = `
         <div class="fs-6">${metric ? metric.label : metricKey}</div>
-        <div class="fs-4 fw-bold mt-2">${data.length} trips: ${pass} passed, ${fail} failed (${(data.length?Math.round(pass/data.length*100):0)}% pass rate)</div>`;
+        <div class="fs-4 fw-bold mt-2">${fmt(data.length)} trips: ${fmt(pass)} adhered, ${fmt(fail)} not adhered (${(data.length?Math.round(pass/data.length*100):0)}% adherence)</div>
+        <div class="small text-muted mt-1">${esc(def.how || '')}</div>`;
 
-    // Update stats
-    const failRates = {
-        portalAdh: `${Math.round(data.filter(t=>!isPass(t.portalAdh)).length)} trips failed Portal Adherence`,
-        portalPlanVsActualAdh: `${Math.round(data.filter(t=>!isPass(t.portalPlanVsActualAdh)).length)} trips failed Portal Actual vs Plan`,
-        gateInToOpenAdh: `${Math.round(data.filter(t=>!isPass(t.gateInToOpenAdh)).length)} trips failed Gate-in to Open`,
-        openToSealAdh: `${Math.round(data.filter(t=>!isPass(t.openToSealAdh)).length)} trips failed Open to Seal`,
-        arrivalAdh: `${Math.round(data.filter(t=>!isPass(t.arrivalAdh)).length)} trips failed Arrival Adherence`,
-        vehicleAdh: `${Math.round(data.filter(t=>!isPass(t.vehicleAdh)).length)} trips failed Vendor Compliance`
-    };
     document.getElementById('metricDetailStats').innerHTML = `
         <div class="row g-2 mt-3">
-            <div class="col-6"><span class="badge bg-success-subtle text-success">${pass} Adhered</span></div>
-            <div class="col-6"><span class="badge bg-danger-subtle text-danger">${fail} Failed</span></div>
+            <div class="col-6"><span class="badge bg-success-subtle text-success">${fmt(pass)} Adhered</span></div>
+            <div class="col-6"><span class="badge bg-danger-subtle text-danger">${fmt(fail)} Not adhered</span></div>
         </div>
-        <div class="small text-muted mt-2">${failRates[metricKey] || ''}</div>`;
+        <div class="row g-2 mt-2">
+            <div class="col-4"><span class="var-pill var-late">Late ${fmt(late)}</span></div>
+            <div class="col-4"><span class="var-pill var-early">Early ${fmt(early)}</span></div>
+            <div class="col-4"><span class="var-pill var-ok">On target ${fmt(ok)}</span></div>
+        </div>
+        <div class="small text-muted mt-2">${fmt(withVar.length)} of ${fmt(data.length)} trips carry a measurable time for this checkpoint.</div>`;
 
-    // Populate table with failing trips for this metric
-    const failingTrips = data.filter(t => !isPass(t[metricKey])).slice(0, 50);
-    const body = document.getElementById('metricDetailBody');
-    if (failingTrips.length === 0) {
-        body.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>No failures for this metric</td></tr>';
-    } else {
-        body.innerHTML = failingTrips.map(t => `
-            <tr>
-                <td><strong>${esc(t.tripId)}</strong>${t.tripCode?`<small class="text-muted">${esc(t.tripCode)}</small>`:''}</td>
-                <td>${esc(t.srcHub)} → ${esc(t.dstHub)}</td>
-                <td>${esc(t.vendor)}${t.plateNr?` <small class="text-muted">(${esc(t.plateNr)})</small>`:''}</td>
-                <td><span class="badge bg-danger-subtle text-danger">${esc(String(t[metricKey]||'').trim()||'blank')}</span></td>
-                <td><button class="btn btn-sm btn-outline-primary" onclick="openRcaModal(${t.rowIdx})"><i class="bi bi-pencil-square"></i> RCA</button></td>
-            </tr>`).join('');
+    // Behaving chips: Not Adhered (default) vs Adhered
+    const chips = document.getElementById('metricDetailChips');
+    if (chips && !chips.__bound) {
+        chips.__bound = true;
+        chips.addEventListener('click', function(ev){
+            const b = ev.target.closest ? ev.target.closest('button[data-mode]') : null;
+            if (!b || !selectedMetricKey) return;
+            metricDetailMode = b.getAttribute('data-mode');
+            Array.prototype.forEach.call(chips.querySelectorAll('button'), x => x.classList.toggle('active', x === b));
+            renderMetricDetailRows(selectedMetricKey, metricDetailMode);
+        });
+    }
+    if (chips) {
+        Array.prototype.forEach.call(chips.querySelectorAll('button'), x => x.classList.toggle('active', x.getAttribute('data-mode') === metricDetailMode));
     }
 
-    // Render detail chart
+    renderMetricDetailRows(metricKey, metricDetailMode);
     renderMetricDetailChart(data, metricKey);
+}
+
+/* Per-checkpoint measurement definition: what the number means and how
+   late / early is judged. Thresholds come from the sheet itself (an
+   'Adhered' trip sits inside the window, a 'Not Adhered' one outside it). */
+const METRIC_DEF = {
+    portalAdh:            { target:'Portal dispatch vs plan', how:'Variance in minutes between actual gate-out and the planned dispatch time. Late = left after plan, Early = left before plan.', tol:'late > +20 min, early < −15 min', kind:'dispatch' },
+    portalPlanVsActualAdh:{ target:'Portal plan vs actual',     how:'Same dispatch variance: how far the actual gate-out moved from the portal plan.', tol:'late > +20 min, early < −15 min', kind:'dispatch' },
+    gateInToOpenAdh:      { target:'Target ≤ 5 min',            how:'Minutes from source gate-in to dock open.', tol:'over 5 min = late', kind:'gate' },
+    openToSealAdh:        { target:'Target window 6 – 30 min',  how:'Minutes from dock open to seal applied at the source hub.', tol:'over 30 = slow, under 6 = early', kind:'seal' },
+    arrivalAdh:           { target:'Target ±15 min',            how:'Actual destination gate-in vs the planned arrival clock.', tol:'over +15 = late, under −15 = early', kind:'arrival' },
+    vehicleAdh:           { target:'Vehicle / document compliance', how:'No time variance on this checkpoint — the sheet flags the vehicle itself.', tol:'—', kind:'none' }
+};
+
+/* Returns { mins, measured, text, dir } for a trip + checkpoint. dir is
+   late | early | ok | na — exactly what the detail table and pills show. */
+function metricVariance(t, key){
+    const def = METRIC_DEF[key] || {};
+    if (def.kind === 'dispatch') {
+        // The sheet's own variance column occasionally carries a multi-day
+        // artefact (e.g. -1512 for a same-day trip). Wrapping it to a 24h clock
+        // shows the real early/late instead of a nonsense 25-hour figure.
+        const v = wrapDelta((t.varMinutes !== null && t.varMinutes !== undefined) ? t.varMinutes : t.dispatchDeltaMin);
+        if (v === null || v === undefined) return null;
+        const dir = v > 20 ? 'late' : v < -15 ? 'early' : 'ok';
+        return { mins: v, measured: (v > 0 ? '+' : '') + Math.round(v) + ' min',
+                 dir: dir,
+                 text: dir === 'late' ? 'Late +' + Math.round(v) + ' min'
+                     : dir === 'early' ? 'Early ' + Math.round(Math.abs(v)) + ' min'
+                     : 'On plan (' + Math.round(v) + ' min)' };
+    }
+    if (def.kind === 'gate') {
+        const v = t.gateInToOpenMin;
+        if (v === null || v === undefined) return null;
+        return { mins: v, measured: Math.round(v) + ' min',
+                 dir: v <= 5 ? 'ok' : 'late',
+                 text: v <= 5 ? 'Within 5 min' : 'Late +' + Math.round(v - 5) + ' min' };
+    }
+    if (def.kind === 'seal') {
+        const v = t.openToSealMin;
+        if (v === null || v === undefined) return null;
+        let dir = 'ok', text = 'Within 6–30 min';
+        if (v > 30)      { dir = 'late';  text = 'Late +' + Math.round(v - 30) + ' min'; }
+        else if (v < 6)  { dir = 'early'; text = 'Early ' + Math.round(6 - v) + ' min'; }
+        return { mins: v, measured: Math.round(v) + ' min', dir: dir, text: text };
+    }
+    if (def.kind === 'arrival') {
+        const v = t.arrivalDeltaMin;
+        if (v === null || v === undefined) {
+            if (t.arrivedTatMin === null || t.arrivedTatMin === undefined) return null;
+            return { mins: t.arrivedTatMin, measured: Math.round(t.arrivedTatMin) + ' min TAT',
+                     dir: 'na', text: 'TAT ' + Math.round(t.arrivedTatMin) + ' min' };
+        }
+        const dir = v > 15 ? 'late' : v < -15 ? 'early' : 'ok';
+        return { mins: v, measured: (v > 0 ? '+' : '') + Math.round(v) + ' min',
+                 dir: dir,
+                 text: dir === 'late' ? 'Late +' + Math.round(v) + ' min'
+                     : dir === 'early' ? 'Early ' + Math.round(Math.abs(v)) + ' min'
+                     : 'On time (' + Math.round(v) + ' min)' };
+    }
+    return null;
+}
+
+function variancePill(v){
+    if (!v) return '<span class="var-pill var-na">— no time</span>';
+    const cls = v.dir === 'late' ? 'var-late' : v.dir === 'early' ? 'var-early' : v.dir === 'ok' ? 'var-ok' : 'var-na';
+    const icon = v.dir === 'late' ? 'bi-arrow-up-right' : v.dir === 'early' ? 'bi-arrow-down-left' : v.dir === 'ok' ? 'bi-check2' : 'bi-clock';
+    return '<span class="var-pill ' + cls + '"><i class="bi ' + icon + ' me-1"></i>' + esc(v.text) + '</span>';
+}
+
+function renderMetricDetailRows(key, mode){
+    const body = document.getElementById('metricDetailBody');
+    const countEl = document.getElementById('metricDetailCount');
+    if (!body) return;
+    const data = getFilteredDashboardData();
+    const showFail = mode !== 'pass';
+    let rows = data.filter(t => showFail ? !isPass(t[key]) : isPass(t[key]));
+    // Worst first: real late/early variance above on-target, rows with no
+    // measurable time (TAT fallback) at the bottom.
+    const rank = t => {
+        const v = metricVariance(t, key);
+        if (!v) return 3;
+        return (v.dir === 'late' || v.dir === 'early') ? 0 : v.dir === 'ok' ? 1 : 2;
+    };
+    rows = rows.slice().sort((a, b) => {
+        if (!showFail) return String(a.tripId).localeCompare(String(b.tripId));
+        const ra = rank(a), rb = rank(b);
+        if (ra !== rb) return ra - rb;
+        const va = metricVariance(a, key), vb = metricVariance(b, key);
+        const ma = va ? Math.abs(va.mins) : -1, mb = vb ? Math.abs(vb.mins) : -1;
+        return mb - ma;
+    });
+    if (countEl) countEl.innerText = rows.length ? ('showing ' + Math.min(rows.length, 100) + ' of ' + fmt(rows.length)) : '';
+    if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>' +
+            (showFail ? 'No failures for this checkpoint in scope' : 'No adhered trips in scope') + '</td></tr>';
+        return;
+    }
+    body.innerHTML = rows.slice(0, 100).map(t => {
+        const v = metricVariance(t, key);
+        const raw = String(t[key] === undefined || t[key] === null ? '' : t[key]).trim();
+        const ok = isPass(t[key]);
+        const badge = ok ? '<span class="badge bg-success-subtle text-success">Adhered</span>'
+                         : '<span class="badge bg-danger-subtle text-danger">' + esc(raw || 'blank') + '</span>';
+        const truck = [t.plateNr, t.vehicleType].filter(Boolean).join(' · ');
+        const measured = (key === 'vehicleAdh')
+            ? esc(t.vehicleType || '—')
+            : (v ? esc(v.measured) : '<span class="text-muted">—</span>');
+        return '<tr>' +
+            '<td><strong>' + esc(t.tripId) + '</strong>' + (t.tripCode ? '<br/><small class="text-muted">' + esc(t.tripCode) + '</small>' : '') + '</td>' +
+            '<td>' + esc(t.srcHub) + ' → ' + esc(t.dstHub) + '<br/><small class="text-muted">' + esc(t.facilitySrc || t.facility || '') + ' / ' + esc(t.facilityDst || '') + '</small></td>' +
+            '<td>' + esc(t.vendor) + (truck ? '<br/><small class="text-muted">' + esc(truck) + '</small>' : '') + '</td>' +
+            '<td>' + badge + '</td>' +
+            '<td class="metric-mini">' + measured + '</td>' +
+            '<td>' + variancePill(v) + '</td>' +
+            '<td><button class="btn btn-sm btn-outline-primary" onclick="openRcaModal(' + t.rowIdx + ')"><i class="bi bi-pencil-square"></i> RCA</button></td>' +
+        '</tr>';
+    }).join('');
 }
 
 function clearMetricSelection(){
@@ -1453,7 +1823,8 @@ function getFilteredDashboardData(){
     if (dashVendorSelection.length) data = data.filter(t => dashVendorSelection.includes(t.vendor));
     if (dashFlagSelection.length) data = data.filter(t => dashFlagSelection.includes(String(t.flagHubs||'').trim()));
     if (dashPerfectSelection.length) data = data.filter(t => isPerfectFlag(t.perfectFlag));
-    if (dashFacilitySelection.length) data = data.filter(t => dashFacilitySelection.includes(t.facility));
+    if (dashFacilitySrcSelection.length) data = data.filter(t => dashFacilitySrcSelection.includes(t.facilitySrc || t.facility));
+    if (dashFacilityDstSelection.length) data = data.filter(t => dashFacilityDstSelection.includes(t.facilityDst));
     if (dashStatusSelection.length) data = data.filter(t => dashStatusSelection.includes(t.tripStatus));
     return data;
 }
@@ -1520,7 +1891,7 @@ function diagnoseLibs(){
     const missing = [];
     if (typeof window.jQuery === 'undefined') missing.push('jQuery (code.jquery.com)');
     else if (!window.jQuery.fn.DataTable)       missing.push('DataTables (cdn.datatables.net)');
-    else if (!window.jQuery.fn.select2)         missing.push('Select2 (cdn.jsdelivr.net)');
+    // Select2 is no longer required — the filters use the built-in checkbox multi-select.
     if (typeof window.bootstrap === 'undefined') missing.push('Bootstrap (cdn.jsdelivr.net)');
     if (typeof window.Chart     === 'undefined') missing.push('Chart.js (cdn.jsdelivr.net)');
     if (typeof window.Papa      === 'undefined') missing.push('PapaParse (cdnjs.cloudflare.com)');
@@ -1605,11 +1976,18 @@ function loadLiveCsv() {
 
     // Never take over the screen if the app is already up — the live sheet is
     // the secondary source and a slow one must not hide the dashboard.
-    const appVisible = document.getElementById('appPages') && document.getElementById('appPages').style.display === 'block';
+    // Visibility is re-checked on every callback: the Line Haul sheet may finish
+    // while the live request is still in flight, and a late "still loading…"
+    // write used to re-cover the finished dashboard with a spinner.
+    const appIsUp = function(){
+        const a = document.getElementById('appPages');
+        return !!(a && a.style.display === 'block');
+    };
+    const appVisible = appIsUp();
     if (!appVisible) setLoadingState(loader, 'Downloading the Live Tracking sheet…');
     if(meta) meta.innerText = appVisible ? 'Refreshing live board…' : 'Connecting to sheet…';
 
-    fetchCsvText(liveCsvUrl, function(msg){ if (!appVisible) setLoadingState(loader, msg); })
+    fetchCsvText(liveCsvUrl, function(msg){ if (!appIsUp()) setLoadingState(loader, msg); })
         .then(csvText => Papa.parse(csvText, {
             header:true,
             skipEmptyLines:true,
@@ -1634,7 +2012,11 @@ function loadLiveCsv() {
                 arrRaw:     row['Arriv_Time'] || '',
                 planArrRaw: row['arrival time'] || '',
                 arrAdhRaw:  row['Arrival_adherence'] || '',
-                flagHubs:   row['FLAG_HUBS'] || ''
+                flagHubs:   row['FLAG_HUBS'] || '',
+                // Signed variance in minutes (negative = early, positive = late),
+                // derived from the two clocks in the sheet.
+                outVarMin:  hhmmDiff(row['Out_Time'], row['plan time']),
+                arrVarMin:  hhmmDiff(row['Arriv_Time'], row['arrival time'])
             }));
             console.log('[loadLiveCsv] liveRows mapped:', liveRows.length);
 
@@ -1660,17 +2042,22 @@ function loadLiveCsv() {
                 try{ renderLiveTracking(); }catch(e){ console.warn('[loadLiveCsv] renderLiveTracking failed:', e); }
             }
 
-            if (appVisible) { loader.style.display = 'none'; loader.innerHTML = ''; }
+            if (appIsUp()) { loader.style.display = 'none'; loader.innerHTML = ''; }
         })
         .catch(err => {
             // Non-fatal: the Line Haul dashboard keeps working without the live board.
             const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error');
             console.error('[loadLiveCsv] failed:', msg);
+            if (appIsUp()) { loader.style.display = 'none'; loader.innerHTML = ''; }
             showToast('Live Tracking sheet could not be loaded: ' + msg, 'danger');
             const box = document.getElementById('liveTables');
             if (box) box.innerHTML = `<div class="alert alert-warning border mb-0">
                 <strong><i class="bi bi-exclamation-triangle me-1"></i>Live Tracking data unavailable.</strong>
                 <div class="small mt-1">${esc(msg)}</div>
+                <div class="small text-muted mt-1">
+                    A Google sign-in redirect here means that tab is <strong>no longer published to the web</strong>
+                    (File ▸ Share ▸ Publish to web on that tab). Re-publish it and press Retry.
+                </div>
                 <button class="btn btn-sm btn-outline-secondary mt-2" onclick="loadLiveCsv()"><i class="bi bi-arrow-repeat me-1"></i>Retry live data</button>
             </div>`;
         });
@@ -1802,7 +2189,7 @@ function loadDataFromCSV() {
             const mappedTrips = data.map((row, idx) => {
                 return {
                     rowIdx: idx + 2,
-                    date: row['DATE'] || row['date'] || '',
+                    date: row['Date'] || row['DATE'] || row['date'] || '',
                     slot: '',
                     tripId: row['id_trip'] || row['Trip ID'] || '',
                     tripCode: row['trip_code'] || '',
@@ -1817,20 +2204,30 @@ function loadDataFromCSV() {
                     perfectFlag: row['Perfect_Flag'] || row['PERFECT_FLAG'] || '',
                     flagHubs: row['FLAG_HUBS'] || '',
                     rankTrip: row['RANK_TRIP'] || '',
-                    facility: row['Facility'] || '',
-                    shipments: parseFloat(row['total_shipments']) || 0,
-                    countOfShipment: parseFloat(row['count_of_shipment']) || 0,
-                    targetCount: parseFloat(row['target_count']) || 0,
-                    utilization: parseFloat(row['trip_stop_estimated_utilization']) || null,
-                    utilizationPercentage: parseFloat(row['utilization_percentage']) || null,
-                    varMinutes: parseFloat(row['Var_in_Minutes_between_Actual_and_plan']) || null,
-                    gateInToOpenMin: parseFloat(row['Gate_in_to_open']) || null,
-                    openToSealMin: parseFloat(row['Open_to_seal_in_Minutes']) || null,
-                    arrivedTatMin: parseFloat(row['Arrived_TAT_in_Minutes']) || null,
+                    // Facility now comes as a pair: Facility_SRC and Facility_DST.
+                    // `facility` is kept as the source side so older charts/reports
+                    // that reference it keep working.
+                    facility: row['Facility_SRC'] || row['Facility'] || '',
+                    facilitySrc: row['Facility_SRC'] || row['Facility'] || '',
+                    facilityDst: row['Facility_DST'] || '',
+                    tripFlag: row['flag'] || '',
+                    // count_of_shipment is the shipment count in this sheet;
+                    // total_shipments only exists in the older export.
+                    shipments: firstNum(row['total_shipments'], row['count_of_shipment']),
+                    countOfShipment: firstNum(row['count_of_shipment'], row['total_shipments']),
+                    targetCount: firstNum(row['target_count']),
+                    utilization: firstNumOrNull(row['trip_stop_estimated_utilization']),
+                    utilizationPercentage: firstNumOrNull(row['utilization_percentage']),
+                    varMinutes: firstNumOrNull(row['Var_in_Minutes_between_Actual_and_plan']),
+                    gateInToOpenMin: firstNumOrNull(row['Gate_in_to_open']),
+                    openToSealMin: firstNumOrNull(row['Open_to_seal_in_Minutes']),
+                    arrivedTatMin: firstNumOrNull(row['Arrived_TAT_in_Minutes']),
                     openToSealSlab: row['Open_to_Seal_Slab'] || '',
 
                     // Additional sheet fields
-                    tripStatus: row['trip_status'] || '',
+                    // This sheet has no trip_status column; `flag` (first/second/
+                    // third/last trip of the vehicle) is the usable status-like field.
+                    tripStatus: row['trip_status'] || row['flag'] || '',
                     routeCode: row['route_code'] || '',
                     routeName: row['route_name'] || '',
                     vendorCode: row['vendor_code'] || '',
@@ -1839,9 +2236,9 @@ function loadDataFromCSV() {
                     countOfShipment2: row['count_of_shipment'] || '',
                     shipmentTypeFlag: row['shipment_type_flag'] || '',
                     targetCount2: row['target_count'] || '',
-                    utilizationPercentage2: parseFloat(row['utilization_percentage']) || null,
-                    percentageOfSort: parseFloat(row['precentage_of_sort']) || null,
-                    percentageOfNonSort: parseFloat(row['precentage_of_non_sort']) || null,
+                    utilizationPercentage2: firstNumOrNull(row['utilization_percentage']),
+                    percentageOfSort: firstNumOrNull(row['precentage_of_sort']),
+                    percentageOfNonSort: firstNumOrNull(row['precentage_of_non_sort']),
                     dispatchStatus: row['dispatch_status'] || '',
                     arrivalStatus: row['arrival_status'] || '',
                     stopTripSealNr: row['stop_trip_seal_nr'] || '',
@@ -1882,6 +2279,13 @@ function loadDataFromCSV() {
                 t.dstArrival = din || dock;
                 t.ctArrival  = parseTimeOn(t.ctArrivalRaw, base);
                 t.dateKey    = normDateKey(t.date);
+                // Signed variance for the two timing checkpoints. CT_plan_time /
+                // CT_arrival_time are the plan clock the actual timestamps line up
+                // with (the full plan timestamps carry a fixed offset), so the
+                // difference is the real early/late in minutes. wrapDelta kills
+                // the midnight wrap-around.
+                t.dispatchDeltaMin = wrapDelta(t.srcGateOut && t.ctPlan ? (t.srcGateOut - t.ctPlan) / 60000 : null);
+                t.arrivalDeltaMin  = wrapDelta(t.dstArrival && t.ctArrival ? (t.dstArrival - t.ctArrival) / 60000 : null);
                 // Utilisation accuracy: 'utilization_percentage' in the sheet is a 0..1
                 // fraction (shipments / target_count) and is the real fill rate, so it
                 // wins over the raw stop estimate. Both are normalised to 0..100 here.
@@ -1983,10 +2387,10 @@ function initApp(res, preserve){
    FILTERS
 ================================================================ */
 function populateLiveFilters(){
-    const curSrc = $('#live-src').val() || [];
-    const curDst = $('#live-dst').val() || [];
-    const curVen = $('#live-vendor').val() || [];
-    const curFlag = $('#live-flag').val() || [];
+    const curSrc = selValues('#live-src');
+    const curDst = selValues('#live-dst');
+    const curVen = selValues('#live-vendor');
+    const curFlag = selValues('#live-flag');
     const uniq = (fn) => [...new Set(liveRows.map(fn).filter(x => x !== null && x !== undefined && String(x).trim() !== ''))].sort();
     fillLiveSelect('#live-src', uniq(t => t.srcHub), curSrc);
     fillLiveSelect('#live-dst', uniq(t => t.dstHub), curDst);
@@ -1995,14 +2399,16 @@ function populateLiveFilters(){
 }
 
 function fillLiveSelect(sel, values, keepVals){
-    const $el = $(sel);
-    if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
-    $el.empty();
-    values.forEach(v => $el.append(new Option(v, v, false, false)));
-    $el.select2({ theme:'bootstrap-5', placeholder:'All', allowClear:true, width:'100%' })
-       .on('change', renderLiveTracking);
-    if (keepVals && keepVals.length) $el.val(keepVals.filter(x => values.includes(x)));
-    $el.trigger('change.select2');
+    const el = document.querySelector(sel);
+    if (!el) return;
+    const list = (values || []).map(String);
+    const prev = (keepVals || []).map(String).filter(v => list.indexOf(v) !== -1);
+    el.innerHTML = '';
+    list.forEach(v => el.appendChild(new Option(v, v, false, false)));
+    el.disabled = !list.length;
+    Array.prototype.slice.call(el.options).forEach(o => { o.selected = prev.indexOf(o.value) !== -1; });
+    mcsInit(el, renderLiveTracking);
+    mcsSync(el);
 }
 
 function applyGlobalFilters(){
@@ -2049,7 +2455,7 @@ function resetLiveFilters(){
     const t = document.getElementById('live-date-to');
     if(f) f.value = '';
     if(t) t.value = '';
-    ['#live-src','#live-dst','#live-vendor','#live-flag'].forEach(id => $(id).val(null).trigger('change'));
+    ['#live-src','#live-dst','#live-vendor','#live-flag'].forEach(id => setSelectValues(id, []));
     renderLiveTracking();
 }
 
@@ -2060,10 +2466,10 @@ function getLiveScopeRows(){
     const toEl   = document.getElementById('live-date-to');
     const from = fromEl ? fromEl.value : '';
     const to   = toEl ? toEl.value : '';
-    const srcSel  = $('#live-src').val() || [];
-    const dstSel  = $('#live-dst').val() || [];
-    const venSel  = $('#live-vendor').val() || [];
-    const flagSel = $('#live-flag').val() || [];
+    const srcSel  = selValues('#live-src');
+    const dstSel  = selValues('#live-dst');
+    const venSel  = selValues('#live-vendor');
+    const flagSel = selValues('#live-flag');
 
     let rows = liveRows;
     if (from || to) rows = rows.filter(t => inDateRange(normDateKey(t.dod), from, to));
@@ -2093,6 +2499,35 @@ function parseHhmm(s){
     return h * 60 + parseInt(m[2], 10);   // minutes since midnight, for sorting
 }
 
+/* Minutes between two clock values (actual − plan), wrapped to ±12h so a
+   midnight crossing never reads as 23 hours. */
+function hhmmDiff(actual, plan){
+    const a = parseHhmm(actual), p = parseHhmm(plan);
+    if (a === null || p === null) return null;
+    return wrapDelta(a - p);
+}
+
+/* '+12 min' / '−7 min' / '0 min' */
+function fmtVar(mins){
+    if (mins === null || mins === undefined || isNaN(mins)) return '—';
+    const v = Math.round(mins);
+    if (v === 0) return '0 min';
+    return (v > 0 ? '+' : '−') + Math.abs(v) + ' min';
+}
+function varStats(rows, key){
+    const v = rows.map(t => t[key]).filter(x => x !== null && x !== undefined && !isNaN(x));
+    if (!v.length) return null;
+    const sorted = v.slice().sort((a, b) => a - b);
+    const sum = v.reduce((a, b) => a + b, 0);
+    return {
+        n: v.length,
+        avg: sum / v.length,
+        median: sorted[Math.floor(sorted.length / 2)],
+        worstLate: sorted[sorted.length - 1],
+        worstEarly: sorted[0]
+    };
+}
+
 function seqRank(s){
     const m = String(s || '').trim().match(/(\d+)/);
     return m ? parseInt(m[1], 10) : 999;
@@ -2103,10 +2538,10 @@ function renderLiveTracking(){
     if (!wrap) return;
 
     const rangeLabel = liveScopeLabel();
-    const srcSel  = $('#live-src').val() || [];
-    const dstSel  = $('#live-dst').val() || [];
-    const venSel  = $('#live-vendor').val() || [];
-    const flagSel = $('#live-flag').val() || [];
+    const srcSel  = selValues('#live-src');
+    const dstSel  = selValues('#live-dst');
+    const venSel  = selValues('#live-vendor');
+    const flagSel = selValues('#live-flag');
     const rows = getLiveScopeRows();
 
     // Summary KPIs (Extra rows have no plan → excluded from adherence)
@@ -2249,105 +2684,103 @@ function renderLiveReport(scopeRows){
     }).join('') : `<tr><td colspan="12" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>No occurrences match this report mode</td></tr>`;
 }
 
-/* ===== Text summary — lane-level early/late/adhered counts + arrival %, copyable to send ===== */
+/* ===== Text summary — VARIANCE per metric, in minutes (no adherence counts) =====
+   Every number below is "actual − plan": − = early, + = late. */
 function buildTextSummary(rows){
     const L = [];
     const rangeLabel = liveScopeLabel();
-    const srcSel  = $('#live-src').val() || [];
-    const dstSel  = $('#live-dst').val() || [];
-    const venSel  = $('#live-vendor').val() || [];
-    const flagSel = $('#live-flag').val() || [];
+    const srcSel  = selValues('#live-src');
+    const dstSel  = selValues('#live-dst');
+    const venSel  = selValues('#live-vendor');
+    const flagSel = selValues('#live-flag');
     const scope = [`Date: ${rangeLabel}`]
         .concat(srcSel.length ? [`Src: ${srcSel.join(', ')}`] : [])
         .concat(dstSel.length ? [`Dst: ${dstSel.join(', ')}`] : [])
         .concat(venSel.length ? [`Vendors: ${venSel.join(', ')}`] : [])
-        .concat(flagSel.length ? [`Flag: ${flagSel.join(', ')}`] : []).join(' | ');
+        .concat(flagSel.length ? [`Flag: ${flagSel.join(', ')}`] : []).join('  |  ');
 
-    const st = t => ({ out: liveAdhState(t.outAdhRaw).label, arr: liveAdhState(t.arrAdhRaw).label });
-    const dispatched = rows.filter(t => st(t).out !== 'extra');
-    const arrived    = rows.filter(t => st(t).arr !== 'extra');
-    const arrOk  = arrived.filter(t => st(t).arr === 'adhered').length;
-    const outOk  = dispatched.filter(t => st(t).out === 'adhered').length;
-    const arrPct = arrived.length ? Math.round(arrOk/arrived.length*100) : 0;
-    const outPct = dispatched.length ? Math.round(outOk/dispatched.length*100) : 0;
+    const outStat = varStats(rows, 'outVarMin');
+    const arrStat = varStats(rows, 'arrVarMin');
 
-    // --- Core KPIs ---
-    L.push('LINE HAUL LIVE REPORT');
-    L.push('=====================');
-    L.push(`Date: ${rangeLabel}`);
-    L.push(`Occurrences: ${rows.length} (${dispatched.length} with plan, ${rows.length - dispatched.length} extra/no‑plan)`);
-    L.push(`Dispatch adherence: ${outPct}% (${outOk}/${dispatched.length} on‑plan)`);
-    L.push(`Arrival adherence:  ${arrPct}% (${arrOk}/${arrived.length} on‑time)`);
+    L.push('LINE HAUL LIVE — VARIANCE REPORT');
+    L.push('=================================');
+    L.push('Scope : ' + scope);
+    L.push(`Rows  : ${fmt(rows.length)} occurrences`);
     L.push('');
 
-    // --- Key insights (worst & best lanes) ---
-    const lanes = {};
+    L.push('VARIANCE BY METRIC  (minutes · − early / + late)');
+    L.push('-'.repeat(64));
+    L.push(outStat
+        ? `Dispatch (out) : average ${fmtVar(outStat.avg)} | median ${fmtVar(outStat.median)} | worst late ${fmtVar(outStat.worstLate)} | worst early ${fmtVar(outStat.worstEarly)}`
+        : 'Dispatch (out) : no planned clock in this scope');
+    L.push(arrStat
+        ? `Arrival        : average ${fmtVar(arrStat.avg)} | median ${fmtVar(arrStat.median)} | worst late ${fmtVar(arrStat.worstLate)} | worst early ${fmtVar(arrStat.worstEarly)}`
+        : 'Arrival        : no planned clock in this scope');
+    L.push('');
+
+    // Average variance per source → destination lane
+    const laneMap = {};
     rows.forEach(t => {
-        const key = `${t.srcHub} - ${t.dstHub}`;
-        (lanes[key] = lanes[key] || { n:0, outA:0, outE:0, outL:0, arrA:0, arrE:0, arrL:0, ex:0 });
-        const g = lanes[key]; g.n++;
-        const s = st(t);
-        if (s.out === 'adhered') g.outA++; else if (s.out.startsWith('not adhered early')) g.outE++; else if (s.out.startsWith('not adhered late')) g.outL++; else g.ex++;
-        if (s.arr === 'adhered') g.arrA++; else if (s.arr.startsWith('not adhered early')) g.arrE++; else if (s.arr.startsWith('not adhered late')) g.arrL++;
+        const key = `${t.srcHub} → ${t.dstHub}`;
+        const g = laneMap[key] || (laneMap[key] = { out: [], arr: [] });
+        if (t.outVarMin !== null && t.outVarMin !== undefined) g.out.push(t.outVarMin);
+        if (t.arrVarMin !== null && t.arrVarMin !== undefined) g.arr.push(t.arrVarMin);
     });
-    const sortedLanes = Object.entries(lanes).sort((a,b)=> b[1].n - a[1].n);
-    const worst = sortedLanes.slice(0, Math.min(3, sortedLanes.length));
-    const best  = sortedLanes.slice(-3).reverse();
+    const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
+    const lanes = Object.keys(laneMap).map(k => ({
+        lane: k,
+        o: mean(laneMap[k].out),
+        a: mean(laneMap[k].arr)
+    })).filter(x => x.o !== null || x.a !== null)
+      .sort((x, y) => (Math.abs(y.a || 0) + Math.abs(y.o || 0)) - (Math.abs(x.a || 0) + Math.abs(x.o || 0)));
 
-    L.push('KEY INSIGHTS');
-    L.push('-'.repeat(60));
-    if (worst.length) {
-        worst.forEach(([k, g]) => {
-            const arrN = g.arrA + g.arrE + g.arrL;
-            const arrL = arrN ? Math.round(g.arrA/arrN*100) : 0;
-            const outBits = [];
-            if (g.outE) outBits.push(`early out ${g.outE}`);
-            if (g.outL) outBits.push(`late out ${g.outL}`);
-            if (g.outA) outBits.push(`on-time out ${g.outA}`);
-            const outStr = outBits.length ? outBits.join(', ') : 'mixed';
-            const arrStr = arrN ? `${g.arrA}/${arrN} = ${arrL}%` : '—';
-            L.push(`• ${k}: ${outStr} | arrival ${arrStr}`);
+    L.push('AVERAGE VARIANCE BY LANE  (worst first)');
+    L.push('-'.repeat(64));
+    if (lanes.length) {
+        lanes.slice(0, 12).forEach(x => {
+            L.push(`${x.lane.padEnd(22)} dispatch ${fmtVar(x.o).padStart(8)} | arrival ${fmtVar(x.a).padStart(8)}`);
         });
-    }
-    if (best.length) {
-        best.forEach(([k, g]) => {
-            const arrN = g.arrA + g.arrE + g.arrL;
-            const arrL = arrN ? Math.round(g.arrA/arrN*100) : 0;
-            const outBits = [];
-            if (g.outA) outBits.push(`on-time out ${g.outA}`);
-            const outStr = outBits.length ? outBits.join(', ') : 'mixed';
-            L.push(`• ${k}: ${outStr} | 100% arrival adherence`);
-        });
-    }
-    L.push('');
-
-    // --- Failing occurrences (summarized, not every row) ---
-    const fails = rows.filter(t => st(t).out.startsWith('not adhered') || st(t).arr.startsWith('not adhered'));
-    L.push('NOTABLE FAILURES');
-    L.push('-'.repeat(60));
-    if (fails.length) {
-        // Group by lane for concise listing
-        const failByLane = {};
-        fails.forEach(t => {
-            const lane = `${t.srcHub} - ${t.dstHub}`;
-            (failByLane[lane] = failByLane[lane] || []).push(t);
-        });
-        let count = 0;
-        Object.entries(failByLane).forEach(([lane, flist]) => {
-            if (count >= 5) return; // show max 5 lane groups
-            const first = flist[0];
-            const s = st(first);
-            const outDesc = s.out.startsWith('not adhered') ? `${s.out.replace('not adhered ','')}` : '';
-            const arrDesc = s.arr.startsWith('not adhered') ? `${s.arr.replace('not adhered ','')}` : '';
-            L.push(`• ${lane}: ${outDesc} / ${arrDesc}`);
-            count++;
-        });
-        if (fails.length > 5) L.push(`… and ${fails.length - 5} more failures`);
+        if (lanes.length > 12) L.push(`… ${lanes.length - 12} more lanes on the board`);
     } else {
-        L.push('No failures in this scope. All adherent! ✓');
+        L.push('  no planned clocks in this scope');
     }
     L.push('');
-    L.push('Copy this text and paste it alongside your Snap Board image in Teams/WhatsApp/email.');
+
+    // Single biggest late and biggest early, per checkpoint
+    const ext = (key) => {
+        let hi = null, lo = null;
+        rows.forEach(t => {
+            const v = t[key];
+            if (v === null || v === undefined || isNaN(v)) return;
+            if (!hi || v > hi.v) hi = { v, t };
+            if (!lo || v < lo.v) lo = { v, t };
+        });
+        return { hi, lo };
+    };
+    const devLine = (label, key, actualField, planField) => {
+        const e = ext(key);
+        if (!e.hi || e.hi.v <= 0) { L.push(`${label} late  : none`); }
+        else L.push(`${label} late  : ${fmtVar(e.hi.v)} — ${e.hi.t.srcHub} → ${e.hi.t.dstHub} · ${e.hi.t.dod} · ${String(e.hi.t[actualField] || '').trim()} vs plan ${String(e.hi.t[planField] || '').trim()}`);
+        if (!e.lo || e.lo.v >= 0) { L.push(`${label} early : none`); }
+        else L.push(`${label} early : ${fmtVar(e.lo.v)} — ${e.lo.t.srcHub} → ${e.lo.t.dstHub} · ${e.lo.t.dod} · ${String(e.lo.t[actualField] || '').trim()} vs plan ${String(e.lo.t[planField] || '').trim()}`);
+    };
+
+    L.push('BIGGEST SINGLE DEVIATIONS');
+    L.push('-'.repeat(64));
+    devLine('Dispatch', 'outVarMin', 'outRaw', 'planOutRaw');
+    devLine('Arrival ', 'arrVarMin', 'arrRaw', 'planArrRaw');
+    L.push('');
+
+    // Short narrative
+    L.push('READ OUT');
+    L.push('-'.repeat(64));
+    if (outStat) L.push(`Dispatch runs ${fmtVar(outStat.avg)} against plan on average (median ${fmtVar(outStat.median)}).`);
+    if (arrStat) L.push(`Arrival runs ${fmtVar(arrStat.avg)} against plan on average (median ${fmtVar(arrStat.median)}).`);
+    if (lanes.length) {
+        const w = lanes[0];
+        L.push(`Worst lane: ${w.lane} — dispatch ${fmtVar(w.o)}, arrival ${fmtVar(w.a)}.`);
+    }
+    L.push('− early / + late. Variance = actual clock − plan clock, wrapped to a 24h day.');
     return L.join('\n');
 }
 
@@ -2378,7 +2811,8 @@ function buildDashboardTextReport(data){
     const srcSel = dashSrcSelection.length ? dashSrcSelection : [];
     const dstSel = dashDstSelection.length ? dashDstSelection : [];
     const venSel = dashVendorSelection.length ? dashVendorSelection : [];
-    const facSel = dashFacilitySelection.length ? dashFacilitySelection : [];
+    const facSrcSel = dashFacilitySrcSelection.length ? dashFacilitySrcSelection : [];
+    const facDstSel = dashFacilityDstSelection.length ? dashFacilityDstSelection : [];
     const statusSel = dashStatusSelection.length ? dashStatusSelection : [];
     const flagSel = dashFlagSelection.length ? dashFlagSelection : [];
     const perfectSel = dashPerfectSelection.length ? dashPerfectSelection : [];
@@ -2388,7 +2822,8 @@ function buildDashboardTextReport(data){
         srcSel.length ? `Src Hubs: ${srcSel.join(', ')}` : 'Src Hubs: All',
         dstSel.length ? `Dst Hubs: ${dstSel.join(', ')}` : 'Dst Hubs: All',
         venSel.length ? `Vendors: ${venSel.join(', ')}` : 'Vendors: All',
-        facSel.length ? `Facility: ${facSel.join(', ')}` : 'Facility: All',
+        facSrcSel.length ? `Facility SRC: ${facSrcSel.join(', ')}` : 'Facility SRC: All',
+        facDstSel.length ? `Facility DST: ${facDstSel.join(', ')}` : 'Facility DST: All',
         statusSel.length ? `Status: ${statusSel.join(', ')}` : 'Status: All',
         flagSel.length ? `Flag Hubs: ${flagSel.join(', ')}` : 'Flag Hubs: All',
         perfectSel.length ? `Perfect Flag: YES` : 'Perfect Flag: All'
@@ -2427,16 +2862,16 @@ function buildDashboardTextReport(data){
     L.push(`RCA Pending: ${fmt(pendingRca)} failed checkpoints without RCA`);
     L.push('');
 
-    // --- Summary by Facility ---
+    // --- Summary by Facility (source side) ---
     const facilityG = {};
     data.forEach(t => {
-        const f = t.facility || 'Unknown';
+        const f = t.facilitySrc || t.facility || 'Unknown';
         if (!facilityG[f]) facilityG[f] = { trips: 0, adhered: 0, perfect: 0 };
         facilityG[f].trips++;
         if (CORE_KEYS.every(k => isPass(t[k]))) facilityG[f].perfect++;
     });
     if (Object.keys(facilityG).length > 1) {
-        L.push('FACILITY BREAKDOWN');
+        L.push('FACILITY SRC BREAKDOWN');
         L.push('────────────────────────────────────────────────────────────');
         Object.entries(facilityG).sort((a,b)=>b[1].trips-a[1].trips).forEach(([name, stats]) => {
             L.push(`  ${name}: ${fmt(stats.trips)} trips, ${Math.round(stats.perfect/stats.trips*100)}% perfect`);
@@ -2642,6 +3077,36 @@ function renderDashboard(data){
     document.getElementById('k-util-n').innerText = fmt(lowUtil);
     document.getElementById('k-flag').innerText = total ? Math.round(flagHubsCount/total*100) + '%' : '—';
     document.getElementById('k-flag-n').innerText = fmt(flagHubsCount);
+
+    // ---- Shipments card: count_of_shipment + sort / non-sort split ----
+    let shipTotal = 0, targetTotal = 0, sortW = 0, nonSortW = 0, mixW = 0;
+    data.forEach(t => {
+        const n = t.countOfShipment || t.shipments || 0;
+        shipTotal += n;
+        targetTotal += t.targetCount || 0;
+        if (n && t.percentageOfSort !== null && t.percentageOfSort !== undefined) {
+            sortW    += t.percentageOfSort * n;
+            nonSortW += (t.percentageOfNonSort || 0) * n;
+            mixW     += n;
+        }
+    });
+    const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
+    setTxt('ship-total', fmt(shipTotal));
+    setTxt('ship-trips', fmt(total) + ' trips in scope');
+    setTxt('ship-avg', total ? fmt(Math.round(shipTotal / total)) : '0');
+    setTxt('ship-target', targetTotal ? 'target ' + fmt(targetTotal) : 'no target column');
+    if (mixW) {
+        const sortPct = sortW / mixW, nonPct = nonSortW / mixW;
+        setTxt('ship-sort', Math.round(sortPct) + '%');
+        setTxt('ship-nonsort', Math.round(nonPct) + '%');
+        setTxt('ship-sort-n', fmt(Math.round(shipTotal * sortPct / 100)) + ' shipments');
+        setTxt('ship-nonsort-n', fmt(Math.round(shipTotal * nonPct / 100)) + ' shipments');
+    } else {
+        setTxt('ship-sort', '—');
+        setTxt('ship-nonsort', '—');
+        setTxt('ship-sort-n', 'no sort split');
+        setTxt('ship-nonsort-n', 'no sort split');
+    }
 
     // ---- 6 core metric cards ----
     const metrics = ['portalAdh','portalPlanVsActualAdh','gateInToOpenAdh','openToSealAdh','arrivalAdh','vehicleAdh'];
@@ -3151,8 +3616,9 @@ function renderTripDetailsTable(data){
             <td>${esc(t.srcHub)}</td>
             <td>${esc(t.dstHub)}</td>
             <td>${esc(t.vendor)}${t.plateNr?`<br/><small class="text-muted">${esc(t.plateNr)}</small>`:''}</td>
-            <td><span class="badge ${statusColor}">${esc(t.tripStatus||'')}</span></td>
-            <td>${esc(t.facility||'')}</td>
+            <td><span class="badge ${statusColor}">${esc(t.tripStatus||'—')}</span></td>
+            <td>${esc(t.facilitySrc||t.facility||'')}</td>
+            <td>${esc(t.facilityDst||'')}</td>
             <td>${isPass(t.portalAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
             <td>${isPass(t.portalPlanVsActualAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
             <td>${isPass(t.gateInToOpenAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
@@ -3169,7 +3635,7 @@ function renderTripDetailsTable(data){
     
     resetTable('#tripDetailsTable');
     tripDetailsDT = null;
-    tbody.innerHTML = rows || `<tr><td colspan="21" class="text-center text-muted py-3">No trips match the current filters</td></tr>`;
+    tbody.innerHTML = rows || `<tr><td colspan="22" class="text-center text-muted py-3">No trips match the current filters</td></tr>`;
     if (!filtered.length) return;   // placeholder row only — DataTables cannot page over it
 
     tripDetailsDT = $('#tripDetailsTable').DataTable({
@@ -3177,7 +3643,7 @@ function renderTripDetailsTable(data){
         dom: 'lrtip',
         order: [[2,'asc']],
         columnDefs: [
-            { orderable: false, targets: [0,3,4,5,6,7,8,9,10,11,12,13,14,15,18,19,20] }
+            { orderable: false, targets: [0,3,4,5,6,7,8,9,10,11,12,13,14,15,16,19,20,21] }
         ]
     });
 }
@@ -3192,14 +3658,17 @@ function exportTripTable(){
     const data = getFilteredDashboardData();
     if (!data.length) { showToast('Nothing to export', 'danger'); return; }
 
-    const headers = ['Date','Trip ID','Trip Code','Route','Src Hub','Dst Hub','Vendor','Plate','Status','Facility',
+    const headers = ['Date','Trip ID','Trip Code','Route','Src Hub','Dst Hub','Vendor','Plate','Status','Facility SRC','Facility DST',
         'Portal Adh','Act/Plan Adh','Gate-Open Adh','Open-Seal Adh','Arrival Adh','Vendor Adh',
-        'Shipments','Util %','Perfect Flag','Flag Hubs','Dispatch Variance (min)'];
+        'Shipments','Sorted %','Non-Sort %','Util %','Perfect Flag','Flag Hubs',
+        'Dispatch Variance (min)','Gate-in to Open (min)','Open to Seal (min)','Arrival Variance (min)'];
     const lines = [headers.map(csvCell).join(',')];
     data.forEach(t => lines.push([
-        t.date, t.tripId, t.tripCode, t.routeCode, t.srcHub, t.dstHub, t.vendor, t.plateNr, t.tripStatus, t.facility,
+        t.date, t.tripId, t.tripCode, t.routeCode, t.srcHub, t.dstHub, t.vendor, t.plateNr, t.tripStatus,
+        t.facilitySrc || t.facility, t.facilityDst,
         t.portalAdh, t.portalPlanVsActualAdh, t.gateInToOpenAdh, t.openToSealAdh, t.arrivalAdh, t.vehicleAdh,
-        t.shipments, t.utilPct, t.perfectFlag, t.flagHubs, t.varMinutes
+        t.shipments, t.percentageOfSort, t.percentageOfNonSort, t.utilPct, t.perfectFlag, t.flagHubs,
+        t.varMinutes, t.gateInToOpenMin, t.openToSealMin, t.arrivalDeltaMin
     ].map(csvCell).join(',')));
 
     const blob = new Blob(["\ufeff" + lines.join('\n')], { type:'text/csv;charset=utf-8;' });
@@ -3245,7 +3714,8 @@ function reportScopeText(){
     parts.push(dashSrcSelection.length ? `Src: ${dashSrcSelection.join(', ')}` : 'Src: All');
     parts.push(dashDstSelection.length ? `Dst: ${dashDstSelection.join(', ')}` : 'Dst: All');
     parts.push(dashVendorSelection.length ? `Vendor: ${dashVendorSelection.join(', ')}` : 'Vendor: All');
-    parts.push(dashFacilitySelection.length ? `Facility: ${dashFacilitySelection.join(', ')}` : 'Facility: All');
+    parts.push(dashFacilitySrcSelection.length ? `Facility SRC: ${dashFacilitySrcSelection.join(', ')}` : 'Facility SRC: All');
+    parts.push(dashFacilityDstSelection.length ? `Facility DST: ${dashFacilityDstSelection.join(', ')}` : 'Facility DST: All');
     parts.push(dashStatusSelection.length ? `Status: ${dashStatusSelection.join(', ')}` : 'Status: All');
     parts.push(dashFlagSelection.length ? `Flag Hubs: ${dashFlagSelection.join(', ')}` : 'Flag Hubs: All');
     if (dashPerfectSelection.length) parts.push('Perfect Flag: YES');
@@ -3407,8 +3877,9 @@ function renderReportTrips(data){
             <td class="fw-semibold">${esc(t.srcHub)}</td>
             <td class="fw-semibold">${esc(t.dstHub)}</td>
             <td>${esc(t.vendor)}${t.plateNr?`<br/><small class="text-muted">${esc(t.plateNr)}</small>`:''}</td>
-            <td>${esc(t.facility||'')}</td>
-            <td class="${stCls}">${esc(t.tripStatus||'')}</td>
+            <td>${esc(t.facilitySrc||t.facility||'')}</td>
+            <td>${esc(t.facilityDst||'')}</td>
+            <td class="${stCls}">${esc(t.tripStatus||'—')}</td>
             ${METRICS.map(m => cellFor(t, m)).join('')}
             <td data-order="${fails}">${fails === 0
                 ? '<span class="score-pill adh-good">All 6 adhered</span>'
@@ -3417,15 +3888,15 @@ function renderReportTrips(data){
                 ? `<span class="text-danger fw-bold">${missingRcaFor(t).length} pending</span>`
                 : '<span class="text-success">\u2713</span>'}</td>
         </tr>`;
-    }).join('') : `<tr><td colspan="15" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>Nothing to show for this mode</td></tr>`;
+    }).join('') : `<tr><td colspan="16" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>Nothing to show for this mode</td></tr>`;
 
     // Nothing to page through: leave the placeholder row alone. Initialising
     // DataTables over a single colspan placeholder row throws, so skip it.
     if (!rows.length) return;
     try {
         reportTripDT = $('#reportTripTable').DataTable({
-            pageLength: 15, dom: 'lrtip', order: [[13,'asc']],
-            columnDefs: [{ orderable:false, targets:[0,1,2,3,4,5,6,7,8,9,10,11,12,14] }]
+            pageLength: 15, dom: 'lrtip', order: [[14,'asc']],
+            columnDefs: [{ orderable:false, targets:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,15] }]
         });
     } catch(e){ console.warn('[renderReportTrips] DataTable init failed', e); }
 }
@@ -3508,10 +3979,17 @@ function buildTripReportText(data){
     L.push('');
 
     // ---- FACILITY / STATUS ----
-    const facG = groupBy(data, t => (t.facility || 'Unknown'));
-    L.push('FACILITY BREAKDOWN');
+    const facG = groupBy(data, t => (t.facilitySrc || t.facility || 'Unknown'));
+    L.push('FACILITY SRC BREAKDOWN');
     L.push(thin);
     Object.entries(facG).sort((a,b)=>b[1].length-a[1].length).forEach(([name, arr]) => {
+        L.push(`${name.padEnd(14)} trips ${fmt(arr.length).padStart(6)} | composite ${pctTxt(composite(arr)).padStart(4)} | fully adhered ${arr.filter(t=>METRICS.every(m=>isPass(t[m.key]))).length}/${arr.length}`);
+    });
+    L.push('');
+    const facDG = groupBy(data, t => (t.facilityDst || 'Unknown'));
+    L.push('FACILITY DST BREAKDOWN');
+    L.push(thin);
+    Object.entries(facDG).sort((a,b)=>b[1].length-a[1].length).forEach(([name, arr]) => {
         L.push(`${name.padEnd(14)} trips ${fmt(arr.length).padStart(6)} | composite ${pctTxt(composite(arr)).padStart(4)} | fully adhered ${arr.filter(t=>METRICS.every(m=>isPass(t[m.key]))).length}/${arr.length}`);
     });
     L.push('');
@@ -3577,15 +4055,19 @@ function copyReportText(){
 function exportReportCsv(){
     const data = getFilteredDashboardData();
     if (!data.length) { showToast('Nothing to export', 'danger'); return; }
-    const headers = ['Date','Trip ID','Trip Code','Source Hub','Destination Hub','Vendor','Plate','Facility','Status',
+    const headers = ['Date','Trip ID','Trip Code','Source Hub','Destination Hub','Vendor','Plate',
+        'Facility SRC','Facility DST','Flag Hubs','Trip Flag',
         ...METRICS.map(m => m.label + ' (Adhered?)'),
+        ...METRICS.map(m => m.label + ' (measured)'),
         'Failed Checkpoints','Failed Checkpoint List','RCA Pending'];
     const lines = [headers.map(csvCell).join(',')];
     data.forEach(t => {
         const fails = METRICS.filter(m => !isPass(t[m.key]));
         lines.push([
-            t.dateKey || t.date, t.tripId, t.tripCode, t.srcHub, t.dstHub, t.vendor, t.plateNr, t.facility, t.tripStatus,
+            t.dateKey || t.date, t.tripId, t.tripCode, t.srcHub, t.dstHub, t.vendor, t.plateNr,
+            t.facilitySrc || t.facility, t.facilityDst, t.flagHubs, t.tripStatus,
             ...METRICS.map(m => isPass(t[m.key]) ? 'Adhered' : 'Not adhered'),
+            ...METRICS.map(m => { const v = metricVariance(t, m.key); return v ? v.text : ''; }),
             fails.length,
             fails.map(m => m.label).join(' | '),
             missingRcaFor(t).length
