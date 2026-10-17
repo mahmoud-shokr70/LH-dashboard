@@ -206,6 +206,32 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
     .mcs-opt { display:flex; align-items:center; gap:7px; padding:3px 10px; font-size:.76rem; cursor:pointer; margin:0; }
     .mcs-opt:hover { background:#fbf8ee; }
     .mcs-opt input { margin:0; }
+    .mcs-opt .mcs-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    /* live count beside every option — recomputed against the current scope */
+    .mcs-count { margin-left:auto; font-family:var(--font-num); font-size:.66rem; font-weight:700; color:#6b6353;
+        background:#f4f1e6; border:1px solid #e8e2cf; border-radius:999px; padding:0 7px; min-width:34px; text-align:center; }
+    .mcs-count.is-zero { color:#b8b1a1; background:#fff; border-style:dashed; }
+    .mcs-empty { padding:8px 10px; font-size:.72rem; color:#6b6353; line-height:1.45; }
+    /* free-text search inside a filter panel */
+    .mcs-search-wrap { display:flex; align-items:center; gap:6px; padding:4px 8px; border-bottom:1px solid #efece2; }
+    .mcs-search-wrap i { font-size:.7rem; color:#9a9282; }
+    .mcs-search { width:100%; border:0; outline:none; font-size:.75rem; background:transparent; color:#111; }
+    /* note telling the operator how many values were hidden by the other filters */
+    .mcs-hidden-note { padding:5px 10px; font-size:.66rem; color:#8a6d1a; background:#fff8e1; border-top:1px dashed #e8e2cf; line-height:1.4; }
+    /* active-filter chips under the dashboard filter bar */
+    .filter-chip { display:inline-flex; align-items:center; gap:5px; background:#fff; border:1px solid #d8d2c0;
+        border-radius:999px; padding:1px 9px; font-size:.72rem; margin:1px 2px; }
+    .filter-chip .fc-k { font-family:var(--font-head); font-size:.58rem; font-weight:800; text-transform:uppercase;
+        color:#8a6d1a; background:var(--brand-yellow3); border-radius:999px; padding:0 6px; }
+    .filter-chip .fc-x { cursor:pointer; color:#b8b1a1; font-size:.6rem; }
+    .filter-chip .fc-x:hover { color:var(--brand-red); }
+    .scope-badge { display:inline-flex; align-items:center; background:var(--brand-black); color:#fff;
+        border-radius:999px; padding:1px 11px; font-family:var(--font-num); font-size:.72rem; font-weight:700; }
+    .scope-badge.is-empty { background:var(--brand-red); }
+    .insight-card.clickable { cursor:pointer; transition:transform .12s ease, box-shadow .12s ease; }
+    .insight-card.clickable:hover { transform:translateY(-2px); box-shadow:0 6px 15px rgba(0,0,0,.10); }
+    .insight-card .open-hint { float:right; font-family:var(--font-head); font-size:.58rem; font-weight:800;
+        color:#b8b1a1; letter-spacing:.4px; }
 
     /* ===== Late / Early variance pills ===== */
     .var-pill { font-family:var(--font-num); font-size:.67rem; font-weight:700; border-radius:999px; padding:2px 8px; white-space:nowrap; display:inline-block; }
@@ -800,6 +826,31 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </div>
             <div class="row g-2 mb-4" id="insightCards"></div>
 
+            <!-- LIVE TRACKING GAP ANALYSIS (same page, live occurrence sheet) -->
+            <div class="table-container mb-4" id="liveGapBox">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <h5 class="fw-bold m-0"><i class="bi bi-broadcast me-2 text-primary"></i>Live Tracking — Gap Analysis
+                        <span class="text-muted fw-normal fs-6">dispatch vs arrival, from the occurrence sheet</span></h5>
+                    <span class="badge text-bg-light border" id="liveGapBadge">—</span>
+                </div>
+                <div class="row g-2 mb-3" id="liveInsightCards"></div>
+                <div class="row g-3">
+                    <div class="col-lg-7">
+                        <div class="card p-3 border-0 shadow-sm chart-card h-100">
+                            <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line text-warning me-2"></i>Average Variance by Lane <span class="text-muted fw-normal" style="font-size:.72rem">(minutes · − early / + late)</span></h6>
+                            <div class="chart-box"><canvas id="chartLiveVar"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card p-3 border-0 shadow-sm chart-card h-100">
+                            <h6 class="fw-bold mb-3"><i class="bi bi-diagram-3 text-danger me-2"></i>Why The Arrival Was Late</h6>
+                            <div class="chart-box"><canvas id="chartLiveCause"></canvas></div>
+                            <div class="text-muted mt-2" style="font-size:.72rem">Dispatched on time or early but arrived late → the time was lost after leaving, i.e. <strong>vendor / en-route delay</strong>.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- METRIC VISUALIZATIONS -->
             <div class="row g-3 mb-4">
                 <div class="col-lg-6">
@@ -1025,7 +1076,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'v3 — 2026-10-17';
+const BUILD = 'v5 — 2026-10-17';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -1263,9 +1314,14 @@ function setSelectValues(sel, vals){
 ================================================================ */
 const MCS_CARET = '<i class="bi bi-chevron-down" style="font-size:.65rem;opacity:.6"></i>';
 
-function mcsInit(el, onChange){
+function mcsInit(el, onChange, countFn){
     if(!el) return;
-    if(el.__mcs){ el.__mcs.onChange = onChange; mcsSync(el); return; }
+    if(el.__mcs){
+        el.__mcs.onChange = onChange;
+        el.__mcs.countFn = countFn || el.__mcs.countFn || null;
+        mcsSync(el);
+        return;
+    }
 
     const wrap = document.createElement('div');
     wrap.className = 'mcs';
@@ -1278,6 +1334,8 @@ function mcsInit(el, onChange){
         '<span><button type="button" class="btn btn-sm btn-link p-0 mcs-all">Select all</button>' +
         ' <button type="button" class="btn btn-sm btn-link p-0 text-muted mcs-none">Clear</button></span>' +
         '<button type="button" class="btn btn-sm btn-dark py-0 px-2 mcs-done">Done</button></div>' +
+        '<div class="mcs-search-wrap" style="display:none"><i class="bi bi-search"></i>' +
+        '<input type="text" class="mcs-search" placeholder="Type to find a value…" autocomplete="off"></div>' +
         '<div class="mcs-list"></div>';
     wrap.appendChild(btn);
     wrap.appendChild(panel);
@@ -1285,7 +1343,18 @@ function mcsInit(el, onChange){
     el.style.display = 'none';
 
     const list = panel.querySelector('.mcs-list');
-    el.__mcs = { wrap: wrap, btn: btn, panel: panel, list: list, onChange: onChange };
+    const searchWrap = panel.querySelector('.mcs-search-wrap');
+    const searchEl = panel.querySelector('.mcs-search');
+    el.__mcs = { wrap: wrap, btn: btn, panel: panel, list: list, searchWrap: searchWrap, search: '',
+                 onChange: onChange, countFn: countFn || null, hideZero: false, lastKey: null,
+                 emptyText: 'No options available yet' };
+    el.classList.add('mcs-counted');
+
+    searchEl.addEventListener('input', function(){ el.__mcs.search = searchEl.value; mcsRenderList(el); });
+    searchEl.addEventListener('keydown', function(ev){
+        if (ev.key === 'Escape') { searchEl.value = ''; el.__mcs.search = ''; mcsRenderList(el); }
+        ev.stopPropagation();
+    });
 
     btn.addEventListener('click', function(ev){
         ev.stopPropagation();
@@ -1295,7 +1364,8 @@ function mcsInit(el, onChange){
     });
     panel.addEventListener('click', function(ev){ ev.stopPropagation(); });
     panel.querySelector('.mcs-all').addEventListener('click', function(){
-        Array.prototype.slice.call(el.options).forEach(function(o){ if(o.value!=='') o.selected = true; });
+        // Only tick values that can actually return rows in the current scope.
+        Array.prototype.slice.call(el.options).forEach(function(o){ if(o.value!=='' && o.__avail !== false) o.selected = true; });
         mcsSync(el); mcsFire(el);
     });
     panel.querySelector('.mcs-none').addEventListener('click', function(){
@@ -1328,24 +1398,95 @@ function mcsSyncSummary(el){
     const st = el.__mcs; if(!st) return;
     const opts = Array.prototype.slice.call(el.options).filter(function(o){ return o.value !== ''; });
     const chosen = opts.filter(function(o){ return o.selected; });
+    const avail = opts.filter(function(o){ return o.__avail !== false; }).length;
     st.btn.disabled = el.disabled || !opts.length;
     st.btn.classList.toggle('mcs-active', chosen.length > 0);
     let txt;
     if(el.disabled || !opts.length) txt = 'No data';
-    else if(!chosen.length) txt = 'All (' + opts.length + ')';
+    else if(!chosen.length) txt = (st.hideZero && avail < opts.length) ? 'All shown (' + avail + ')' : 'All (' + opts.length + ')';
     else if(chosen.length === 1) txt = chosen[0].value;
     else txt = chosen.length + ' selected';
     st.btn.innerHTML = '<span class="mcs-sum">' + esc(txt) + '</span>' + MCS_CARET;
-    st.btn.title = chosen.length ? chosen.map(function(o){ return o.value; }).join(', ') : 'All values';
+    st.btn.title = chosen.length
+        ? chosen.map(function(o){ return o.value; }).join(', ')
+        : (avail < opts.length ? avail + ' of ' + opts.length + ' values match the other filters' : 'All values');
 }
 
 function mcsRenderList(el){
     const st = el.__mcs; if(!st) return;
     const opts = Array.prototype.slice.call(el.options).filter(function(o){ return o.value !== ''; });
-    st.list.innerHTML = opts.length ? opts.map(function(o){
-        return '<label class="mcs-opt"><input type="checkbox" class="form-check-input" value="' + esc(o.value) + '"' +
-               (o.selected ? ' checked' : '') + '><span>' + esc(o.value) + '</span></label>';
-    }).join('') : '<div class="small text-muted p-2">No options</div>';
+    const cnt = (typeof st.countFn === 'function') ? st.countFn : null;
+    const hideZero = !!st.hideZero;
+    const q = String(st.search || '').trim().toLowerCase();
+
+    if (st.searchWrap) st.searchWrap.style.display = opts.length > 6 ? '' : 'none';
+
+    // Count every option against the *other* filters, then remember whether it
+    // can still return a row — that flag drives both hiding and "Select all".
+    let rows = opts.map(function(o){
+        const n = cnt ? cnt(o.value) : null;
+        const avail = !hideZero || n === null || n === undefined || n > 0;
+        o.__count = n;
+        o.__avail = avail;
+        return { v: o.value, sel: o.selected, n: n, avail: avail };
+    });
+
+    // A value that would return zero rows under the current scope is dropped
+    // from the list entirely (a value that is already ticked stays visible).
+    let hidden = 0;
+    if (hideZero) {
+        const before = rows.length;
+        rows = rows.filter(function(r){ return r.avail || r.sel; });
+        hidden = before - rows.length;
+    }
+    const matchable = rows.length;
+    if (q) rows = rows.filter(function(r){ return r.v.toLowerCase().indexOf(q) !== -1; });
+
+    if (!rows.length) {
+        st.list.innerHTML = '<div class="mcs-empty">' + esc(
+            matchable ? 'No value matches "' + st.search + '".'
+                      : (opts.length ? 'Every value is either selected or hidden by the other filters.'
+                                     : (st.emptyText || 'No options available yet'))
+        ) + '</div>';
+        st.lastKey = null;
+        return;
+    }
+
+    const key = rows.map(function(r){ return r.v; }).join('\u0000') + '|' + hidden + '|' + q;
+    const nodes = Array.prototype.slice.call(st.list.querySelectorAll('.mcs-opt'));
+    const canRefreshInPlace = (st.lastKey === key) && nodes.length === rows.length &&
+        rows.every(function(r, i){ return nodes[i].getAttribute('data-v') === r.v; });
+
+    // If the shape is unchanged, refresh state in place: the panel may be open
+    // and rebuilding the nodes under the pointer would steal the next click.
+    if (canRefreshInPlace) {
+        rows.forEach(function(r, i){
+            const node = nodes[i];
+            const cb = node.querySelector('input');
+            if (cb) cb.checked = r.sel;
+            const badge = node.querySelector('.mcs-count');
+            if (badge) {
+                badge.textContent = (r.n === null || r.n === undefined) ? '—' : fmt(r.n);
+                badge.classList.toggle('is-zero', r.n === 0);
+            }
+        });
+        return;
+    }
+
+    const scrollTop = st.list.scrollTop;
+    st.list.innerHTML = rows.map(function(r){
+        return '<label class="mcs-opt" data-v="' + esc(r.v) + '">' +
+            '<input type="checkbox" class="form-check-input" value="' + esc(r.v) + '"' + (r.sel ? ' checked' : '') + '>' +
+            '<span class="mcs-label">' + esc(r.v) + '</span>' +
+            '<span class="mcs-count' + (r.n === 0 ? ' is-zero' : '') + '"' + (cnt ? '' : ' style="display:none"') + '>' +
+                ((r.n === null || r.n === undefined) ? '—' : fmt(r.n)) +
+            '</span></label>';
+    }).join('') + (hidden > 0
+        ? '<div class="mcs-hidden-note"><i class="bi bi-funnel-fill"></i> ' + fmt(hidden) + ' value' +
+          (hidden === 1 ? '' : 's') + ' hidden — no trips match the other filters</div>'
+        : '');
+    st.lastKey = key;
+    st.list.scrollTop = scrollTop;
 }
 
 function mcsSync(el){
@@ -1357,6 +1498,59 @@ function mcsSync(el){
 function mcsFire(el){
     const h = el && el.__mcs && el.__mcs.onChange;
     if(typeof h === 'function') h();
+}
+
+/* ================================================================
+   DYNAMIC OPTION COUNTS
+   Every option carries the number of rows it would return, recomputed
+   against the scope that is active RIGHT NOW but ignoring its own
+   selection (faceted behaviour): tick GWH and the vendor numbers drop
+   to the GWH subset, while the GWH row itself still shows its own
+   total. Nothing is cached across filter changes.
+================================================================ */
+const DASH_FACETS = {
+    '#dash-src':'src', '#dash-dst':'dst', '#dash-vendor':'vendor', '#dash-flag':'flag',
+    '#dash-fac-src':'facSrc', '#dash-fac-dst':'facDst', '#dash-status':'status'
+};
+const LIVE_FACETS = { '#live-src':'src', '#live-dst':'dst', '#live-vendor':'vendor', '#live-flag':'flag' };
+
+let facetGen = 0;
+let facetCache = {};
+function bumpFacets(){ facetGen++; facetCache = {}; }
+
+function facetValue(row, facet){
+    if (facet === 'src')    return row.srcHub;
+    if (facet === 'dst')    return row.dstHub;
+    if (facet === 'vendor') return row.vendor;
+    if (facet === 'flag')   return String(row.flagHubs || '').trim();
+    if (facet === 'facSrc') return row.facilitySrc || row.facility;
+    if (facet === 'facDst') return row.facilityDst;
+    if (facet === 'status') return row.tripStatus;
+    return '';
+}
+
+function facetCounts(facet, source){
+    const key = source + '|' + facet;
+    if (facetCache[key]) return facetCache[key];
+    const rows = (source === 'live') ? getLiveScopeRows(facet) : getFilteredDashboardData(facet);
+    const map = {};
+    rows.forEach(t => {
+        const v = String(facetValue(t, facet) || '').trim();
+        if (v) map[v] = (map[v] || 0) + 1;
+    });
+    facetCache[key] = map;
+    return map;
+}
+
+function facetCountFn(sel, source){
+    const table = (source === 'live') ? LIVE_FACETS : DASH_FACETS;
+    const facet = table[sel];
+    if (!facet) return null;
+    return function(value){ return facetCounts(facet, source)[String(value).trim()] || 0; };
+}
+
+function refreshFacetCounts(){
+    document.querySelectorAll('select.mcs-counted').forEach(function(el){ mcsSync(el); });
 }
 
 /* Wrapped clock difference: a trip that crosses midnight must not read as 23h. */
@@ -1424,7 +1618,13 @@ const valueLabels = {
                     if (typeof el.getCenterPoint !== 'function') return;
                     const p = el.getCenterPoint(); x = p.x; y = p.y;
                 } else if (type === 'bar') {
-                    if (chart.options.indexAxis === 'y') { x = Math.max(el.x, el.base) + 5; y = el.y; align = 'left'; }
+                    if (chart.options.indexAxis === 'y') {
+                        // Diverging bars: put the label outside the bar end, not on the axis
+                        const negative = el.x < el.base;
+                        if (negative) { x = el.x - 5; align = 'right'; }
+                        else { x = Math.max(el.x, el.base) + 5; align = 'left'; }
+                        y = el.y;
+                    }
                     else { x = el.x; y = Math.min(el.y, el.base) - 4; base = 'bottom'; }
                 } else {
                     x = el.x; y = el.y - 7; base = 'bottom';
@@ -1480,9 +1680,13 @@ let dashDateTo = '';
 let selectedMetricKey = null;
 let metricDetailMode = 'fail';
 
-function applyDashboardFilters(){
-    dashDateFrom = document.getElementById('dash-date-from').value || '';
-    dashDateTo = document.getElementById('dash-date-to').value || '';
+/* DOM -> state. Every filter render path reads through this so the chips, the
+   data filter and the option counts can never drift apart. */
+function syncDashSelectionArrays(){
+    const dFrom = document.getElementById('dash-date-from');
+    const dTo   = document.getElementById('dash-date-to');
+    dashDateFrom = dFrom ? (dFrom.value || '') : '';
+    dashDateTo   = dTo ? (dTo.value || '') : '';
     dashSrcSelection = selValues('#dash-src');
     dashDstSelection = selValues('#dash-dst');
     dashVendorSelection = selValues('#dash-vendor');
@@ -1491,6 +1695,88 @@ function applyDashboardFilters(){
     dashFacilitySrcSelection = selValues('#dash-fac-src');
     dashFacilityDstSelection = selValues('#dash-fac-dst');
     dashStatusSelection = selValues('#dash-status');
+}
+
+/* Changing one filter can make a value picked in another filter impossible
+   (0 rows). Keeping it would silently blank the dashboard, so the dead value
+   is unticked and the operator is told. Counts ignore a filter's own
+   selection, so this only ever drops values killed by a *sibling* filter. */
+function pruneDashSelections(){
+    let dropped = 0;
+    for (let pass = 0; pass < 4; pass++){
+        bumpFacets();
+        let changed = false;
+        Object.keys(DASH_FACETS).forEach(function(sel){
+            const el = document.querySelector(sel);
+            if (!el) return;
+            const counts = facetCounts(DASH_FACETS[sel], 'dash');
+            Array.prototype.slice.call(el.options).forEach(function(o){
+                if (o.selected && o.value !== '' && !counts[String(o.value).trim()]){
+                    o.selected = false; changed = true; dropped++;
+                }
+            });
+        });
+        if (!changed) break;
+        syncDashSelectionArrays();
+    }
+    if (dropped) showToast(dropped + ' filter value' + (dropped === 1 ? '' : 's') + ' removed — nothing matches the other filters', 'warning');
+    return dropped;
+}
+
+const DASH_CHIP_FACETS = [
+    ['#dash-src','Src Hub'], ['#dash-dst','Dst Hub'], ['#dash-vendor','Vendor'],
+    ['#dash-fac-src','Facility SRC'], ['#dash-fac-dst','Facility DST'],
+    ['#dash-flag','Flag Hubs'], ['#dash-status','Trip Flag']
+];
+
+/* The live "what is filtered + how many trips" strip under the filter bar. */
+function renderDashFilterChips(total){
+    const el = document.getElementById('dashFilterInfo');
+    if (!el) return;
+    const chips = [];
+    if (dashDateFrom || dashDateTo) {
+        chips.push('<span class="filter-chip"><span class="fc-k">Date</span>' + esc(dashDateFrom || '…') + ' → ' + esc(dashDateTo || '…') +
+            '<i class="bi bi-x-lg fc-x" title="Clear dates" onclick="clearDashDates()"></i></span>');
+    }
+    DASH_CHIP_FACETS.forEach(function(pair){
+        const elSel = document.querySelector(pair[0]);
+        if (!elSel) return;
+        Array.prototype.slice.call(elSel.options).filter(function(o){ return o.selected && o.value !== ''; }).forEach(function(o){
+            chips.push('<span class="filter-chip"><span class="fc-k">' + esc(pair[1]) + '</span>' + esc(o.value) +
+                '<i class="bi bi-x-lg fc-x" title="Remove this value" onclick="removeDashFilterValue(\'' + pair[0] + '\',\'' +
+                encodeURIComponent(o.value) + '\')"></i></span>');
+        });
+    });
+    const badge = '<span class="scope-badge' + (total ? '' : ' is-empty') + '"><i class="bi bi-funnel-fill me-1"></i>' +
+        fmt(total) + ' trip' + (total === 1 ? '' : 's') + ' in scope</span>';
+    el.innerHTML = badge + ' ' + (chips.length
+        ? chips.join(' ') + '<button class="btn btn-sm btn-outline-secondary py-0 px-2 ms-1" onclick="resetDashFilters()">' +
+          '<i class="bi bi-x-circle me-1"></i>Clear all</button>'
+        : '<span class="text-muted" style="font-size:.74rem">No filters active — showing every trip</span>');
+}
+
+function clearDashDates(){
+    const f = document.getElementById('dash-date-from'), t = document.getElementById('dash-date-to');
+    if (f) f.value = '';
+    if (t) t.value = '';
+    applyDashboardFilters();
+}
+
+function removeDashFilterValue(sel, enc){
+    const value = decodeURIComponent(enc);
+    const el = document.querySelector(sel);
+    if (el) {
+        Array.prototype.slice.call(el.options).forEach(function(o){ if (o.value === value) o.selected = false; });
+        mcsSync(el);
+    }
+    applyDashboardFilters();
+}
+
+function applyDashboardFilters(){
+    syncDashSelectionArrays();   // DOM is the single source of truth
+    pruneDashSelections();       // untick values a sibling filter made impossible
+    syncDashSelectionArrays();   // pick up whatever pruning changed
+    bumpFacets();                // every option count below is recomputed for this scope
 
     let data = [...rawTrips];
     if (dashDateFrom || dashDateTo) {
@@ -1505,17 +1791,6 @@ function applyDashboardFilters(){
     if (dashFacilityDstSelection.length) data = data.filter(t => dashFacilityDstSelection.includes(t.facilityDst));
     if (dashStatusSelection.length) data = data.filter(t => dashStatusSelection.includes(t.tripStatus));
 
-    document.getElementById('dashFilterInfo').innerHTML = `
-        ${dashDateFrom||dashDateTo?`<strong>Date:</strong> ${dashDateFrom||''} ${dashDateFrom&&dashDateTo?'→':''} ${dashDateTo||''}`: '<strong>Date:</strong> All'} • 
-        ${dashSrcSelection.length?`<strong>Src:</strong> ${dashSrcSelection.join(', ')}`:'<strong>Src:</strong> All'} • 
-        ${dashDstSelection.length?`<strong>Dst:</strong> ${dashDstSelection.join(', ')}`:'<strong>Dst:</strong> All'} • 
-        ${dashVendorSelection.length?`<strong>Vendor:</strong> ${dashVendorSelection.join(', ')}`:'<strong>Vendor:</strong> All'} • 
-        ${dashFacilitySrcSelection.length?`<strong>Facility SRC:</strong> ${dashFacilitySrcSelection.join(', ')}`:'<strong>Facility SRC:</strong> All'} • 
-        ${dashFacilityDstSelection.length?`<strong>Facility DST:</strong> ${dashFacilityDstSelection.join(', ')}`:'<strong>Facility DST:</strong> All'} • 
-        ${dashStatusSelection.length?`<strong>Status:</strong> ${dashStatusSelection.join(', ')}`:'<strong>Status:</strong> All'} • 
-        ${dashFlagSelection.length?`<strong>Flag Hubs:</strong> ${dashFlagSelection.join(', ')}`:'<strong>Flag Hubs:</strong> All'} • 
-        ${dashPerfectSelection.length?'<strong>Perfect:</strong> YES': '<strong>Perfect:</strong> All'}`;
-
     // Make dashboard tab active when filters are applied
     const dashTab = document.querySelector('[data-bs-target="#page-dashboard"]');
     if (dashTab) {
@@ -1525,6 +1800,7 @@ function applyDashboardFilters(){
     
 
     renderDashboard(data);
+    renderDashFilterChips(data.length);   // chips + live "trips in scope" badge
 
     // Keep the Trip Report / Gap Analysis in step with the filters
     reportState = 'pending';
@@ -1537,6 +1813,9 @@ function applyDashboardFilters(){
         const card = document.querySelector('.metric-card.selected');
         if (card) selectMetricCard(card, selectedMetricKey);
     }
+
+    // Repaint the number shown beside every option in every filter dropdown
+    refreshFacetCounts();
 }
 
 /* Re-render whichever secondary page the operator is currently looking at,
@@ -1600,6 +1879,9 @@ function populateDashFilters(){
     fillDashSelect('#dash-fac-src', facSrcs, curFacSrc);
     fillDashSelect('#dash-fac-dst', facDsts, curFacDst);
     fillDashSelect('#dash-status', statuses, curStatus);
+
+    // Paint the chips / scope badge and seed the option counts on first load.
+    if (rawTrips.length) applyDashboardFilters();
 }
 
 function fillDashSelect(sel, values, keepVals){
@@ -1617,7 +1899,11 @@ function fillDashSelect(sel, values, keepVals){
         list.forEach(v => el.appendChild(new Option(v, v, false, false)));
         Array.prototype.slice.call(el.options).forEach(o => { o.selected = prev.indexOf(o.value) !== -1; });
     }
-    mcsInit(el, applyDashboardFilters);
+    mcsInit(el, applyDashboardFilters, facetCountFn(sel, 'dash'));
+    if (el.__mcs) {
+        el.__mcs.emptyText = 'No values in this sheet yet — the data may still be loading.';
+        el.__mcs.hideZero = true;   // drop values that cannot return a row
+    }
     mcsSync(el);
 }
 
@@ -1813,19 +2099,21 @@ function clearMetricSelection(){
     document.getElementById('metricDetailPanel').classList.remove('active');
 }
 
-function getFilteredDashboardData(){
+/* `except` names one filter to leave out — used to compute that filter's
+   own option counts against the rest of the active scope. */
+function getFilteredDashboardData(except){
     let data = [...rawTrips];
     if (dashDateFrom || dashDateTo) {
         data = data.filter(t => inDateRange(t.dateKey || normDateKey(t.date), dashDateFrom, dashDateTo));
     }
-    if (dashSrcSelection.length) data = data.filter(t => dashSrcSelection.includes(t.srcHub));
-    if (dashDstSelection.length) data = data.filter(t => dashDstSelection.includes(t.dstHub));
-    if (dashVendorSelection.length) data = data.filter(t => dashVendorSelection.includes(t.vendor));
-    if (dashFlagSelection.length) data = data.filter(t => dashFlagSelection.includes(String(t.flagHubs||'').trim()));
+    if (except !== 'src'    && dashSrcSelection.length) data = data.filter(t => dashSrcSelection.includes(t.srcHub));
+    if (except !== 'dst'    && dashDstSelection.length) data = data.filter(t => dashDstSelection.includes(t.dstHub));
+    if (except !== 'vendor' && dashVendorSelection.length) data = data.filter(t => dashVendorSelection.includes(t.vendor));
+    if (except !== 'flag'   && dashFlagSelection.length) data = data.filter(t => dashFlagSelection.includes(String(t.flagHubs||'').trim()));
     if (dashPerfectSelection.length) data = data.filter(t => isPerfectFlag(t.perfectFlag));
-    if (dashFacilitySrcSelection.length) data = data.filter(t => dashFacilitySrcSelection.includes(t.facilitySrc || t.facility));
-    if (dashFacilityDstSelection.length) data = data.filter(t => dashFacilityDstSelection.includes(t.facilityDst));
-    if (dashStatusSelection.length) data = data.filter(t => dashStatusSelection.includes(t.tripStatus));
+    if (except !== 'facSrc' && dashFacilitySrcSelection.length) data = data.filter(t => dashFacilitySrcSelection.includes(t.facilitySrc || t.facility));
+    if (except !== 'facDst' && dashFacilityDstSelection.length) data = data.filter(t => dashFacilityDstSelection.includes(t.facilityDst));
+    if (except !== 'status' && dashStatusSelection.length) data = data.filter(t => dashStatusSelection.includes(t.tripStatus));
     return data;
 }
 
@@ -1952,6 +2240,15 @@ function bootApp() {
 
     loadDataFromCSV();
     loadLiveCsv();
+    // Wire the filter dropdowns immediately, even before the sheets answer —
+    // otherwise they render as empty, unusable boxes ("options not found").
+    // populateDashFilters re-runs once the trips land, keeping current values.
+    if (typeof populateLiveFilters === 'function') {
+        try { populateLiveFilters(); } catch(e){ console.warn('[bootApp] populateLiveFilters failed:', e); }
+    }
+    if (typeof populateDashFilters === 'function') {
+        try { populateDashFilters(); } catch(e){ console.warn('[bootApp] populateDashFilters failed:', e); }
+    }
 }
 
 // Start as soon as the DOM is parsed (the script sits at the end of <body>,
@@ -2407,7 +2704,13 @@ function fillLiveSelect(sel, values, keepVals){
     list.forEach(v => el.appendChild(new Option(v, v, false, false)));
     el.disabled = !list.length;
     Array.prototype.slice.call(el.options).forEach(o => { o.selected = prev.indexOf(o.value) !== -1; });
-    mcsInit(el, renderLiveTracking);
+    mcsInit(el, renderLiveTracking, facetCountFn(sel, 'live'));
+    if (el.__mcs) {
+        el.__mcs.emptyText = list.length
+            ? 'No values in this sheet yet.'
+            : 'Live Tracking sheet not loaded — retry the live feed to fill this filter.';
+        el.__mcs.hideZero = true;   // drop values that cannot return a row
+    }
     mcsSync(el);
 }
 
@@ -2461,7 +2764,9 @@ function resetLiveFilters(){
 
 // Single source of truth for the Live Tracking scope — every live section
 // (hub tables, adherence report, text summary) filters through this.
-function getLiveScopeRows(){
+/* `except` names one filter to leave out, so that filter's own option
+   counts are computed against the rest of the live scope. */
+function getLiveScopeRows(except){
     const fromEl = document.getElementById('live-date-from');
     const toEl   = document.getElementById('live-date-to');
     const from = fromEl ? fromEl.value : '';
@@ -2473,10 +2778,10 @@ function getLiveScopeRows(){
 
     let rows = liveRows;
     if (from || to) rows = rows.filter(t => inDateRange(normDateKey(t.dod), from, to));
-    if (srcSel.length)  rows = rows.filter(t => srcSel.includes(t.srcHub));
-    if (dstSel.length)  rows = rows.filter(t => dstSel.includes(t.dstHub));
-    if (venSel.length)  rows = rows.filter(t => venSel.includes(t.vendor));
-    if (flagSel.length) rows = rows.filter(t => flagSel.includes(String(t.flagHubs).trim()));
+    if (except !== 'src'    && srcSel.length)  rows = rows.filter(t => srcSel.includes(t.srcHub));
+    if (except !== 'dst'    && dstSel.length)  rows = rows.filter(t => dstSel.includes(t.dstHub));
+    if (except !== 'vendor' && venSel.length)  rows = rows.filter(t => venSel.includes(t.vendor));
+    if (except !== 'flag'   && flagSel.length) rows = rows.filter(t => flagSel.includes(String(t.flagHubs).trim()));
     return rows;
 }
 
@@ -2528,12 +2833,64 @@ function varStats(rows, key){
     };
 }
 
+/* ================================================================
+   ARRIVAL-DELAY ATTRIBUTION (used by Gap Analysis for BOTH sources)
+   Rule the operator asked for: a trip that left on time or early and
+   still arrived late lost the time AFTER leaving — that is a vendor /
+   en-route delay, not a planning problem.
+================================================================ */
+const ARRIVAL_CAUSE = {
+    vendor:  'Vendor delay',
+    dispatch:'Dispatch delay',
+    onTime:  'On time / early',
+    unknown: 'No plan clock'
+};
+
+function classifyArrival(outVar, arrVar){
+    if (arrVar === null || arrVar === undefined) return 'unknown';
+    if (arrVar <= 0) return 'onTime';
+    if (outVar === null || outVar === undefined) return 'unknown';
+    return outVar <= 0 ? 'vendor' : 'dispatch';
+}
+
+/* Dispatch variance of an LH trip, wrapped to a 24h clock. */
+function lhOutVar(t){
+    if (t.dispatchDeltaMin !== null && t.dispatchDeltaMin !== undefined) return t.dispatchDeltaMin;
+    if (t.varMinutes !== null && t.varMinutes !== undefined) return wrapDelta(t.varMinutes);
+    return null;
+}
+
 function seqRank(s){
     const m = String(s || '').trim().match(/(\d+)/);
     return m ? parseInt(m[1], 10) : 999;
 }
 
+/* Live equivalent of pruneDashSelections: a value ticked in one live filter
+   that no longer matches the others is unticked so the board never goes blank. */
+function pruneLiveSelections(){
+    let dropped = 0;
+    for (let pass = 0; pass < 4; pass++){
+        bumpFacets();
+        let changed = false;
+        Object.keys(LIVE_FACETS).forEach(function(sel){
+            const el = document.querySelector(sel);
+            if (!el) return;
+            const counts = facetCounts(LIVE_FACETS[sel], 'live');
+            Array.prototype.slice.call(el.options).forEach(function(o){
+                if (o.selected && o.value !== '' && !counts[String(o.value).trim()]){
+                    o.selected = false; changed = true; dropped++;
+                }
+            });
+        });
+        if (!changed) break;
+    }
+    if (dropped) showToast(dropped + ' live filter value' + (dropped === 1 ? '' : 's') + ' removed — nothing matches the other live filters', 'warning');
+    return dropped;
+}
+
 function renderLiveTracking(){
+    pruneLiveSelections();   // untick values a sibling live filter made impossible
+    bumpFacets();   // live option counts are recomputed for this scope
     const wrap = document.getElementById('liveTables');
     if (!wrap) return;
 
@@ -2564,6 +2921,8 @@ function renderLiveTracking(){
             <i class="bi bi-calendar-x me-1"></i> No occurrences found for <strong>${esc(rangeLabel)}</strong>${(srcSel.length||dstSel.length||venSel.length)?` with the selected hubs/vendors`:''}.
             Pick another date range (sheet data range: ${esc(dodKeys.length? dodKeys[0] : '')} → ${esc(dodKeys.length? dodKeys[dodKeys.length-1] : '')}).</div>`;
         renderLiveReport([]);
+        refreshFacetCounts();
+        if (typeof renderLiveGap === 'function') { try { renderLiveGap(); } catch(e){ console.warn('[renderLiveGap]', e); } }
         return;
     }
 
@@ -2622,6 +2981,8 @@ function renderLiveTracking(){
     if (typeof initSnapshots === 'function') initSnapshots();   // re-add camera buttons to re-rendered tables
     renderLiveReport(rows);
     if (typeof refreshTextSummary === 'function') refreshTextSummary(rows);
+    refreshFacetCounts();
+    if (typeof renderLiveGap === 'function') { try { renderLiveGap(); } catch(e){ console.warn('[renderLiveGap]', e); } }
 }
 
 /* ===== Live Adherence Report — full per-occurrence listing (adhered / not adhered) ===== */
@@ -2706,6 +3067,32 @@ function buildTextSummary(rows){
     L.push('=================================');
     L.push('Scope : ' + scope);
     L.push(`Rows  : ${fmt(rows.length)} occurrences`);
+    L.push('');
+
+    // ---- TL;DR — the headline numbers, before the detail ----
+    const hasPlan = (raw) => { const s = String(raw || '').trim().toLowerCase(); return s !== '' && s !== 'extra'; };
+    const outPlanned = rows.filter(t => hasPlan(t.outAdhRaw));
+    const arrPlanned = rows.filter(t => hasPlan(t.arrAdhRaw));
+    const outOk = outPlanned.filter(t => String(t.outAdhRaw).trim().toLowerCase() === 'adhered').length;
+    const arrOk = arrPlanned.filter(t => String(t.arrAdhRaw).trim().toLowerCase() === 'adhered').length;
+    const outPct = outPlanned.length ? Math.round(outOk / outPlanned.length * 100) : 0;
+    const arrPct = arrPlanned.length ? Math.round(arrOk / arrPlanned.length * 100) : 0;
+    const extraN = rows.filter(t => !hasPlan(t.outAdhRaw) || !hasPlan(t.arrAdhRaw)).length;
+    const notAdhN = rows.filter(t => liveAdhState(t.outAdhRaw).label.startsWith('not adhered') ||
+                                     liveAdhState(t.arrAdhRaw).label.startsWith('not adhered')).length;
+    const combPct = Math.round((outPct + arrPct) / 2);
+    const verdict = combPct >= 90 ? 'ON TARGET — hold the line'
+                  : combPct >= 75 ? 'WATCH — a few lanes are slipping'
+                  : 'ACTION NEEDED — dispatch and/or arrival are off plan';
+
+    L.push('SUMMARY');
+    L.push('-'.repeat(64));
+    L.push(`Verdict            : ${verdict}`);
+    L.push(`Occurrences        : ${fmt(rows.length)}   (${fmt(extraN)} with no plan)`);
+    L.push(`Dispatch adherence : ${outPct}%   (${fmt(outOk)} of ${fmt(outPlanned.length)} planned)`);
+    L.push(`Arrival adherence  : ${arrPct}%   (${fmt(arrOk)} of ${fmt(arrPlanned.length)} planned)`);
+    L.push(`Not adhered        : ${fmt(notAdhN)} occurrences missed a clock`);
+    L.push(`Average variance   : dispatch ${outStat ? fmtVar(outStat.avg) : '—'} · arrival ${arrStat ? fmtVar(arrStat.avg) : '—'}   (− early / + late)`);
     L.push('');
 
     L.push('VARIANCE BY METRIC  (minutes · − early / + late)');
@@ -2837,6 +3224,29 @@ function buildDashboardTextReport(data){
     L.push('');
     L.push('────────────────────────────────────────────────────────────');
     L.push('');
+
+    // ---- TL;DR — the numbers a manager needs before scrolling ----
+    {
+        const sTotal = data.length;
+        const sShip = data.reduce((s,t)=>s+(t.shipments||0),0);
+        const sComp = composite(data);
+        const sPerfect = data.filter(t => CORE_KEYS.every(k => isPass(t[k]))).length;
+        const sFail = sTotal - sPerfect;
+        const sPending = data.filter(rcaPendingTrip).length;
+        const worstMetric = METRICS.map(m => ({ m, p: sTotal ? Math.round(data.filter(t=>isPass(t[m.key])).length/sTotal*100) : 0 }))
+                                  .sort((a,b)=>a.p-b.p)[0];
+        const wLane = laneStats(data).sort((a,b)=>a.adh-b.adh)[0];
+        const v = verdictOf(sComp);
+        L.push('📌 SUMMARY (TL;DR)');
+        L.push('════════════════════════════════════════════════════════════');
+        L.push(`Verdict            : ${v.icon} ${v.label} — composite adherence ${Math.round(sComp)}%`);
+        L.push(`Scope              : ${fmt(sTotal)} trips • ${fmt(sShip)} shipments`);
+        L.push(`Clean vs failing   : ${fmt(sPerfect)} fully adhered  |  ${fmt(sFail)} need action (${sTotal?Math.round(sFail/sTotal*100):0}%)`);
+        if (worstMetric) L.push(`Weakest checkpoint : ${worstMetric.m.label} at ${worstMetric.p}%`);
+        if (wLane)       L.push(`Weakest lane       : ${wLane.name} at ${Math.round(wLane.adh)}% over ${fmt(wLane.trips)} trips`);
+        L.push(`Open RCA items     : ${fmt(sPending)}`);
+        L.push('');
+    }
 
     // --- Executive Summary ---
     L.push('📊 EXECUTIVE SUMMARY');
@@ -3383,6 +3793,7 @@ function renderGap(data){
     renderOffenders(data);
     renderPending(data);
     renderGapMetricViz(data);
+    renderLiveGap();
 }
 
 function renderInsights(data){
@@ -3396,12 +3807,14 @@ function renderInsights(data){
     // 1) Biggest SLA leak - from the 6 metrics
     const leak = targetMetrics.map(m => ({ m, f: data.filter(t=>!isPass(t[m.key])).length })).sort((a,b)=>b.f-a.f)[0];
     if (leak.f > 0) cards.push({ tone:'danger', title:'🔴 Biggest SLA Leak', main: esc(leak.m.label),
+        act: 'metric:' + leak.m.key,
         sub: `${fmt(leak.f)} trips failed (${Math.round(leak.f/data.length*100)}% of filtered trips)` });
 
     // 2) RCA accountability
     const rc = rcaCounts(data);
     const rcComp = rc.need ? rc.have/rc.need*100 : 100;
     cards.push({ tone: rcComp>=80?'success':rcComp>=50?'warning':'danger', title:'📋 RCA Accountability',
+        act: 'log:rcaPending',
         main: Math.round(rcComp) + '% of failures explained',
         sub: `${rc.need - rc.have} of ${rc.need} failed checkpoints still missing RCA` });
 
@@ -3411,6 +3824,7 @@ function renderInsights(data){
         const pct = data.length ? Math.round(failCount/data.length*100) : 0;
         if (failCount > 0) {
             cards.push({ tone: pct>20?'danger':pct>10?'warning':'info', title:`⚠️ ${esc(m.label)} Failures`,
+                act: 'metric:' + m.key,
                 main: `${fmt(failCount)} trips failed`,
                 sub: `${pct}% of filtered trips • ${data.length - failCount} adhered` });
         }
@@ -3419,11 +3833,13 @@ function renderInsights(data){
     // 4) Weakest vendor by composite
     const wv = vendorStats(data).filter(v=>v.trips>=BIZ.VENDOR_MIN_TRIPS).sort((a,b)=>a.composite-b.composite)[0];
     if (wv) cards.push({ tone:'danger', title:`🏢 Weakest Vendor (${BIZ.VENDOR_MIN_TRIPS}+ trips)`, main: esc(wv.name),
+        act: 'gap',
         sub: `${Math.round(wv.composite)}% composite adherence over ${wv.trips} trips` });
 
     // 5) Weakest lane by adherence
     const wl = laneStats(data).filter(l=>l.trips>=BIZ.LANE_MIN_TRIPS).sort((a,b)=>a.adh-b.adh)[0];
     if (wl) cards.push({ tone:'warning', title:`🛣️ Weakest Lane (${BIZ.LANE_MIN_TRIPS}+ trips)`, main: esc(wl.name),
+        act: 'gap',
         sub: `${Math.round(wl.adh)}% adherence over ${wl.trips} trips` });
 
     // 6) Flag Hubs impact
@@ -3434,6 +3850,7 @@ function renderInsights(data){
         const unflaggedComp = composite(unflagged);
         const gap = unflaggedComp - flaggedComp;
         cards.push({ tone: gap>5?'warning':'info', title:'🚩 Flag Hubs Impact',
+            act: 'gap',
             main: `${fmt(flagged.length)} flagged trips (${Math.round(flaggedComp)}% adherence)`,
             sub: `Unflagged: ${Math.round(unflaggedComp)}% • Gap: ${Math.round(gap)} pts` });
     }
@@ -3442,6 +3859,7 @@ function renderInsights(data){
     const perfectFlagged = data.filter(t => isPerfectFlag(t.perfectFlag));
     if (perfectFlagged.length > 0) {
         cards.push({ tone:'success', title:`⭐ Perfect Flag Trips`,
+            act: 'report',
             main: `${fmt(perfectFlagged.length)} trips (${Math.round(perfectFlagged.length/data.length*100)}%)`,
             sub: 'Trips with Perfect_Flag = YES' });
     }
@@ -3449,21 +3867,192 @@ function renderInsights(data){
     // 8) Late dispatch segment
     const late = data.filter(t => t.varMinutes !== null && t.varMinutes > BIZ.LATE_MIN);
     if (late.length) cards.push({ tone:'warning', title:'⏰ Late Dispatch',
+        act: 'log:failed',
         main: `${Math.round(avg(late.map(t=>t.varMinutes)))} min avg delay`,
         sub: `${fmt(late.length)} trips left >${BIZ.LATE_MIN} min after plan (${Math.round(late.length/data.length*100)}%)` });
+
+    // 8b) Arrival delays attributed by cause: dispatched on time but arrived
+    //     late = vendor / en-route delay; dispatched late = own dispatch problem.
+    const arrClocked = data.filter(t => t.arrivalDeltaMin !== null && t.arrivalDeltaMin !== undefined);
+    if (arrClocked.length) {
+        const causes = { vendor: [], dispatch: [], onTime: [], unknown: [] };
+        arrClocked.forEach(t => causes[classifyArrival(lhOutVar(t), t.arrivalDeltaMin)].push(t));
+        if (causes.vendor.length) {
+            const vAvg = Math.round(avg(causes.vendor.map(t => t.arrivalDeltaMin)));
+            cards.push({ tone:'danger', title:'🚚 Vendor Delay (arrived late anyway)',
+                act: 'log:failed',
+                main: `${fmt(causes.vendor.length)} trips — +${vAvg} min late`,
+                sub: `Dispatched on time or early, still late on arrival • ${Math.round(causes.vendor.length/arrClocked.length*100)}% of clocked arrivals` });
+        }
+        if (causes.dispatch.length) {
+            const dAvg = Math.round(avg(causes.dispatch.map(t => t.arrivalDeltaMin)));
+            cards.push({ tone:'warning', title:'⏱️ Late Dispatch Carried To Arrival',
+                act: 'log:failed',
+                main: `${fmt(causes.dispatch.length)} trips — +${dAvg} min late`,
+                sub: 'Left after plan, so the arrival lag starts at the gate' });
+        }
+        if (causes.onTime.length) {
+            cards.push({ tone:'success', title:'✅ Arrived On Time Or Early',
+                act: 'report',
+                main: `${fmt(causes.onTime.length)} trips (${Math.round(causes.onTime.length/arrClocked.length*100)}%)`,
+                sub: 'No arrival variance in this scope' });
+        }
+    }
 
     // 9) Capacity waste
     const low = data.filter(t => t.utilPct !== null && t.utilPct < BIZ.LOW_UTIL);
     if (low.length) cards.push({ tone:'info', title:'📦 Capacity Wasted',
+        act: 'log:failed',
         main: `${fmt(low.length)} under-loaded trips`,
         sub: `utilization below ${BIZ.LOW_UTIL}% (${Math.round(low.length/data.length*100)}% of filtered trips)` });
 
     if (!cards.length) cards.push({ tone:'success', title:'✅ All Clear', main:'No significant gaps', sub:'Everything looks healthy for the current filter scope.' });
 
     el.innerHTML = cards.map(c => `
-        <div class="col-12 col-md-6 col-xl-3"><div class="insight-card tone-${c.tone}">
+        <div class="col-12 col-md-6 col-xl-3"><div class="insight-card tone-${c.tone}${c.act ? ' clickable' : ''}"${
+            c.act ? ` onclick="insightAction('${c.act}')" title="Click to open the matching view"` : ''}>
+            ${c.act ? '<span class="open-hint">OPEN ▸</span>' : ''}
             <div class="t">${c.title}</div><div class="m">${c.main}</div><div class="s">${c.sub}</div>
         </div></div>`).join('');
+}
+
+/* Turns an insight card into a link: every card opens the view that explains it. */
+function insightAction(act){
+    if (!act) return;
+    const parts = String(act).split(':');
+    const kind = parts[0], arg = parts[1];
+    const showTab = function(target){
+        const btn = document.querySelector('[data-bs-target="' + target + '"]');
+        if (btn) bootstrap.Tab.getOrCreateInstance(btn).show();
+    };
+    if (kind === 'metric') {
+        showTab('#page-dashboard');
+        const card = document.querySelector('.metric-card[data-metric="' + arg + '"]');
+        if (card) {
+            selectMetricCard(card, arg);
+            setTimeout(function(){ card.scrollIntoView({ behavior:'smooth', block:'center' }); }, 150);
+        }
+    } else if (kind === 'log') {
+        gotoLog(arg || 'failed', null);
+    } else if (kind === 'report') {
+        showTab('#page-report');
+    } else if (kind === 'gap') {
+        showTab('#page-gap');
+    } else if (kind === 'live') {
+        showTab('#page-live');
+    }
+}
+
+/* ===== Gap Analysis for the LIVE occurrence sheet (same page as the LH one) ===== */
+function renderLiveGap(){
+    const cardsEl = document.getElementById('liveInsightCards');
+    const badge = document.getElementById('liveGapBadge');
+    if (!cardsEl) return;
+
+    const drawCards = (cards) => {
+        cardsEl.innerHTML = cards.length ? cards.map(c =>
+            `<div class="col-12 col-md-6 col-xl-4"><div class="insight-card tone-${c.tone}">
+                <div class="t">${c.title}</div><div class="m">${c.main}</div><div class="s">${c.sub}</div>
+            </div></div>`).join('')
+            : '<div class="col-12"><div class="alert alert-light border mb-0">No live occurrences in the current live scope.</div></div>';
+    };
+
+    if (!liveRows || !liveRows.length) {
+        if (badge) badge.textContent = 'no live data';
+        cardsEl.innerHTML = '<div class="col-12"><div class="alert alert-warning border mb-0">' +
+            '<strong><i class="bi bi-exclamation-triangle me-1"></i>Live Tracking data unavailable.</strong>' +
+            '<div class="small mt-1">The occurrence sheet could not be loaded, so there is nothing to analyse here yet — ' +
+            'the Line Haul gap analysis above keeps working. Fix the live feed on the Live Tracking tab, then return.</div></div></div>';
+        destroyChart('liveVar');
+        destroyChart('liveCause');
+        return;
+    }
+
+    const rows = getLiveScopeRows();
+    const withArr = rows.filter(t => t.arrVarMin !== null && t.arrVarMin !== undefined);
+    const withOut = rows.filter(t => t.outVarMin !== null && t.outVarMin !== undefined);
+    const causes = { vendor: [], dispatch: [], onTime: [], unknown: [] };
+    withArr.forEach(t => causes[classifyArrival(t.outVarMin, t.arrVarMin)].push(t));
+    const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
+    const cards = [];
+
+    if (badge) badge.textContent = `${fmt(rows.length)} occurrences • ${fmt(withOut.length)} dispatch / ${fmt(withArr.length)} arrival clocked`;
+
+    if (causes.vendor.length) cards.push({ tone:'danger', title:'🚚 Vendor Delay',
+        main: `${fmt(causes.vendor.length)} late arrivals — +${Math.round(mean(causes.vendor.map(t=>t.arrVarMin)))} min avg`,
+        sub: 'Dispatched on time or early, so the time was lost after leaving the gate (vendor / en-route)' });
+    if (causes.dispatch.length) cards.push({ tone:'warning', title:'⏱️ Dispatch-Driven Late Arrival',
+        main: `${fmt(causes.dispatch.length)} late arrivals — +${Math.round(mean(causes.dispatch.map(t=>t.arrVarMin)))} min avg`,
+        sub: 'Left after plan: the arrival lag starts at the source, not on the road' });
+    if (causes.onTime.length) cards.push({ tone:'success', title:'✅ Arrived On Time Or Early',
+        main: `${fmt(causes.onTime.length)} (${withArr.length ? Math.round(causes.onTime.length/withArr.length*100) : 0}%)`,
+        sub: 'Arrival at or before the planned arrival clock' });
+
+    // Worst lanes by average variance
+    const laneMap = {};
+    rows.forEach(t => {
+        const key = `${t.srcHub} → ${t.dstHub}`;
+        const g = laneMap[key] || (laneMap[key] = { out: [], arr: [] });
+        if (t.outVarMin !== null && t.outVarMin !== undefined) g.out.push(t.outVarMin);
+        if (t.arrVarMin !== null && t.arrVarMin !== undefined) g.arr.push(t.arrVarMin);
+    });
+    const lanes = Object.keys(laneMap).map(k => ({ lane: k, o: mean(laneMap[k].out), a: mean(laneMap[k].arr) }))
+        .filter(x => x.o !== null || x.a !== null);
+    const worstArr = lanes.filter(x => x.a !== null).sort((x, y) => y.a - x.a)[0];
+    const worstOut = lanes.filter(x => x.o !== null).sort((x, y) => y.o - x.o)[0];
+    if (worstArr) cards.push({ tone:'danger', title:'🕓 Worst Lane — Arrival', main: `${esc(worstArr.lane)} · ${fmtVar(worstArr.a)}`,
+        sub: 'Average arrival variance, latest against plan' });
+    if (worstOut) cards.push({ tone:'warning', title:'🕗 Worst Lane — Dispatch', main: `${esc(worstOut.lane)} · ${fmtVar(worstOut.o)}`,
+        sub: 'Average dispatch variance against plan' });
+
+    const extras = rows.filter(t => liveAdhState(t.outAdhRaw).label === 'extra' || liveAdhState(t.arrAdhRaw).label === 'extra').length;
+    if (extras) cards.push({ tone:'info', title:'🚫 No Planned Clock', main: `${fmt(extras)} occurrences`,
+        sub: 'Extra / no-plan rows — they can never be late or early and stay out of the averages' });
+
+    drawCards(cards);
+
+    // --- Charts ---
+    const show = lanes.filter(x => x.o !== null || x.a !== null)
+        .sort((x, y) => (Math.abs(y.a || 0) + Math.abs(y.o || 0)) - (Math.abs(x.a || 0) + Math.abs(x.o || 0)))
+        .slice(0, 10);
+    setChart('liveVar', 'chartLiveVar', {
+        type: 'bar',
+        data: {
+            labels: show.map(x => x.lane),
+            datasets: [
+                { label: 'Dispatch avg (min)', data: show.map(x => x.o === null ? null : Math.round(x.o)), backgroundColor: '#3b82f6', borderRadius: 4 },
+                { label: 'Arrival avg (min)',  data: show.map(x => x.a === null ? null : Math.round(x.a)), backgroundColor: '#f59e0b', borderRadius: 4 }
+            ]
+        },
+        options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            layout: { padding: { right: 46 } },
+            plugins: {
+                legend: { position: 'bottom' },
+                valueLabels: { enabled: true, formatter: v => fmtVar(v), font: "700 9px 'Roboto Mono', monospace" }
+            },
+            scales: {
+                x: { title: { display: true, text: 'minutes (− early / + late)' } },
+                y: { ticks: { font: { size: 10 } } }
+            }
+        }
+    });
+
+    const causeCounts = [causes.vendor.length, causes.dispatch.length, causes.onTime.length, causes.unknown.length];
+    setChart('liveCause', 'chartLiveCause', {
+        type: 'doughnut',
+        data: {
+            labels: [ARRIVAL_CAUSE.vendor, ARRIVAL_CAUSE.dispatch, ARRIVAL_CAUSE.onTime, ARRIVAL_CAUSE.unknown],
+            datasets: [{ data: causeCounts, backgroundColor: ['#dc2626', '#f59e0b', '#16a34a', '#9ca3af'], borderWidth: 2, borderColor: '#fff' }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, cutout: '58%',
+            plugins: {
+                legend: { position: 'bottom' },
+                valueLabels: { enabled: true, formatter: (v, sum) => v ? `${fmt(v)} · ${sum ? Math.round(v/sum*100) : 0}%` : '' }
+            }
+        }
+    });
 }
 
 function renderGapCharts(data){
