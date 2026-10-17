@@ -254,9 +254,9 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
     <div class="d-flex align-items-center gap-2">
         <ul class="nav nav-pills" id="pageTabs">
             <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard"><i class="bi bi-speedometer2 me-1"></i> Executive Dashboard</button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-report"><i class="bi bi-clipboard2-data me-1"></i> Trip Report</button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live"><i class="bi bi-broadcast me-1"></i> Live Tracking</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-gap"><i class="bi bi-search-heart me-1"></i> Gap Analysis</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-pva"><i class="bi bi-clipboard2-check me-1"></i> Plan vs Actual</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live"><i class="bi bi-broadcast me-1"></i> Live Tracking</button></li>
         </ul>
         <button class="btn btn-sm btn-outline-light" id="btnRefresh" title="Reload data from sheet" onclick="refreshData()"><i class="bi bi-arrow-repeat"></i></button>
         <div class="dropdown d-inline-block">
@@ -279,58 +279,63 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
         <p class="mt-3 text-muted fw-semibold">Loading Operational Log &amp; Analytics...</p>
     </div>
 
+    <!-- ============ GLOBAL TRIP FILTER BAR (shared by Executive Dashboard & Gap Analysis) ============ -->
+    <div id="globalFilterBar" class="card p-3 mb-4 border-0 shadow-sm" style="display:none;">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+            <h6 class="fw-bold m-0"><i class="bi bi-funnel-fill me-2 text-primary"></i>Filters
+                <span class="text-muted fw-normal" style="font-size:.78rem">— applies to Executive Dashboard &amp; Gap Analysis</span></h6>
+            <span class="text-muted" style="font-size:.72rem">Options update live; impossible picks clear themselves</span>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-end">
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-bold small text-muted">Date From</label>
+                <input type="date" id="dash-date-from" class="form-control form-control-sm" onchange="applyDashboardFilters()">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-bold small text-muted">Date To</label>
+                <input type="date" id="dash-date-to" class="form-control form-control-sm" onchange="applyDashboardFilters()">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-bold small text-muted">Src Hub</label>
+                <select id="dash-src" class="form-select select2-dash" multiple="multiple"></select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-bold small text-muted">Dst Hub</label>
+                <select id="dash-dst" class="form-select select2-dash" multiple="multiple"></select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-bold small text-muted">Vendor</label>
+                <select id="dash-vendor" class="form-select select2-dash" multiple="multiple"></select>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label fw-bold small text-muted">Facility SRC <span class="fw-normal">(Facility_SRC)</span></label>
+                <select id="dash-fac-src" class="form-select" multiple="multiple"></select>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label fw-bold small text-muted">Facility DST <span class="fw-normal">(Facility_DST)</span></label>
+                <select id="dash-fac-dst" class="form-select" multiple="multiple"></select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-bold small text-muted">Flag Hubs <span class="fw-normal">(FLAG_HUBS)</span></label>
+                <select id="dash-flag" class="form-select" multiple="multiple"></select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-bold small text-muted">Trip Flag</label>
+                <select id="dash-status" class="form-select" multiple="multiple"></select>
+            </div>
+            <div class="col-12 col-md-auto ms-auto">
+                <button class="btn btn-sm btn-outline-secondary" onclick="resetDashFilters()"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+                <button class="btn btn-sm btn-success" onclick="copyDashboardReport()"><i class="bi bi-clipboard me-1"></i> Copy Report</button>
+                <button class="btn btn-sm btn-outline-primary" onclick="showDashboardReportPopup()"><i class="bi bi-eye me-1"></i> View</button>
+            </div>
+        </div>
+        <div class="small text-muted mt-2" id="dashFilterInfo"></div>
+    </div>
+
     <div class="tab-content" id="appPages" style="display:none;">
 
         <!-- ============ PAGE 1: EXECUTIVE DASHBOARD ============ -->
         <div class="tab-pane fade show active" id="page-dashboard">
-
-            <!-- FILTER BAR -->
-            <div class="card p-3 mb-4 border-0 shadow-sm">
-                <div class="d-flex flex-wrap gap-2 align-items-end">
-                    <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted">Date From</label>
-                        <input type="date" id="dash-date-from" class="form-control form-control-sm" onchange="applyDashboardFilters()">
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted">Date To</label>
-                        <input type="date" id="dash-date-to" class="form-control form-control-sm" onchange="applyDashboardFilters()">
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted">Src Hub</label>
-                        <select id="dash-src" class="form-select select2-dash" multiple="multiple"></select>
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted">Dst Hub</label>
-                        <select id="dash-dst" class="form-select select2-dash" multiple="multiple"></select>
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted">Vendor</label>
-                        <select id="dash-vendor" class="form-select select2-dash" multiple="multiple"></select>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label fw-bold small text-muted">Facility SRC <span class="fw-normal">(Facility_SRC)</span></label>
-                        <select id="dash-fac-src" class="form-select" multiple="multiple"></select>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label fw-bold small text-muted">Facility DST <span class="fw-normal">(Facility_DST)</span></label>
-                        <select id="dash-fac-dst" class="form-select" multiple="multiple"></select>
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted">Flag Hubs <span class="fw-normal">(FLAG_HUBS)</span></label>
-                        <select id="dash-flag" class="form-select" multiple="multiple"></select>
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted">Trip Flag</label>
-                        <select id="dash-status" class="form-select" multiple="multiple"></select>
-                    </div>
-                    <div class="col-12 col-md-auto ms-auto">
-                        <button class="btn btn-sm btn-outline-secondary" onclick="resetDashFilters()"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
-                        <button class="btn btn-sm btn-success" onclick="copyDashboardReport()"><i class="bi bi-clipboard me-1"></i> Copy Report</button>
-                        <button class="btn btn-sm btn-outline-primary" onclick="showDashboardReportPopup()"><i class="bi bi-eye me-1"></i> View</button>
-                    </div>
-                </div>
-                <div class="small text-muted mt-2" id="dashFilterInfo"></div>
-            </div>
 
             <!-- BUSINESS KPI STRIP -->
             <div class="row g-3 mb-4">
@@ -649,101 +654,49 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </div>
         </div>
 
-        <!-- ============ PAGE 5: TRIP ADHERENCE REPORT ============ -->
-        <div class="tab-pane fade" id="page-report">
-
-            <!-- SCOPE + ACTIONS -->
+        <!-- ============ PAGE 2: PLAN VS ACTUAL ============ -->
+        <div class="tab-pane fade" id="page-pva">
             <div class="card p-3 mb-4 border-0 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
-                        <h5 class="fw-bold m-0"><i class="bi bi-clipboard2-data me-2 text-primary"></i>Line Haul Trip Adherence Report
-                            <span class="text-muted fw-normal fs-6"> — trips, source → destination hubs, what adhered and what did not</span></h5>
-                        <div class="small text-muted mt-1" id="reportScopeLine">—</div>
+                        <h5 class="fw-bold m-0"><i class="bi bi-clipboard2-check me-2 text-primary"></i>Plan vs Actual
+                            <span class="text-muted fw-normal fs-6"> — planned vs executed</span></h5>
+                        <div class="small text-muted mt-1" id="pvaScopeLine">—</div>
                     </div>
-                    <div class="d-flex gap-2 flex-wrap">
-                        <button class="btn btn-sm btn-outline-secondary" onclick="jumpToDashboardFilters()"><i class="bi bi-funnel me-1"></i> Change Filters</button>
-                        <button class="btn btn-sm btn-success" onclick="copyReportText()"><i class="bi bi-clipboard me-1"></i> Copy Text Report</button>
-                        <button class="btn btn-sm btn-outline-primary" onclick="exportReportCsv()"><i class="bi bi-download me-1"></i> Export CSV</button>
-                        <button class="btn btn-sm btn-outline-primary" onclick="snapReportBoard()"><i class="bi bi-camera me-1"></i> Snap Report</button>
-                    </div>
+                    <span class="badge text-bg-warning" id="pvaBadge">No data yet</span>
                 </div>
             </div>
 
-            <!-- FINAL RESULT VERDICT + KPI TILES -->
-            <div class="row g-3 mb-4">
-                <div class="col-lg-4">
-                    <div class="verdict-card" id="reportVerdict">
-                        <div class="verdict-label">Final Result — Composite Adherence</div>
-                        <div class="verdict-score">—</div>
-                    </div>
-                </div>
-                <div class="col-lg-8"><div class="row g-3 h-100" id="reportKpis"></div></div>
+            <!-- KPI STRIP (fills in once data is connected) -->
+            <div class="row g-3 mb-4" id="pvaKpis">
+                <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Trips Planned</div><div class="val" id="pva-k-plan">—</div><div class="sub">from Plan data</div></div></div>
+                <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Trips Actual</div><div class="val" id="pva-k-act">—</div><div class="sub">executed</div></div></div>
+                <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">On Plan</div><div class="val text-success" id="pva-k-onplan">—</div><div class="sub">matches plan</div></div></div>
+                <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Variance</div><div class="val text-warning" id="pva-k-var">—</div><div class="sub">plan vs actual</div></div></div>
             </div>
 
-            <!-- ALL 6 CHECKPOINTS -->
-            <div class="table-container mb-4">
+            <!-- EMPTY STATE -->
+            <div class="table-container mb-3" id="pvaEmpty">
+                <div class="text-center py-5">
+                    <i class="bi bi-clipboard2-check" style="font-size:2.4rem;color:#cbd5e1"></i>
+                    <h6 class="fw-bold mt-3 mb-1">Plan vs Actual will appear here</h6>
+                    <p class="text-muted mb-2" style="font-size:.85rem">This tab is ready for the Plan vs Actual sheet. Nothing is connected to it yet.</p>
+                    <p class="text-muted mb-0" style="font-size:.78rem">When the data is ready, set <code>PLAN_VS_ACTUAL_CSV_URL</code> in the script to the published CSV URL — this table fills in automatically.</p>
+                </div>
+            </div>
+
+            <!-- CONTENT (hidden until data exists) -->
+            <div class="table-container mb-2" id="pvaContent" style="display:none;">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                    <h5 class="fw-bold m-0"><i class="bi bi-list-check me-2"></i>All Checkpoints — Adhered vs Not Adhered</h5>
-                    <span class="badge text-bg-light border">*No Data = blank or <code>Extra</code> (no plan) in the sheet — still counted as Not Adhered, same rule the sheet uses</span>
-                </div>
-                <table id="reportMetricTable" class="table table-sm align-middle w-100 fs-7 mb-0">
-                    <thead class="table-light"><tr>
-                        <th>Checkpoint</th><th>Trips</th><th>Adhered</th><th>Not Adhered</th><th>No Data*</th>
-                        <th>Adherence %</th><th>Share of All Failures</th><th style="min-width:120px">Progress</th><th>Verdict</th>
-                    </tr></thead>
-                    <tbody id="reportMetricBody"></tbody>
-                </table>
-            </div>
-
-            <!-- HUB PAIR PERFORMANCE -->
-            <div class="table-container mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                    <h5 class="fw-bold m-0"><i class="bi bi-signpost-split me-2"></i>Source Hub → Destination Hub Performance</h5>
-                    <span class="small text-muted">Sorted by composite adherence (worst first)</span>
+                    <h5 class="fw-bold m-0"><i class="bi bi-table me-2"></i>Plan vs Actual — Rows</h5>
+                    <span class="small text-muted" id="pvaRowCount">0 rows</span>
                 </div>
                 <div style="overflow-x:auto">
-                    <table id="reportHubTable" class="table table-sm align-middle fs-7 mb-0">
-                        <thead class="table-light"><tr>
-                            <th>Source Hub</th><th>Destination Hub</th><th>Trips</th><th>Shipments</th>
-                            <th>Portal</th><th>Act/Plan</th><th>Gate→Open</th><th>Open→Seal</th><th>Arrival</th><th>Vendor</th>
-                            <th>Composite</th><th>Fully Adhered</th><th>Weakest Checkpoint</th>
-                        </tr></thead>
-                        <tbody id="reportHubBody"></tbody>
+                    <table id="pvaTable" class="table table-sm align-middle fs-7 mb-0">
+                        <thead class="table-light"><tr id="pvaHead"></tr></thead>
+                        <tbody id="pvaBody"></tbody>
                     </table>
                 </div>
-            </div>
-
-            <!-- PER-TRIP ADHERENCE -->
-            <div class="table-container mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                    <h5 class="fw-bold m-0"><i class="bi bi-journal-check me-2"></i>Per-Trip Adherence
-                        <span class="text-muted fw-normal fs-6">(<span id="reportTripCount">0</span> trips in scope)</span></h5>
-                    <div class="btn-group btn-group-sm chip-bar" id="reportTripChips">
-                        <button class="btn btn-outline-secondary active" data-mode="all">All Trips</button>
-                        <button class="btn btn-outline-danger" data-mode="fail">Not Fully Adhered</button>
-                        <button class="btn btn-outline-warning" data-mode="anyfail">Any Checkpoint Failed</button>
-                    </div>
-                </div>
-                <div style="overflow-x:auto">
-                    <table id="reportTripTable" class="table table-sm align-middle fs-7 mb-0">
-                        <thead class="table-light"><tr>
-                            <th>Date</th><th>Trip ID</th><th>Source Hub</th><th>Destination Hub</th><th>Vendor / Truck</th>
-                            <th>Facility SRC</th><th>Facility DST</th><th>Status</th><th>Portal</th><th>Act/Plan</th><th>Gate→Open</th><th>Open→Seal</th>
-                            <th>Arrival</th><th>Vendor</th><th>Result</th><th>RCA</th>
-                        </tr></thead>
-                        <tbody id="reportTripBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- TEXT REPORT -->
-            <div class="table-container mb-2">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <h6 class="fw-bold m-0" style="font-size:.9rem"><i class="bi bi-chat-left-text me-1 text-success"></i>Text Report &amp; Final Summary
-                        <span class="text-muted fw-normal" style="font-size:.78rem">(ready to send)</span></h6>
-                    <button class="btn btn-sm btn-success" onclick="copyReportText()"><i class="bi bi-clipboard me-1"></i>Copy Text Report</button>
-                </div>
-                <pre id="reportText" class="mb-0" style="white-space:pre-wrap; background:#fbf8ee; border:1px solid #e8e2cf; border-radius:8px; padding:12px 14px; font-size:.78rem; font-family:'Roboto Mono',monospace; color:#111111; max-height:520px; overflow:auto;">—</pre>
             </div>
         </div>
 
@@ -829,18 +782,141 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
         <!-- ============ PAGE 3: GAP ANALYSIS ============ -->
         <div class="tab-pane fade" id="page-gap">
 
-            <!-- REPORT BUTTON -->
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                <h6 class="fw-bold text-muted text-uppercase mb-0" style="font-size:.75rem"><i class="bi bi-exclamation-diamond me-1"></i>Auto-Detected Gaps (based on current filters)</h6>
-                <button class="btn btn-sm btn-success" onclick="copyDashboardReport()"><i class="bi bi-clipboard me-1"></i> Copy Gap Report to Clipboard</button>
+            <!-- PAGE HEADER -->
+            <div class="card p-3 mb-4 border-0 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold m-0"><i class="bi bi-search-heart me-2 text-primary"></i>Gap Analysis
+                            <span class="text-muted fw-normal fs-6">— where time leaks, by checkpoint, vendor and lane</span></h5>
+                        <div class="small text-muted mt-1">Scope follows the <strong>Filters</strong> bar above — slice by hub, vendor, facility, flag or date, and every card, chart and table below updates together.</div>
+                    </div>
+                    <button class="btn btn-sm btn-success" onclick="copyDashboardReport()"><i class="bi bi-clipboard me-1"></i> Copy Gap Report</button>
+                </div>
             </div>
+
+            <!-- 1 · BIGGEST GAPS -->
+            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
+                <span class="badge text-bg-primary me-2">1</span><span class="text-muted">Biggest Gaps at a Glance</span>
+                <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— click any card to drill in</span>
+            </h6>
             <div class="row g-2 mb-4" id="insightCards"></div>
 
-            <!-- LIVE TRACKING GAP ANALYSIS (same page, live occurrence sheet) -->
+            <!-- 2 · CHECKPOINT BREAKDOWN -->
+            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
+                <span class="badge text-bg-primary me-2">2</span><span class="text-muted">Checkpoint Breakdown</span>
+                <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— adhered vs not adhered, per checkpoint</span>
+            </h6>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card p-3 border-0 shadow-sm h-100">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-primary me-1"></i>Portal Adherence</h6>
+                        <div style="height:160px;position:relative;"><canvas id="gap-viz-portalAdh"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3 border-0 shadow-sm h-100">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle me-1" style="color:#8b5cf6"></i>Port Act vs Plan</h6>
+                        <div style="height:160px;position:relative;"><canvas id="gap-viz-portalPlanVsActualAdh"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3 border-0 shadow-sm h-100">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-info me-1"></i>Gate → Open Adh</h6>
+                        <div style="height:160px;position:relative;"><canvas id="gap-viz-gateInToOpenAdh"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3 border-0 shadow-sm h-100">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-success me-1"></i>Open → Seal Adh</h6>
+                        <div style="height:160px;position:relative;"><canvas id="gap-viz-openToSealAdh"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3 border-0 shadow-sm h-100">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-warning me-1"></i>Arrival Adherence</h6>
+                        <div style="height:160px;position:relative;"><canvas id="gap-viz-arrivalAdh"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card p-3 border-0 shadow-sm h-100">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-danger me-1"></i>Vendor Compliance</h6>
+                        <div style="height:160px;position:relative;"><canvas id="gap-viz-vehicleAdh"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3 · VENDOR & LANE PERFORMANCE -->
+            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
+                <span class="badge text-bg-primary me-2">3</span><span class="text-muted">Vendor &amp; Lane Performance</span>
+                <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— who and where the gaps come from</span>
+            </h6>
+            <div class="row g-3 mb-3">
+                <div class="col-lg-6">
+                    <div class="card p-3 border-0 shadow-sm chart-card h-100">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-stack text-primary me-2"></i>Composite Adherence by Vendor <span class="text-muted fw-normal" style="font-size:.72rem">(top 10 by volume)</span></h6>
+                        <div class="chart-box"><canvas id="chartVendorAdh"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card p-3 border-0 shadow-sm chart-card h-100">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-stopwatch text-success me-2"></i>Average Stage Durations</h6>
+                        <div class="chart-box"><canvas id="chartStageTime"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container mb-3">
+                <h5 class="fw-bold mb-3"><i class="bi bi-award me-2"></i>Vendor Scorecard</h5>
+                <table id="vendorTable" class="table table-hover align-middle w-100 fs-7 table-sm">
+                    <thead class="table-light"><tr>
+                        <th>Vendor</th><th>Trips</th><th>Shipments</th><th>Portal %</th><th>Act vs Plan %</th><th>Open→Seal %</th><th>Arrival %</th><th>Avg Util</th><th>RCA Fill %</th><th>Composite</th>
+                    </tr></thead>
+                    <tbody id="vendorTableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-lg-7">
+                    <div class="table-container h-100">
+                        <h5 class="fw-bold mb-3"><i class="bi bi-signpost-split me-2"></i>Lane Performance</h5>
+                        <table id="laneTable" class="table table-hover align-middle w-100 fs-7 table-sm">
+                            <thead class="table-light"><tr>
+                                <th>Lane</th><th>Trips</th><th>Shipments</th><th>Adherence</th><th>Avg Dispatch Delay</th><th>Avg Open→Seal</th>
+                            </tr></thead>
+                            <tbody id="laneTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="table-container h-100">
+                        <h5 class="fw-bold mb-3"><i class="bi bi-cone-striped me-2 text-danger"></i>Repeat Offenders <span class="text-muted fw-normal fs-6">(trucks, 2+ trips)</span></h5>
+                        <table class="table table-hover align-middle w-100 fs-7 table-sm">
+                            <thead class="table-light"><tr><th>Plate</th><th>Vendor</th><th>Trips</th><th>Failed</th><th>Fail Rate</th></tr></thead>
+                            <tbody id="offenderBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container mb-4">
+                <h5 class="fw-bold mb-1"><i class="bi bi-truck me-2"></i>Vendors — Distinct Trips</h5>
+                <p class="text-muted small mb-3">Number of <strong>unique trips</strong> run by each vendor. “Rows” counts sheet rows; when it is higher than Distinct Trips the sheet has duplicate rows for the same trip.</p>
+                <table id="vendorTripTable" class="table table-hover align-middle w-100 fs-7 table-sm">
+                    <thead class="table-light"><tr>
+                        <th>Vendor</th><th>Distinct Trips</th><th>Rows</th><th>Share of Trips</th>
+                    </tr></thead>
+                    <tbody id="vendorTripTableBody"></tbody>
+                </table>
+            </div>
+
+            <!-- 4 · LIVE OPERATIONS -->
+            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
+                <span class="badge text-bg-primary me-2">4</span><span class="text-muted">Live Operations</span>
+                <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— dispatch vs arrival, from the occurrence sheet</span>
+            </h6>
             <div class="table-container mb-4" id="liveGapBox">
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                    <h5 class="fw-bold m-0"><i class="bi bi-broadcast me-2 text-primary"></i>Live Tracking — Gap Analysis
-                        <span class="text-muted fw-normal fs-6">dispatch vs arrival, from the occurrence sheet</span></h5>
+                    <h5 class="fw-bold m-0"><i class="bi bi-broadcast me-2 text-primary"></i>Live Tracking — Gap Analysis</h5>
                     <span class="badge text-bg-light border" id="liveGapBadge">—</span>
                 </div>
                 <div class="row g-2 mb-3" id="liveInsightCards"></div>
@@ -861,115 +937,14 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </div>
             </div>
 
-            <!-- METRIC VISUALIZATIONS -->
-            <div class="row g-3 mb-4">
-                <div class="col-lg-6">
-                    <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-stack text-primary me-2"></i>Composite Adherence by Vendor (top 10 by volume)</h6>
-                        <div class="chart-box"><canvas id="chartVendorAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-stopwatch text-success me-2"></i>Average Stage Durations</h6>
-                        <div class="chart-box"><canvas id="chartStageTime"></canvas></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ALL 6 METRICS VISUALIZATIONS -->
-            <h6 class="fw-bold text-muted text-uppercase mb-3" style="font-size:.75rem"><i class="bi bi-bar-chart me-1"></i>All Metrics Breakdown</h6>
-            <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-primary me-1"></i>Portal Adherence</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-portalAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle" style="color:#8b5cf6" me-1"></i>Port Act vs Plan</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-portalPlanVsActualAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-info me-1"></i>Gate → Open Adh</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-gateInToOpenAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-success me-1"></i>Open → Seal Adh</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-openToSealAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-warning me-1"></i>Arrival Adherence</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-arrivalAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-danger me-1"></i>Vendor Compliance</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-vehicleAdh"></canvas></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- VENDOR SCORECARD -->
-            <div class="table-container mb-4">
-                <h5 class="fw-bold mb-3"><i class="bi bi-award me-2"></i>Vendor Scorecard</h5>
-                <table id="vendorTable" class="table table-hover align-middle w-100 fs-7 table-sm">
-                    <thead class="table-light"><tr>
-                        <th>Vendor</th><th>Trips</th><th>Shipments</th><th>Portal %</th><th>Act vs Plan %</th><th>Open→Seal %</th><th>Arrival %</th><th>Avg Util</th><th>RCA Fill %</th><th>Composite</th>
-                    </tr></thead>
-                    <tbody id="vendorTableBody"></tbody>
-                </table>
-            </div>
-
-            <!-- VENDORS — DISTINCT TRIPS -->
-            <div class="table-container mb-4">
-                <h5 class="fw-bold mb-1"><i class="bi bi-truck me-2"></i>Vendors — Distinct Trips</h5>
-                <p class="text-muted small mb-3">Number of <strong>unique trips</strong> run by each vendor. “Rows” counts sheet rows; when it is higher than Distinct Trips the sheet has duplicate rows for the same trip.</p>
-                <table id="vendorTripTable" class="table table-hover align-middle w-100 fs-7 table-sm">
-                    <thead class="table-light"><tr>
-                        <th>Vendor</th><th>Distinct Trips</th><th>Rows</th><th>Share of Trips</th>
-                    </tr></thead>
-                    <tbody id="vendorTripTableBody"></tbody>
-                </table>
-            </div>
-
-            <div class="row g-3 mb-4">
-                <!-- LANE PERFORMANCE -->
-                <div class="col-lg-7">
-                    <div class="table-container h-100">
-                        <h5 class="fw-bold mb-3"><i class="bi bi-signpost-split me-2"></i>Lane Performance</h5>
-                        <table id="laneTable" class="table table-hover align-middle w-100 fs-7 table-sm">
-                            <thead class="table-light"><tr>
-                                <th>Lane</th><th>Trips</th><th>Shipments</th><th>Adherence</th><th>Avg Dispatch Delay</th><th>Avg Open→Seal</th>
-                            </tr></thead>
-                            <tbody id="laneTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-                <!-- REPEAT OFFENDERS -->
-                <div class="col-lg-5">
-                    <div class="table-container h-100">
-                        <h5 class="fw-bold mb-3"><i class="bi bi-cone-striped me-2 text-danger"></i>Repeat Offenders (Trucks, 2+ trips)</h5>
-                        <table class="table table-hover align-middle w-100 fs-7 table-sm">
-                            <thead class="table-light"><tr><th>Plate</th><th>Vendor</th><th>Trips</th><th>Failed</th><th>Fail Rate</th></tr></thead>
-                            <tbody id="offenderBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- RCA ACCOUNTABILITY -->
+            <!-- 5 · ACCOUNTABILITY -->
+            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
+                <span class="badge text-bg-primary me-2">5</span><span class="text-muted">Accountability</span>
+                <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— failed trips missing a root cause</span>
+            </h6>
             <div class="table-container mb-2">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold m-0"><i class="bi bi-clipboard2-x me-2 text-danger"></i>Failed Trips Missing RCA <span class="text-muted fs-6 fw-normal">(accountability gap — fill these first)</span></h5>
+                    <h5 class="fw-bold m-0"><i class="bi bi-clipboard2-x me-2 text-danger"></i>Failed Trips Missing RCA <span class="text-muted fs-6 fw-normal">(fill these first)</span></h5>
                     <span class="badge bg-danger-subtle text-danger fw-bold" id="pendingCountBadge">0 pending</span>
                 </div>
                 <table id="pendingTable" class="table table-hover align-middle w-100 fs-7 table-sm">
@@ -1098,7 +1073,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'v1';
+const BUILD = 'V1';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -1834,18 +1809,10 @@ function applyDashboardFilters(){
     if (dashFacilityDstSelection.length) data = data.filter(t => dashFacilityDstSelection.includes(t.facilityDst));
     if (dashStatusSelection.length) data = data.filter(t => dashStatusSelection.includes(t.tripStatus));
 
-    // Make dashboard tab active when filters are applied
-    const dashTab = document.querySelector('[data-bs-target="#page-dashboard"]');
-    if (dashTab) {
-        const bsTab = bootstrap.Tab.getOrCreateInstance(dashTab);
-        bsTab.show();
-    }
-    
-
     renderDashboard(data);
     renderDashFilterChips(data.length);   // chips + live "trips in scope" badge
 
-    // Keep the Trip Report / Gap Analysis in step with the filters
+    // Keep the Gap Analysis (and any other aux page) in step with the filters.
     reportState = 'pending';
     gapState = 'pending';
     renderActiveAuxPages();
@@ -1863,13 +1830,20 @@ function applyDashboardFilters(){
 
 /* Re-render whichever secondary page the operator is currently looking at,
    so filters changed elsewhere are reflected without a manual tab switch. */
+/* The trip filter bar is shared by the Executive Dashboard and Gap Analysis,
+   so it is shown on those tabs and hidden everywhere else. */
+function syncFilterBarVisibility(target){
+    const bar = document.getElementById('globalFilterBar');
+    if (!bar) return;
+    if (!target) {
+        const activeBtn = document.querySelector('#pageTabs .nav-link.active');
+        target = activeBtn ? activeBtn.getAttribute('data-bs-target') : '#page-dashboard';
+    }
+    bar.style.display = (target === '#page-dashboard' || target === '#page-gap') ? '' : 'none';
+}
+
 function renderActiveAuxPages(){
     if (!rawTrips.length) return;
-    const rep = document.getElementById('page-report');
-    if (rep && rep.classList.contains('active')) {
-        renderTripReport(getFilteredDashboardData());
-        reportState = 'live';
-    }
     const gap = document.getElementById('page-gap');
     if (gap && gap.classList.contains('active')) {
         renderGap(getFilteredDashboardData());
@@ -2264,6 +2238,7 @@ function bootApp() {
     // switch re-measures all charts of the newly shown page.
     document.querySelectorAll('#pageTabs .nav-link').forEach(function(btn){
         btn.addEventListener('shown.bs.tab', function(){
+            syncFilterBarVisibility(btn.getAttribute('data-bs-target'));
             setTimeout(function(){
                 Object.keys(charts).forEach(function(k){
                     try { charts[k].resize(); } catch(e){ console.warn('[chart resize] failed for', k, e); }
@@ -2272,17 +2247,15 @@ function bootApp() {
         });
     });
 
-    // The report follows the dashboard filters; render it the first time the tab is opened
-    document.querySelector('[data-bs-target="#page-report"]').addEventListener('shown.bs.tab', () => {
-        // Only mark it rendered once data actually exists, otherwise an early
-        // click would pin the report to an empty state.
-        if (reportState !== 'live' && rawTrips.length) { renderTripReport(getFilteredDashboardData()); reportState = 'live'; }
-        else if (reportTripDT) { try { reportTripDT.columns.adjust().draw(false); } catch(e){} }
-        if (typeof initSnapshots === 'function') initSnapshots();
+    // The Plan vs Actual tab is self-contained; render it the first time it is opened.
+    const pvaTab = document.querySelector('[data-bs-target="#page-pva"]');
+    if (pvaTab) pvaTab.addEventListener('shown.bs.tab', () => {
+        if (typeof renderPlanVsActual === 'function') renderPlanVsActual();
     });
 
     loadDataFromCSV();
     loadLiveCsv();
+    if (typeof loadPlanVsActual === 'function') { try { loadPlanVsActual(); } catch(e){ console.warn('[bootApp] loadPlanVsActual failed:', e); } }
     // Wire the filter dropdowns immediately, even before the sheets answer —
     // otherwise they render as empty, unusable boxes ("options not found").
     // populateDashFilters re-runs once the trips land, keeping current values.
@@ -2715,6 +2688,7 @@ function initApp(res, preserve){
     }
     const appPages = document.getElementById('appPages');
     if(appPages) appPages.style.display = 'block';
+    if (typeof syncFilterBarVisibility === 'function') syncFilterBarVisibility();
 
     // Wire snapshot buttons if the function exists
     if(typeof initSnapshots === 'function'){
@@ -3847,6 +3821,59 @@ function laneStats(data){
     })).sort((a,b)=>a.adh-b.adh);
 }
 
+/* ================================================================
+   PAGE — PLAN VS ACTUAL
+   A self-contained tab. Nothing is wired to it yet: set
+   PLAN_VS_ACTUAL_CSV_URL to a published CSV URL when the sheet exists
+   and the tab will parse and display it, one column per sheet column.
+=============================================================== */
+const PLAN_VS_ACTUAL_CSV_URL = '';   // e.g. 'https://docs.google.com/.../pub?gid=0&single=true&output=csv'
+let pvaRows = [];
+
+function renderPlanVsActual(){
+    const badge   = document.getElementById('pvaBadge');
+    const empty   = document.getElementById('pvaEmpty');
+    const content = document.getElementById('pvaContent');
+    const scope   = document.getElementById('pvaScopeLine');
+
+    if (!pvaRows.length){
+        if (badge){ badge.className = 'badge text-bg-warning'; badge.innerText = 'No data yet'; }
+        if (empty) empty.style.display = '';
+        if (content) content.style.display = 'none';
+        if (scope) scope.innerText = 'Connect a Plan vs Actual sheet to populate this tab.';
+        return;
+    }
+
+    const cols = Object.keys(pvaRows[0]);
+    const head = document.getElementById('pvaHead');
+    if (head) head.innerHTML = cols.map(c => `<th>${esc(c)}</th>`).join('');
+    const body = document.getElementById('pvaBody');
+    if (body) body.innerHTML = pvaRows.map(r =>
+        '<tr>' + cols.map(c => `<td>${esc(r[c])}</td>`).join('') + '</tr>').join('');
+
+    const rc = document.getElementById('pvaRowCount');
+    if (rc) rc.innerText = fmt(pvaRows.length) + ' rows';
+    if (badge){ badge.className = 'badge text-bg-success'; badge.innerText = fmt(pvaRows.length) + ' rows loaded'; }
+    if (scope) scope.innerText = 'Source: Plan vs Actual sheet';
+    if (empty) empty.style.display = 'none';
+    if (content) content.style.display = '';
+    resetTable('#pvaTable');
+    makeTable('#pvaTable', { pageLength: 10, dom: 'tp' });
+}
+
+async function loadPlanVsActual(){
+    if (!PLAN_VS_ACTUAL_CSV_URL){ renderPlanVsActual(); return; }
+    try {
+        const text = await fetchCsvText(PLAN_VS_ACTUAL_CSV_URL, null);
+        const parsed = Papa.parse(text, { header:true, skipEmptyLines:true });
+        pvaRows = (parsed.data || []).filter(r => Object.keys(r).some(k => String(r[k] || '').trim() !== ''));
+    } catch(e){
+        console.warn('[loadPlanVsActual] failed:', e);
+        pvaRows = [];
+    }
+    renderPlanVsActual();
+}
+
 function renderGap(data){
     renderInsights(data);
     renderGapCharts(data);
@@ -3998,7 +4025,7 @@ function insightAction(act){
     } else if (kind === 'log') {
         gotoLog(arg || 'failed', null);
     } else if (kind === 'report') {
-        showTab('#page-report');
+        showTab('#page-gap');
     } else if (kind === 'gap') {
         showTab('#page-gap');
     } else if (kind === 'live') {
@@ -4748,7 +4775,7 @@ function gotoLog(mode, metric){
     logFilter = { mode: mode || 'all', metric: metric || null };
     syncChipsUI();
     const tabBtn = document.querySelector('[data-bs-target="#page-rca"]');
-    bootstrap.Tab.getOrCreateInstance(tabBtn).show();
+    if (tabBtn) bootstrap.Tab.getOrCreateInstance(tabBtn).show();
     renderTableLog(getLogData());
 }
 
