@@ -485,13 +485,14 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                         <div class="d-flex justify-content-between align-items-center gap-2 mb-2 flex-wrap">
                             <div class="btn-group btn-group-sm chip-bar" id="metricDetailChips">
                                 <button class="btn btn-outline-danger active" data-mode="fail">Not Adhered</button>
+                                <button class="btn btn-outline-primary" data-mode="rca">Has RCA</button>
                                 <button class="btn btn-outline-success" data-mode="pass">Adhered</button>
                             </div>
                             <span class="small text-muted" id="metricDetailCount"></span>
                         </div>
                         <div class="table-container p-0">
                             <table class="table table-sm table-hover align-middle fs-7" id="metricDetailTable">
-                                <thead class="table-light"><tr><th>Trip ID</th><th>Route</th><th>Vendor / Truck</th><th>Status</th><th>Measured</th><th>Late / Early</th><th>RCA</th></tr></thead>
+                                <thead class="table-light"><tr><th>Trip ID</th><th>Route</th><th>Vendor / Truck</th><th>Status</th><th>Measured</th><th>Late / Early</th><th>RCA</th><th>Remark</th></tr></thead>
                                 <tbody id="metricDetailBody"></tbody>
                             </table>
                         </div>
@@ -760,10 +761,24 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                     <div id="liveReportSummary" class="mb-2"></div>
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
-                            <h6 class="fw-bold m-0" style="font-size:.9rem"><i class="bi bi-chat-left-text me-1 text-success"></i>Text Summary <span class="text-muted fw-normal" style="font-size:.78rem">(ready to send with the Snap Board image)</span></h6>
-                            <button class="btn btn-sm btn-success" onclick="copyTextSummary()"><i class="bi bi-clipboard me-1"></i>Copy Text</button>
+                            <h6 class="fw-bold m-0" style="font-size:.9rem"><i class="bi bi-chat-left-text me-1 text-success"></i>Text Summary <span class="text-muted fw-normal" style="font-size:.78rem">(send it with the Snap Board image)</span></h6>
                         </div>
-                        <pre id="liveTextSummary" class="mb-0" style="white-space:pre-wrap; background:#fbf8ee; border:1px solid #e8e2cf; border-radius:8px; padding:12px 14px; font-size:.8rem; font-family:'Roboto Mono',monospace; color:#111111;">—</pre>
+                        <div class="row g-3">
+                            <div class="col-lg-7">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small fw-bold text-muted text-uppercase" style="letter-spacing:.5px">Detailed</span>
+                                    <button class="btn btn-sm btn-outline-success" onclick="copyTextSummary('detail')"><i class="bi bi-clipboard me-1"></i>Copy</button>
+                                </div>
+                                <pre id="liveTextSummary" class="mb-0" style="white-space:pre-wrap; background:#fbf8ee; border:1px solid #e8e2cf; border-radius:8px; padding:12px 14px; font-size:.8rem; font-family:'Roboto Mono',monospace; color:#111111;">—</pre>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small fw-bold text-muted text-uppercase" style="letter-spacing:.5px">Ready to send</span>
+                                    <button class="btn btn-sm btn-success" onclick="copyTextSummary('send')"><i class="bi bi-clipboard me-1"></i>Copy message</button>
+                                </div>
+                                <pre id="liveSendSummary" class="mb-0" style="white-space:pre-wrap; background:#eef7ee; border:1px solid #cfe6cf; border-radius:8px; padding:12px 14px; font-size:.82rem; font-family:'Roboto Mono',monospace; color:#111111;">—</pre>
+                            </div>
+                        </div>
                     </div>
                     <div style="overflow-x:auto">
                         <table class="live-table" id="liveReportTable">
@@ -1245,12 +1260,12 @@ function isPerfectFlag(v){
 }
 
 const METRICS = [
-  { key:'portalAdh',             label:'Portal Adherence',       short:'P',  color:'#3b82f6', rca:'portalRca' },
-  { key:'portalPlanVsActualAdh', label:'Portal Actual vs Plan',  short:'PA', color:'#8b5cf6', rca:'portalRca' },
-  { key:'gateInToOpenAdh',       label:'Gate-in to Open',        short:'GO', color:'#06b6d4', rca:null },
-  { key:'openToSealAdh',         label:'Open to Seal',           short:'OS', color:'#10b981', rca:'openSealRca' },
-  { key:'arrivalAdh',            label:'Arrival Adherence',      short:'AR', color:'#f59e0b', rca:'arrivalRca' },
-  { key:'vehicleAdh',            label:'Vehicle Compliance',     short:'VH', color:'#ef4444', rca:'vehicleRca' }
+  { key:'portalAdh',             label:'Portal Adherence',       short:'P',  color:'#3b82f6', rca:'portalRca',     remark:'portalRemark' },
+  { key:'portalPlanVsActualAdh', label:'Portal Actual vs Plan',  short:'PA', color:'#8b5cf6', rca:'portalPlanRca', remark:'portalPlanRemark' },
+  { key:'gateInToOpenAdh',       label:'Gate-in to Open',        short:'GO', color:'#06b6d4', rca:null,            remark:null },
+  { key:'openToSealAdh',         label:'Open to Seal',           short:'OS', color:'#10b981', rca:'openSealRca',   remark:'openSealRemark' },
+  { key:'arrivalAdh',            label:'Arrival Adherence',      short:'AR', color:'#f59e0b', rca:'arrivalRca',    remark:'arrivalRemark' },
+  { key:'vehicleAdh',            label:'Vehicle Compliance',     short:'VH', color:'#ef4444', rca:'vehicleRca',    remark:'vehicleRemark' }
 ];
 const CORE_KEYS = ['portalAdh','portalPlanVsActualAdh','openToSealAdh','arrivalAdh'];
 
@@ -1959,6 +1974,14 @@ function selectMetricCard(el, metricKey){
         <div class="fs-4 fw-bold mt-2">${fmt(data.length)} trips: ${fmt(pass)} adhered, ${fmt(fail)} not adhered (${(data.length?Math.round(pass/data.length*100):0)}% adherence)</div>
         <div class="small text-muted mt-1">${esc(def.how || '')}</div>`;
 
+    const failWithRca = (metric && metric.rca)
+        ? data.filter(t => !isPass(t[metricKey]) && String(t[metric.rca] || '').trim() !== '').length
+        : 0;
+    const rcaLine = (metric && metric.rca)
+        ? `<div class="small mt-1"><i class="bi bi-clipboard2-pulse me-1 text-primary"></i>RCA recorded for <strong>${fmt(failWithRca)}</strong> of ${fmt(fail)} not-adhered trips` +
+          (failWithRca ? ` — switch to <em>Has RCA</em> to read them` : '') + `</div>`
+        : `<div class="small text-muted mt-1">This checkpoint has no RCA column in the sheet.</div>`;
+
     document.getElementById('metricDetailStats').innerHTML = `
         <div class="row g-2 mt-3">
             <div class="col-6"><span class="badge bg-success-subtle text-success">${fmt(pass)} Adhered</span></div>
@@ -1969,7 +1992,8 @@ function selectMetricCard(el, metricKey){
             <div class="col-4"><span class="var-pill var-early">Early ${fmt(early)}</span></div>
             <div class="col-4"><span class="var-pill var-ok">On target ${fmt(ok)}</span></div>
         </div>
-        <div class="small text-muted mt-2">${fmt(withVar.length)} of ${fmt(data.length)} trips carry a measurable time for this checkpoint.</div>`;
+        <div class="small text-muted mt-2">${fmt(withVar.length)} of ${fmt(data.length)} trips carry a measurable time for this checkpoint.</div>
+        ${rcaLine}`;
 
     // Behaving chips: Not Adhered (default) vs Adhered
     const chips = document.getElementById('metricDetailChips');
@@ -2064,17 +2088,27 @@ function renderMetricDetailRows(key, mode){
     const countEl = document.getElementById('metricDetailCount');
     if (!body) return;
     const data = getFilteredDashboardData();
+    const metricDef0 = METRICS.find(m => m.key === key) || {};
     const showFail = mode !== 'pass';
-    let rows = data.filter(t => showFail ? !isPass(t[key]) : isPass(t[key]));
+    const hasRca = t => !!metricDef0.rca && String(t[metricDef0.rca] || '').trim() !== '';
+    let rows = data.filter(t => {
+        if (mode === 'rca')  return hasRca(t);            // every trip with an RCA recorded
+        if (mode === 'pass') return isPass(t[key]);
+        return !isPass(t[key]);
+    });
     // Worst first: real late/early variance above on-target, rows with no
-    // measurable time (TAT fallback) at the bottom.
+    // measurable time (TAT fallback) at the bottom. Rows whose adherence cell is
+    // blank (No plan / unmeasurable — and therefore no RCA) sink to the very end
+    // so real, RCA-bearing failures are what you see first.
     const rank = t => {
+        const rawCell = String(t[key] === undefined || t[key] === null ? '' : t[key]).trim();
+        if (!rawCell) return 4;
         const v = metricVariance(t, key);
         if (!v) return 3;
         return (v.dir === 'late' || v.dir === 'early') ? 0 : v.dir === 'ok' ? 1 : 2;
     };
     rows = rows.slice().sort((a, b) => {
-        if (!showFail) return String(a.tripId).localeCompare(String(b.tripId));
+        if (mode === 'pass') return String(a.tripId).localeCompare(String(b.tripId));
         const ra = rank(a), rb = rank(b);
         if (ra !== rb) return ra - rb;
         const va = metricVariance(a, key), vb = metricVariance(b, key);
@@ -2083,10 +2117,13 @@ function renderMetricDetailRows(key, mode){
     });
     if (countEl) countEl.innerText = rows.length ? ('showing ' + Math.min(rows.length, 100) + ' of ' + fmt(rows.length)) : '';
     if (!rows.length) {
-        body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>' +
-            (showFail ? 'No failures for this checkpoint in scope' : 'No adhered trips in scope') + '</td></tr>';
+        body.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>' +
+            (mode === 'rca'   ? 'No RCA recorded for this checkpoint in scope'
+           : mode === 'pass'  ? 'No adhered trips in scope'
+                              : 'No failures for this checkpoint in scope') + '</td></tr>';
         return;
     }
+    const metricDef = METRICS.find(m => m.key === key) || {};
     body.innerHTML = rows.slice(0, 100).map(t => {
         const v = metricVariance(t, key);
         const raw = String(t[key] === undefined || t[key] === null ? '' : t[key]).trim();
@@ -2097,6 +2134,14 @@ function renderMetricDetailRows(key, mode){
         const measured = (key === 'vehicleAdh')
             ? esc(t.vehicleType || '—')
             : (v ? esc(v.measured) : '<span class="text-muted">—</span>');
+        // RCA + Remark are read straight from the Line Haul sheet (no editing here).
+        const rcaRaw    = metricDef.rca    ? String(t[metricDef.rca]    || '').trim() : '';
+        const remarkRaw = metricDef.remark ? String(t[metricDef.remark] || '').trim() : '';
+        const rcaCell = !metricDef.rca
+            ? '<span class="text-muted small">no RCA column</span>'
+            : (rcaRaw ? '<span class="fw-semibold">' + esc(rcaRaw) + '</span>'
+                      : (ok ? '<span class="text-muted small">—</span>' : '<span class="badge bg-warning-subtle text-warning">missing</span>'));
+        const remarkCell = remarkRaw ? esc(remarkRaw) : '<span class="text-muted">—</span>';
         return '<tr>' +
             '<td><strong>' + esc(t.tripId) + '</strong>' + (t.tripCode ? '<br/><small class="text-muted">' + esc(t.tripCode) + '</small>' : '') + '</td>' +
             '<td>' + esc(t.srcHub) + ' → ' + esc(t.dstHub) + '<br/><small class="text-muted">' + esc(t.facilitySrc || t.facility || '') + ' / ' + esc(t.facilityDst || '') + '</small></td>' +
@@ -2104,7 +2149,8 @@ function renderMetricDetailRows(key, mode){
             '<td>' + badge + '</td>' +
             '<td class="metric-mini">' + measured + '</td>' +
             '<td>' + variancePill(v) + '</td>' +
-            '<td><button class="btn btn-sm btn-outline-primary" onclick="openRcaModal(' + t.rowIdx + ')"><i class="bi bi-pencil-square"></i> RCA</button></td>' +
+            '<td>' + rcaCell + '</td>' +
+            '<td class="small">' + remarkCell + '</td>' +
         '</tr>';
     }).join('');
 }
@@ -2500,6 +2546,18 @@ function loadDataFromCSV() {
                 throw new Error('CSV parsed but contains no data rows. Headers seen: ' + (results.meta.fields||[]).join(', '));
             }
             const mappedTrips = data.map((row, idx) => {
+                // Sheet headers vary in case, spacing and dashes, so index each row
+                // by a normalised key (letters + digits only) and look columns up
+                // through that — "Remark -Portal ..." and "Remark - Portal ..." both match.
+                const R = {};
+                Object.keys(row).forEach(k => { R[String(k).toLowerCase().replace(/[^a-z0-9]/g, '')] = row[k]; });
+                const rp = function(){
+                    for (let i = 0; i < arguments.length; i++){
+                        const v = R[String(arguments[i]).toLowerCase().replace(/[^a-z0-9]/g, '')];
+                        if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+                    }
+                    return '';
+                };
                 return {
                     rowIdx: idx + 2,
                     date: row['Date'] || row['DATE'] || row['date'] || '',
@@ -2558,14 +2616,14 @@ function loadDataFromCSV() {
                     cancelComment: row['cancel_comment'] || '',
                     
                     // Map specific adherence columns to template keys
-                    portalAdh: row['Portal_Adherence'] || '',
-                    portalPlanVsActualAdh: row['Portal Actual Vs Portal Plan Adherence'] || '',
-                    gateInToOpenAdh: row['gate in to open adherence'] || '',
-                    openToSealAdh: row['Open_to_seal_Adhrence'] || '', 
-                    arrivalAdh: row['Arrival_Adherence'] || '',
-                    vehicleAdh: row['Vendor_Adherence'] || row['vehicle_adherence'] || '',
-                    lmAdherence: row['LM adherence'] || '',
-                    portalAdhRaw: row['Portal_Adherence'] || '',
+                    portalAdh: rp('Portal_Adherence') || '',
+                    portalPlanVsActualAdh: rp('Portal Actual Vs Portal Plan Adherence', 'Portal Actual Vs Portal Plan') || '',
+                    gateInToOpenAdh: rp('gate in to open adherence') || '',
+                    openToSealAdh: rp('Open_to_seal_Adhrence') || '',
+                    arrivalAdh: rp('Arrival_Adherence') || '',
+                    vehicleAdh: rp('Vendor_Adherence', 'vehicle_adherence') || '',
+                    lmAdherence: rp('LM adherence') || '',
+                    portalAdhRaw: rp('Portal_Adherence') || '',
 
                     // Live Tracking timestamps
                     srcGateOutRaw: row['Src_gate_out_ts'] || '',
@@ -2575,11 +2633,17 @@ function loadDataFromCSV() {
                     ctArrivalRaw: row['CT_arrival_time'] || '',
                     srcGateOut: null, ctPlan: null, dstArrival: null, ctArrival: null,
 
-                    // Local RCA storage
-                    portalRca: '', portalRemark: '',
-                    openSealRca: '', openSealRemark: '',
-                    arrivalRca: '', arrivalRemark: '',
-                    vehicleRca: '', vehicleRemark: ''
+                    // RCA + remarks come straight from the Line Haul sheet
+                    portalRca: rp('Portal_Adherence RCA', 'Portal Adherence RCA') || '',
+                    portalRemark: rp('Remark - Portal_Adherence', 'Remark Portal Adherence') || '',
+                    portalPlanRca: rp('Portal Actual Vs Portal Plan Adherence RCA') || '',
+                    portalPlanRemark: rp('Remark -Portal Actual Vs Portal Plan', 'Remark - Portal Actual Vs Portal Plan') || '',
+                    openSealRca: rp('Open_to_seal_Adhrence RCA', 'Open to seal Adhrence RCA') || '',
+                    openSealRemark: rp('Remark - Open_to_seal', 'Remark - Open to seal') || '',
+                    arrivalRca: rp('Arrival_Adherence RCA') || '',
+                    arrivalRemark: rp('Remark - Arrival') || '',
+                    vehicleRca: rp('vehicle_adherence RCA', 'Vendor_Adherence RCA') || '',
+                    vehicleRemark: rp('vehicle_adherence RCA Remark', 'Vendor_Adherence RCA Remark') || ''
                 };
             });
             // Pre-parse live tracking dates once
@@ -3088,73 +3152,191 @@ function renderLiveReport(scopeRows){
 
 /* ===== Text summary — short, plain headline of the live board =====
    Variance is "actual − plan": − = early, + = late. */
+/* Shared breach maths for the two summaries below. A "breach" is one
+   occurrence where dispatch OR arrival did not adhere (blank / Extra rows are
+   not breaches — they were never planned). Each breach is pinned to the hub that
+   owns it: the destination when the arrival slipped, otherwise the source hub. */
+function liveBreachAnalysis(rows){
+    const isBad  = raw => liveAdhState(raw).label.startsWith('not adhered');
+    const isLate = raw => String(raw || '').toLowerCase().includes('late');
+    const hubMap = {}, venMap = {}, laneMap = {};
+    const lateOutHub = {}, lateArrHub = {};   // hub -> { n, sum } for LATE-only drift
+    const cause = { lateArr:0, earlyArr:0, lateOut:0, earlyOut:0 };
+    let breaches = 0;
+
+    const addLate = (map, hub, mins) => {
+        const key = hub || '—';
+        const g = map[key] || (map[key] = { n: 0, sum: 0 });
+        g.n++; g.sum += Math.abs(mins);
+    };
+
+    rows.forEach(t => {
+        const outBad = isBad(t.outAdhRaw), arrBad = isBad(t.arrAdhRaw);
+        if (outBad) { if (isLate(t.outAdhRaw)) cause.lateOut++; else cause.earlyOut++; }
+        if (arrBad) { if (isLate(t.arrAdhRaw)) cause.lateArr++; else cause.earlyArr++; }
+        // "late" drill-down: hub + how many minutes late
+        if (outBad && isLate(t.outAdhRaw) && typeof t.outVarMin === 'number' && t.outVarMin > 0)
+            addLate(lateOutHub, t.srcHub, t.outVarMin);
+        if (arrBad && isLate(t.arrAdhRaw) && typeof t.arrVarMin === 'number' && t.arrVarMin > 0)
+            addLate(lateArrHub, t.dstHub, t.arrVarMin);
+        if (!outBad && !arrBad) return;
+        breaches++;
+        const hub = arrBad ? (t.dstHub || t.srcHub || '—') : (t.srcHub || t.dstHub || '—');
+        hubMap[hub] = (hubMap[hub] || 0) + 1;
+        if (t.vendor) venMap[t.vendor] = (venMap[t.vendor] || 0) + 1;
+        const lane = (t.srcHub || '?') + ' → ' + (t.dstHub || '?');
+        laneMap[lane] = (laneMap[lane] || 0) + 1;
+    });
+
+    const pctOf = n => breaches ? (n / breaches * 100) : 0;
+    const byHub  = Object.entries(hubMap).map(([hub, n]) => ({ hub, n, pct: pctOf(n) })).sort((a, b) => b.n - a.n);
+    const byLane = Object.entries(laneMap).map(([lane, n]) => ({ lane, n })).sort((a, b) => b.n - a.n);
+    const topVendor = Object.entries(venMap).map(([name, n]) => ({ name, n })).sort((a, b) => b.n - a.n)[0] || null;
+    const rankLate = map => Object.entries(map)
+        .map(([hub, g]) => ({ hub, n: g.n, avg: Math.round(g.sum / g.n), total: g.sum }))
+        .sort((a, b) => b.total - a.total);
+    const lateOut = rankLate(lateOutHub);
+    const lateArr = rankLate(lateArrHub);
+    const causes = [
+        { k: 'Late arrival',   n: cause.lateArr },
+        { k: 'Early arrival',  n: cause.earlyArr },
+        { k: 'Late dispatch',  n: cause.lateOut },
+        { k: 'Early dispatch', n: cause.earlyOut }
+    ].filter(c => c.n > 0).sort((a, b) => b.n - a.n);
+
+    return { breaches, byHub, byLane, causes, topVendor, lateOut, lateArr };
+}
+
+function liveAdherenceTotals(rows){
+    const hasPlan = raw => { const s = String(raw || '').trim().toLowerCase(); return s !== '' && s !== 'extra'; };
+    const outP = rows.filter(t => hasPlan(t.outAdhRaw));
+    const arrP = rows.filter(t => hasPlan(t.arrAdhRaw));
+    const outOk = outP.filter(t => String(t.outAdhRaw).trim().toLowerCase() === 'adhered').length;
+    const arrOk = arrP.filter(t => String(t.arrAdhRaw).trim().toLowerCase() === 'adhered').length;
+    return {
+        outP: outP.length, outOk, arrP: arrP.length, arrOk,
+        outPct: outP.length ? Math.round(outOk / outP.length * 100) : 0,
+        arrPct: arrP.length ? Math.round(arrOk / arrP.length * 100) : 0,
+        noPlan: rows.filter(t => !hasPlan(t.outAdhRaw) || !hasPlan(t.arrAdhRaw)).length
+    };
+}
+
+/* DETAILED — plain, organised breakdown. */
 function buildTextSummary(rows){
     const rangeLabel = liveScopeLabel();
-    const srcSel  = selValues('#live-src');
-    const dstSel  = selValues('#live-dst');
-    const venSel  = selValues('#live-vendor');
-    const flagSel = selValues('#live-flag');
-    const scope = [`Date: ${rangeLabel}`]
-        .concat(srcSel.length ? [`Src: ${srcSel.join(', ')}`] : [])
-        .concat(dstSel.length ? [`Dst: ${dstSel.join(', ')}`] : [])
-        .concat(venSel.length ? [`Vendors: ${venSel.join(', ')}`] : [])
-        .concat(flagSel.length ? [`Flag: ${flagSel.join(', ')}`] : []).join('  |  ');
+    const srcSel = selValues('#live-src'), dstSel = selValues('#live-dst');
+    const venSel = selValues('#live-vendor'), flagSel = selValues('#live-flag');
+    const scopeBits = [rangeLabel]
+        .concat(srcSel.length ? ['Src ' + srcSel.join('/')] : [])
+        .concat(dstSel.length ? ['Dst ' + dstSel.join('/')] : [])
+        .concat(venSel.length ? ['Vendors ' + venSel.join('/')] : [])
+        .concat(flagSel.length ? ['Flag ' + flagSel.join('/')] : []);
 
-    const outStat = varStats(rows, 'outVarMin');
-    const arrStat = varStats(rows, 'arrVarMin');
-
-    // Headline adherence (rows with a real plan only)
-    const hasPlan = (raw) => { const s = String(raw || '').trim().toLowerCase(); return s !== '' && s !== 'extra'; };
-    const outPlanned = rows.filter(t => hasPlan(t.outAdhRaw));
-    const arrPlanned = rows.filter(t => hasPlan(t.arrAdhRaw));
-    const outOk = outPlanned.filter(t => String(t.outAdhRaw).trim().toLowerCase() === 'adhered').length;
-    const arrOk = arrPlanned.filter(t => String(t.arrAdhRaw).trim().toLowerCase() === 'adhered').length;
-    const outPct = outPlanned.length ? Math.round(outOk / outPlanned.length * 100) : 0;
-    const arrPct = arrPlanned.length ? Math.round(arrOk / arrPlanned.length * 100) : 0;
-    const extraN = rows.filter(t => !hasPlan(t.outAdhRaw) || !hasPlan(t.arrAdhRaw)).length;
-    const notAdhN = rows.filter(t => liveAdhState(t.outAdhRaw).label.startsWith('not adhered') ||
-                                     liveAdhState(t.arrAdhRaw).label.startsWith('not adhered')).length;
-
-    // Worst lane by combined dispatch + arrival drift
-    const laneMap = {};
-    rows.forEach(t => {
-        const key = `${t.srcHub} → ${t.dstHub}`;
-        const g = laneMap[key] || (laneMap[key] = { out: [], arr: [] });
-        if (t.outVarMin !== null && t.outVarMin !== undefined) g.out.push(t.outVarMin);
-        if (t.arrVarMin !== null && t.arrVarMin !== undefined) g.arr.push(t.arrVarMin);
-    });
-    const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
-    const worstLane = Object.keys(laneMap)
-        .map(k => ({ lane: k, o: mean(laneMap[k].out), a: mean(laneMap[k].arr) }))
-        .filter(x => x.o !== null || x.a !== null)
-        .sort((x, y) => (Math.abs(y.a || 0) + Math.abs(y.o || 0)) - (Math.abs(x.a || 0) + Math.abs(x.o || 0)))[0];
+    const t = liveAdherenceTotals(rows);
+    const b = liveBreachAnalysis(rows);
+    const share = b.breaches ? Math.round(b.breaches / (rows.length || 1) * 100) : 0;
 
     const L = [];
-    L.push('LINE HAUL LIVE — SUMMARY');
-    L.push('─'.repeat(46));
-    L.push(`Scope      : ${scope}`);
-    L.push(`Occurrences: ${fmt(rows.length)}   (no plan: ${fmt(extraN)})`);
+    L.push('LINE HAUL  —  LIVE TRACKING SUMMARY');
+    L.push('Scope: ' + scopeBits.join('  |  '));
     L.push('');
-    L.push(`Dispatch   : ${outPct}% adhered${outStat ? '   ·   avg ' + fmtVar(outStat.avg) : ''}`);
-    L.push(`Arrival    : ${arrPct}% adhered${arrStat ? '   ·   avg ' + fmtVar(arrStat.avg) : ''}`);
+    L.push(fmt(rows.length) + ' occurrences, of which ' + fmt(b.breaches) + ' were not adhered to plan (' + share + '%).');
     L.push('');
-    L.push(`Not adhered: ${fmt(notAdhN)} of ${fmt(rows.length)}`);
-    if (worstLane) L.push(`Worst lane : ${worstLane.lane}   (dispatch ${fmtVar(worstLane.o)} / arrival ${fmtVar(worstLane.a)})`);
-    L.push('');
-    L.push('− early / + late');
+    L.push('Adherence to plan');
+    L.push('  Dispatch : ' + t.outPct + '%   (' + fmt(t.outOk) + ' of ' + fmt(t.outP) + ' planned)');
+    L.push('  Arrival  : ' + t.arrPct + '%   (' + fmt(t.arrOk) + ' of ' + fmt(t.arrP) + ' planned)');
+    if (t.noPlan) L.push('  No plan time on ' + fmt(t.noPlan) + ' occurrence' + (t.noPlan === 1 ? '' : 's'));
+
+    if (b.byHub.length){
+        L.push('');
+        L.push('Where the breaches are');
+        b.byHub.slice(0, 5).forEach(h => L.push('  ' + String(h.hub).padEnd(10) + ' ' + fmt(h.n) + '   (' + h.pct.toFixed(1) + '%)'));
+    }
+    if (b.causes.length){
+        L.push('');
+        L.push('What went wrong');
+        b.causes.forEach(c => L.push('  ' + c.k.padEnd(15) + ' ' + fmt(c.n)));
+    }
+    if (b.lateOut.length){
+        L.push('');
+        L.push('Late dispatch — hub, trips, avg delay');
+        b.lateOut.slice(0, 4).forEach(x => L.push('  ' + String(x.hub).padEnd(10) + ' ' + fmt(x.n) + ' trips   avg +' + x.avg + ' min'));
+    }
+    if (b.lateArr.length){
+        L.push('');
+        L.push('Late arrival — hub, trips, avg delay');
+        b.lateArr.slice(0, 4).forEach(x => L.push('  ' + String(x.hub).padEnd(10) + ' ' + fmt(x.n) + ' trips   avg +' + x.avg + ' min'));
+    }
+    if (b.byLane.length){
+        L.push('');
+        L.push('Worst lane: ' + b.byLane[0].lane + '  (' + fmt(b.byLane[0].n) + ' breaches)');
+    }
+    return L.join('\n');
+}
+
+/* READY TO SEND — the way a person types it into the group chat, to go with the
+   Snap Board image. Short and plain. */
+function buildSendSummary(rows){
+    if (!rows.length) return 'No occurrences in the current filters.';
+    const t = liveAdherenceTotals(rows);
+    const b = liveBreachAnalysis(rows);
+    if (!b.breaches) return 'Dispatch adherence ' + t.outPct + '% and arrival adherence ' + t.arrPct +
+                             '% — all ' + fmt(rows.length) + ' occurrences adhered to plan in this scope.';
+
+    const joinNames = arr => arr.length > 1
+        ? arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1]
+        : (arr[0] || '');
+
+    const L = [];
+
+    // 1. Headline adherence.
+    L.push('Dispatch adherence ' + t.outPct + '% and arrival adherence ' + t.arrPct + '% in this scope.');
+
+    // 2. Where it went late and by how much (average delay per hub).
+    const lateBits = [];
+    if (b.lateOut.length) lateBits.push('dispatch was late at ' + joinNames(b.lateOut.slice(0, 2).map(x => x.hub + ' by ' + x.avg + 'm')));
+    if (b.lateArr.length) lateBits.push('arrival slipped at ' + joinNames(b.lateArr.slice(0, 2).map(x => x.hub + ' by ' + x.avg + 'm')));
+    if (lateBits.length){
+        const txt = lateBits.join(', and ');
+        L.push(txt.charAt(0).toUpperCase() + txt.slice(1) + '.');
+    }
+
+    // 3. Share of breaches by hub.
+    const hubs = b.byHub.slice(0, 3);
+    if (hubs.length)
+        L.push('Majority of the breaches with ' + joinNames(hubs.map(h => h.pct.toFixed(2) + '% for ' + h.hub)) + '.');
+
+    // 4. Biggest cause.
+    if (b.causes.length){
+        const c0 = b.causes[0], c1 = b.causes[1];
+        let line = c0.k + ' is the biggest cause with ' + fmt(c0.n) + ' of ' + fmt(b.breaches) + ' breaches';
+        if (c1) line += ', followed by ' + c1.k.toLowerCase() + ' with ' + fmt(c1.n);
+        L.push(line + '.');
+    }
+
+    // 5. Vendor + weakest lane.
+    const tail = [];
+    if (b.topVendor)     tail.push('vendor ' + b.topVendor.name + ' has the most breaches (' + fmt(b.topVendor.n) + ')');
+    if (b.byLane.length) tail.push('weakest lane ' + b.byLane[0].lane);
+    if (tail.length){
+        const txt = tail.join(', ');
+        L.push(txt.charAt(0).toUpperCase() + txt.slice(1) + '.');
+    }
     return L.join('\n');
 }
 
 function refreshTextSummary(rows){
-    const pre = document.getElementById('liveTextSummary');
-    if (pre) pre.textContent = buildTextSummary(rows);
+    const d = document.getElementById('liveTextSummary');
+    if (d) d.textContent = buildTextSummary(rows);
+    const s = document.getElementById('liveSendSummary');
+    if (s) s.textContent = buildSendSummary(rows);
 }
 
-function copyTextSummary(){
-    const pre = document.getElementById('liveTextSummary');
-    const text = pre ? pre.textContent : '';
-    if (!text) { showToast('Nothing to copy yet', 'danger'); return; }
-    const done = () => showToast('Text summary copied — paste it with your snapshot');
+function copyTextSummary(which){
+    const el = document.getElementById(which === 'send' ? 'liveSendSummary' : 'liveTextSummary');
+    const text = el ? el.textContent : '';
+    if (!text || text === '—') { showToast('Nothing to copy yet', 'danger'); return; }
+    const done = () => showToast((which === 'send' ? 'Message' : 'Detailed summary') + ' copied — paste it with your snapshot');
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(done).catch(() => { fallbackCopy(text); done(); });
     } else { fallbackCopy(text); done(); }
