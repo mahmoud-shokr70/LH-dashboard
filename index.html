@@ -66,12 +66,14 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 .mp-c-leave   { background: #e2e8f0; color: #334155; }
 .mp-c-noshow  { background: #fee2e2; color: #991b1b; }
 .mp-c-other   { background: #f1f5f9; color: #64748b; }
-.mp-band-new { background: #f1f5f9; color: #64748b; }
-.mp-band-b1  { background: #fef3c7; color: #92400e; }
-.mp-band-b2  { background: #e0f2fe; color: #075985; }
-.mp-band-b3  { background: #dbeafe; color: #1e40af; }
-.mp-band-b4  { background: #dcfce7; color: #166534; }
-.mp-band-b5  { background: #ede9fe; color: #5b21b6; }
+.mp-band-p01  { background: #f1f5f9; color: #64748b; }
+.mp-band-p24  { background: #fef3c7; color: #92400e; }
+.mp-band-p57  { background: #fed7aa; color: #9a3412; }
+.mp-band-p810 { background: #e0f2fe; color: #075985; }
+.mp-band-p1115 { background: #dbeafe; color: #1e40af; }
+.mp-band-p1630 { background: #dcfce7; color: #166534; }
+.mp-band-p3160 { background: #bbf7d0; color: #14532d; }
+.mp-band-p60  { background: #a7f3d0; color: #064e3b; }
 
 /* Core metric cards */
 .kpi-card { background: var(--brand-white); border-radius: 12px; border: 1px solid #e8e2cf; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative; overflow: hidden; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; height:100%; }
@@ -690,8 +692,12 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             <div class="card p-3 mb-4 border-0 shadow-sm" id="mpFilterCard" style="display:none;">
                 <div class="row g-2 align-items-end">
                     <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted mb-1">Day</label>
-                        <select id="mp-day" class="form-select form-select-sm"></select>
+                        <label class="form-label fw-bold small text-muted mb-1">Day From</label>
+                        <select id="mp-day-from" class="form-select form-select-sm"></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted mb-1">Day To</label>
+                        <select id="mp-day-to" class="form-select form-select-sm"></select>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted mb-1">Category</label>
@@ -807,19 +813,30 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 <div class="card p-3 mb-4 border-0 shadow-sm">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-hourglass-split me-2 text-primary"></i>Vendor aging
-                            <span class="text-muted fw-normal" style="font-size:.75rem">— days worked in the 9 months before this month</span></h6>
-                        <span class="small text-muted">Exit flags (Resigned / Terminate / Suspended) are excluded from the active average and counted separately</span>
+                            <span class="text-muted fw-normal" style="font-size:.75rem">— headcount per vendor by aging (days worked in the 9 months before this month)</span></h6>
+                        <span class="small text-muted" id="mpVaNote"></span>
                     </div>
                     <div class="row g-3">
-                        <div class="col-lg-7">
-                            <div style="max-height:340px;overflow-y:auto">
+                        <div class="col-lg-8">
+                            <div style="max-height:380px;overflow-y:auto">
                                 <table class="table table-sm align-middle fs-7 mb-0">
-                                    <thead class="table-light"><tr><th>Vendor</th><th>HC</th><th>Avg aging</th><th>New (0d)</th><th>61+ days</th><th>Exit flags</th><th>Avg aging (excl. exits)</th></tr></thead>
+                                    <thead class="table-light"><tr>
+                                        <th>Vendor</th>
+                                        <th class="text-center">0 – 1</th>
+                                        <th class="text-center">2 – 4</th>
+                                        <th class="text-center">5 – 7</th>
+                                        <th class="text-center">8 – 10</th>
+                                        <th class="text-center">11 – 15</th>
+                                        <th class="text-center">16 – 30</th>
+                                        <th class="text-center">31 – 60</th>
+                                        <th class="text-center">&gt; 60</th>
+                                        <th class="text-center">Grand Total</th>
+                                    </tr></thead>
                                     <tbody id="mpVaBody"></tbody>
                                 </table>
                             </div>
                         </div>
-                        <div class="col-lg-5">
+                        <div class="col-lg-4">
                             <div style="height:300px;position:relative;"><canvas id="chartMpVendorAging"></canvas></div>
                         </div>
                     </div>
@@ -1280,7 +1297,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'v17 — 2026-10-19';
+const BUILD = 'V1';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -4225,23 +4242,28 @@ const MP_BUCKETS = {
     other:   { label: 'Other',    color: '#94a3b8' }
 };
 /* Aging = the sheet's "aging" column: days worked in the 9 months before
-   this month. Used to age vendors; band colours match the grid cells. */
+   this month. Banded the way the vendor aging report needs it; band colours
+   match the grid cells. */
 const MP_BANDS = [
-    { k: 'new', label: 'New — 0 days',   color: '#94a3b8' },
-    { k: 'b1',  label: '1 – 30 days',    color: '#f59e0b' },
-    { k: 'b2',  label: '31 – 60 days',   color: '#0ea5e9' },
-    { k: 'b3',  label: '61 – 90 days',   color: '#3b82f6' },
-    { k: 'b4',  label: '91 – 180 days',  color: '#16a34a' },
-    { k: 'b5',  label: '181 – 270 days', color: '#7c3aed' }
+    { k: 'p01',   label: '0 – 1 days',   color: '#94a3b8' },
+    { k: 'p24',   label: '2 – 4 days',   color: '#f59e0b' },
+    { k: 'p57',   label: '5 – 7 days',   color: '#fb923c' },
+    { k: 'p810',  label: '8 – 10 days',  color: '#0ea5e9' },
+    { k: 'p1115', label: '11 – 15 days', color: '#3b82f6' },
+    { k: 'p1630', label: '16 – 30 days', color: '#22c55e' },
+    { k: 'p3160', label: '31 – 60 days', color: '#16a34a' },
+    { k: 'p60',   label: 'More than 60 days', color: '#15803d' }
 ];
 function mpBand(v){
     if (v === null || v === undefined) return null;
-    if (v <= 0)   return 'new';
-    if (v <= 30)  return 'b1';
-    if (v <= 60)  return 'b2';
-    if (v <= 90)  return 'b3';
-    if (v <= 180) return 'b4';
-    return 'b5';
+    if (v <= 1)   return 'p01';
+    if (v <= 4)   return 'p24';
+    if (v <= 7)   return 'p57';
+    if (v <= 10)  return 'p810';
+    if (v <= 15)  return 'p1115';
+    if (v <= 30)  return 'p1630';
+    if (v <= 60)  return 'p3160';
+    return 'p60';
 }
 function mpNum(s){
     const v = parseFloat(String(s || '').replace(/[^0-9.\-]/g, ''));
@@ -4262,7 +4284,7 @@ const MP_META = [
 
 let mpAll = [], mpCols = [], mpLoaded = false, mpLoading = false, mpSearchTimer = null;
 const MP_ALL = '__all';
-let mpState = { day: MP_ALL, cat: [], band: [], hub: [], leg: [], title: [], shift: [], vendor: [], search: '' };
+let mpState = { dayFrom: MP_ALL, dayTo: MP_ALL, cat: [], band: [], hub: [], leg: [], title: [], shift: [], vendor: [], search: '' };
 
 /* Multi-select facets wired through the shared mcs component, exactly like
    the dashboard and Live Tracking filters: every option is counted against
@@ -4275,7 +4297,20 @@ const MP_FACET = { 'mp-cat':'cat', 'mp-band':'band', 'mp-hub':'hub', 'mp-leg':'l
 const MP_CAT_BY_LABEL  = {}; Object.keys(MP_BUCKETS).forEach(k => { MP_CAT_BY_LABEL[MP_BUCKETS[k].label] = k; });
 const MP_BAND_BY_LABEL = {}; MP_BANDS.forEach(b => { MP_BAND_BY_LABEL[b.label] = b.k; });
 
-function mpDayCols(){ return mpState.day === MP_ALL ? mpCols : [mpState.day]; }
+function mpDayCols(){
+    const fi = mpCols.indexOf(mpState.dayFrom), ti = mpCols.indexOf(mpState.dayTo);
+    if (fi === -1 && ti === -1) return mpCols;
+    const a = fi === -1 ? 0 : fi, b = ti === -1 ? mpCols.length - 1 : ti;
+    return mpCols.slice(Math.min(a, b), Math.max(a, b) + 1);
+}
+/* Human label for the selected day range ("1 Oct – 7 Oct"). */
+function mpRangeLabel(){
+    const fi = mpCols.indexOf(mpState.dayFrom), ti = mpCols.indexOf(mpState.dayTo);
+    if (fi === -1 && ti === -1) return 'whole month';
+    const a = fi === -1 ? 0 : fi, b = ti === -1 ? mpCols.length - 1 : ti;
+    const lo = Math.min(a, b), hi = Math.max(a, b);
+    return lo === hi ? mpPrettyDay(mpCols[lo]) : mpPrettyDay(mpCols[lo]) + ' – ' + mpPrettyDay(mpCols[hi]);
+}
 function mpAny(sel){ return !sel || !sel.length; }
 function mpIn(sel, v){ return mpAny(sel) || sel.indexOf(v || '—') !== -1; }
 function mpHay(t){ return ((t.name || '') + ' ' + (t.empId || '') + ' ' + (t.hub || '') + ' ' + (t.title || '')).toLowerCase(); }
@@ -4294,7 +4329,9 @@ function syncMpState(){
     mpState.title  = mpSel('mp-title');
     mpState.shift  = mpSel('mp-shift');
     mpState.vendor = mpSel('mp-vendor');
-    const d = document.getElementById('mp-day');   if (d && d.value) mpState.day = d.value;
+    const df = document.getElementById('mp-day-from');
+    const dt = document.getElementById('mp-day-to');
+    if (df && dt){ mpState.dayFrom = df.value || MP_ALL; mpState.dayTo = dt.value || MP_ALL; }
     const s = document.getElementById('mp-search'); if (s) mpState.search = s.value.trim();
 }
 
@@ -4442,9 +4479,12 @@ function buildMpStaticOptions(){
         mpAll.forEach(t => { const v = get(t); if (v !== null && v !== undefined && String(v).trim() !== '') seen.add(String(v)); });
         return Array.from(seen).sort((a, b) => String(a).localeCompare(String(b)));
     };
-    // Day is a scope switch (whole month vs one day) — a plain dropdown.
-    const dayEl = document.getElementById('mp-day');
-    if (dayEl) dayEl.onchange = function(){ mpState.day = dayEl.value; renderManpower(); };
+    // Day From / Day To are scope switches (whole month vs a range) — plain dropdowns.
+    const dfEl = document.getElementById('mp-day-from');
+    const dtEl = document.getElementById('mp-day-to');
+    const onDayChange = function(){ renderManpower(); };
+    if (dfEl) dfEl.onchange = onDayChange;
+    if (dtEl) dtEl.onchange = onDayChange;
 
     mpFillMulti('mp-cat',    Object.keys(MP_BUCKETS).map(k => ({ v: k, l: MP_BUCKETS[k].label })),
                              mpState.cat.map(k => MP_BUCKETS[k].label));
@@ -4478,18 +4518,20 @@ function mpFillMulti(id, entries, keepLabels){
 }
 
 /* Re-count every option against the current scope (same as the dashboard's
-   refreshFacetCounts) and rebuild the Day dropdown counts. */
+   refreshFacetCounts) and rebuild the Day From / Day To dropdown counts. */
 function refreshMpCounts(){
     const dayCols = mpDayCols();
     const base = mpFacetRows('day');
-    const dayEl = document.getElementById('mp-day');
-    if (dayEl){
-        const prev = dayEl.value;
-        dayEl.innerHTML = [{ v: MP_ALL, l: 'All days (month)' }].concat(
+    const buildDay = function(selId, prevVal){
+        const el = document.getElementById(selId);
+        if (!el) return;
+        el.innerHTML = [{ v: MP_ALL, l: (selId === 'mp-day-from') ? 'First day' : 'Last day' }].concat(
             mpCols.map(c => ({ v: c, l: mpPrettyDay(c) + '  (' + base.filter(t => t.days[c] && t.days[c].bucket === 'present').length + ' present)' })
         )).map(o => '<option value="' + esc(o.v) + '">' + esc(o.l) + '</option>').join('');
-        if (Array.from(dayEl.options).some(o => o.value === prev)) dayEl.value = prev;
-    }
+        if (Array.from(el.options).some(o => o.value === prevVal)) el.value = prevVal;
+    };
+    buildDay('mp-day-from', (document.getElementById('mp-day-from') || {}).value);
+    buildDay('mp-day-to',   (document.getElementById('mp-day-to')   || {}).value);
     document.querySelectorAll('#mpFilterCard select.mcs-counted').forEach(function(el){ mcsSync(el); });
 }
 
@@ -4553,7 +4595,8 @@ function resetMpFilters(){
         Array.prototype.slice.call(el.options).forEach(o => { o.selected = false; });
         if (el.__mcs) mcsSync(el);
     });
-    const d = document.getElementById('mp-day'); if (d) d.value = MP_ALL;
+    const df = document.getElementById('mp-day-from'); if (df) df.value = MP_ALL;
+    const dt = document.getElementById('mp-day-to');   if (dt) dt.value = MP_ALL;
     const s = document.getElementById('mp-search'); if (s) s.value = '';
     renderManpower();
 }
@@ -4568,49 +4611,63 @@ function renderMpGridDebounced(){
     }, 280);
 }
 
-/* Vendor aging — average days worked in the 9 months before this month,
-   per vendor, with exit-flagged people (Resigned / Terminate / Suspended)
-   kept out of the active average and reported on their own. */
+/* Vendor aging pivot — headcount per vendor by aging band (days worked in
+   the 9 months before this month), with grand totals and column shares.
+   Exit-flagged people (Resigned / Terminate / Suspended) stay in the counts
+   and are reported on their own underneath the table. */
 function mpVendorAging(rows, dayCols){
     const m = new Map();
     rows.forEach(t => {
         const key = t.vendor || '—';
-        if (!m.has(key)) m.set(key, { key: key, hc: 0, agingSum: 0, agingN: 0, newCnt: 0, expCnt: 0, exits: 0, actSum: 0, actN: 0 });
+        if (!m.has(key)) m.set(key, { key: key, bands: {}, total: 0, agingSum: 0, agingN: 0, exits: 0 });
         const g = m.get(key);
-        g.hc++;
-        if (t.aging !== null){ g.agingN++; g.agingSum += t.aging; }
-        if (t.band === 'new') g.newCnt++;
-        if (t.band === 'b3' || t.band === 'b4' || t.band === 'b5') g.expCnt++;
+        if (t.band !== null){
+            g.bands[t.band] = (g.bands[t.band] || 0) + 1;
+            g.total++;
+            g.agingSum += t.aging;
+            g.agingN++;
+        }
         if (mpExitFlagged(t, dayCols)) g.exits++;
-        else if (t.aging !== null){ g.actSum += t.aging; g.actN++; }
     });
     return Array.from(m.values()).map(g => ({
-        key: g.key, hc: g.hc,
-        avg:    g.agingN ? Math.round(g.agingSum / g.agingN) : null,
-        avgAct: g.actN   ? Math.round(g.actSum / g.actN)     : null,
-        newCnt: g.newCnt, expCnt: g.expCnt, exits: g.exits
-    })).sort((a, b) => (b.avg || 0) - (a.avg || 0) || b.hc - a.hc || String(a.key).localeCompare(String(b.key)));
-}
-
-function mpVaRowHtml(v){
-    return '<tr>' +
-        '<td class="fw-bold">' + esc(v.key) + '</td>' +
-        '<td>' + fmt(v.hc) + '</td>' +
-        '<td class="fw-bold text-primary">' + (v.avg === null ? '—' : v.avg + 'd') + '</td>' +
-        '<td class="text-secondary">' + fmt(v.newCnt) + '</td>' +
-        '<td class="text-success">' + fmt(v.expCnt) + '</td>' +
-        '<td class="text-danger">' + fmt(v.exits) + '</td>' +
-        '<td class="fw-bold">' + (v.avgAct === null ? '—' : v.avgAct + 'd') + '</td>' +
-        '</tr>';
+        key: g.key, bands: g.bands, total: g.total, exits: g.exits,
+        avg: g.agingN ? Math.round(g.agingSum / g.agingN) : null
+    })).sort((a, b) => b.total - a.total || String(a.key).localeCompare(String(b.key)));
 }
 
 function renderMpVendorAging(rows, dayCols){
     const body = document.getElementById('mpVaBody');
     if (!body) return;
     const va = mpVendorAging(rows, dayCols);
-    body.innerHTML = va.length
-        ? va.map(mpVaRowHtml).join('')
-        : '<tr><td colspan="7" class="text-center text-muted py-3">No employees in this scope</td></tr>';
+    const bandKeys = MP_BANDS.map(b => b.k);
+    const colTotals = {};
+    bandKeys.forEach(k => { colTotals[k] = 0; });
+    let grand = 0, exitsAll = 0;
+    va.forEach(v => {
+        bandKeys.forEach(k => { colTotals[k] += (v.bands[k] || 0); });
+        grand += v.total;
+        exitsAll += v.exits;
+    });
+    const cell = n => '<td class="text-center">' + (n ? fmt(n) : '') + '</td>';
+    body.innerHTML = va.length ? (
+        va.map(v => '<tr>' +
+            '<td class="fw-bold">' + esc(v.key) + '</td>' +
+            bandKeys.map(k => cell(v.bands[k] || 0)).join('') +
+            '<td class="text-center fw-bold">' + fmt(v.total) + '</td>' +
+            '</tr>').join('') +
+        '<tr class="table-light fw-bold">' +
+            '<td>Grand Total</td>' +
+            bandKeys.map(k => cell(colTotals[k])).join('') +
+            '<td class="text-center">' + fmt(grand) + '</td></tr>' +
+        '<tr class="table-light">' +
+            '<td class="text-muted small">%</td>' +
+            bandKeys.map(k => '<td class="text-center text-muted small">' + (grand ? (colTotals[k] / grand * 100).toFixed(2) + '%' : '—') + '</td>').join('') +
+            '<td class="text-center text-muted small">100%</td></tr>'
+    ) : '<tr><td colspan="10" class="text-center text-muted py-3">No employees in this scope</td></tr>';
+    const note = document.getElementById('mpVaNote');
+    if (note) note.textContent = va.length
+        ? 'Exit flags (Resigned / Terminate / Suspended) are included in the counts — ' + fmt(exitsAll) + ' across all vendors.'
+        : '';
     const shown = va.filter(v => v.avg !== null).slice(0, 12);
     const canvas = document.getElementById('chartMpVendorAging');
     if (!canvas) return;
@@ -4661,7 +4718,8 @@ function renderManpower(){
     const rate    = c.marked ? Math.round(c.present / c.marked * 100) : 0;
 
     if (scope){
-        const bits = [isMonth ? 'Scope: whole month' : 'Scope: ' + mpPrettyDay(mpState.day)];
+        const isWhole = dayCols.length === mpCols.length;
+        const bits = [isWhole ? 'Scope: whole month' : 'Scope: ' + mpRangeLabel()];
         const lbl = { hub: 'Hub', leg: 'Facility leg', title: 'Title', shift: 'Shift', vendor: 'Vendor' };
         Object.keys(lbl).forEach(k => { if (!mpAny(mpState[k])) bits.push(lbl[k] + ' ' + mpState[k].join(', ')); });
         if (!mpAny(mpState.band)) bits.push('Aging ' + mpState.band.map(k => (MP_BANDS.find(b => b.k === k) || { label: k }).label).join(', '));
@@ -4684,10 +4742,10 @@ function renderManpower(){
     const aged = scoped.filter(t => t.aging !== null);
     const avgAging = aged.length ? Math.round(aged.reduce((s, t) => s + t.aging, 0) / aged.length) : null;
     set('mp-k-aging', avgAging === null ? '—' : avgAging + 'd');
-    set('mp-k-new', fmt(scoped.filter(t => t.band === 'new').length));
+    set('mp-k-new', fmt(scoped.filter(t => t.aging === 0).length));
 
-    document.getElementById('chartMpHubSub').textContent = isMonth ? 'whole month' : mpPrettyDay(mpState.day);
-    renderMpTrend(scoped);
+    document.getElementById('chartMpHubSub').textContent = mpRangeLabel();
+    renderMpTrend(scoped, dayCols);
     renderMpHubChart(active, dayCols);
     const hubRows = mpBreakRows(active, t => t.hub, dayCols);
     document.getElementById('mpHubBody').innerHTML = hubRows.length
@@ -4703,12 +4761,13 @@ function renderManpower(){
 }
 
 /* --- charts --------------------------------------------------- */
-function renderMpTrend(rows){
+function renderMpTrend(rows, dayCols){
     const base = rows || mpAll;
-    const labels = mpCols.map(mpPrettyDay);
+    const cols = (dayCols && dayCols.length) ? dayCols : mpCols;
+    const labels = cols.map(mpPrettyDay);
     const keys = ['present', 'weekoff', 'leave', 'noshow', 'other'];
     const series = {};
-    keys.forEach(b => series[b] = mpCols.map(cD => base.reduce((s, t) => s + ((t.days[cD] && t.days[cD].bucket === b) ? 1 : 0), 0)));
+    keys.forEach(b => series[b] = cols.map(cD => base.reduce((s, t) => s + ((t.days[cD] && t.days[cD].bucket === b) ? 1 : 0), 0)));
     const cfg = {
         type: 'bar',
         data: {
