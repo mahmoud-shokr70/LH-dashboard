@@ -691,35 +691,35 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 <div class="row g-2 align-items-end">
                     <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted mb-1">Day</label>
-                        <select id="mp-day" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                        <select id="mp-day" class="form-select form-select-sm"></select>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted mb-1">Category</label>
-                        <select id="mp-cat" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                        <select id="mp-cat" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted mb-1">Hub</label>
-                        <select id="mp-hub" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                        <select id="mp-hub" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted mb-1">Facility Leg</label>
-                        <select id="mp-leg" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                        <select id="mp-leg" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted mb-1">Title</label>
-                        <select id="mp-title" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                        <select id="mp-title" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted mb-1">Shift</label>
-                        <select id="mp-shift" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                        <select id="mp-shift" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted mb-1">Vendor</label>
-                        <select id="mp-vendor" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                        <select id="mp-vendor" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted mb-1" title="Days worked in the 9 months before this month (from the sheet ageing column)">Aging</label>
-                        <select id="mp-band" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                        <select id="mp-band" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-bold small text-muted mb-1">Search</label>
@@ -733,7 +733,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                     </div>
                 </div>
                 <div class="small text-muted mt-2" id="mpLegend">
-                    <i class="bi bi-question-circle me-1"></i>All figures count one person once per day. Present covers Present, Working Public Holiday and Work on Week Off.
+                    <i class="bi bi-question-circle me-1"></i>All figures count one person once per day. Present covers Present, Working Public Holiday and Work on Week Off. Option counts update against the other filters, like the dashboard.
                 </div>
             </div>
 
@@ -4262,7 +4262,79 @@ const MP_META = [
 
 let mpAll = [], mpCols = [], mpLoaded = false, mpLoading = false, mpSearchTimer = null;
 const MP_ALL = '__all';
-let mpState = { day: MP_ALL, cat: MP_ALL, band: MP_ALL, hub: MP_ALL, leg: MP_ALL, title: MP_ALL, shift: MP_ALL, vendor: MP_ALL, search: '' };
+let mpState = { day: MP_ALL, cat: [], band: [], hub: [], leg: [], title: [], shift: [], vendor: [], search: '' };
+
+/* Multi-select facets wired through the shared mcs component, exactly like
+   the dashboard and Live Tracking filters: every option is counted against
+   all the OTHER filters, options that can no longer return a row are hidden,
+   and selections are pruned when they stop matching. */
+const MP_FACET = { 'mp-cat':'cat', 'mp-band':'band', 'mp-hub':'hub', 'mp-leg':'leg', 'mp-title':'title', 'mp-shift':'shift', 'mp-vendor':'vendor' };
+/* The mcs component shows option VALUES as their label, so category and aging
+   options carry their display label as the value; these maps translate back
+   to the internal bucket / band keys. */
+const MP_CAT_BY_LABEL  = {}; Object.keys(MP_BUCKETS).forEach(k => { MP_CAT_BY_LABEL[MP_BUCKETS[k].label] = k; });
+const MP_BAND_BY_LABEL = {}; MP_BANDS.forEach(b => { MP_BAND_BY_LABEL[b.label] = b.k; });
+
+function mpDayCols(){ return mpState.day === MP_ALL ? mpCols : [mpState.day]; }
+function mpAny(sel){ return !sel || !sel.length; }
+function mpIn(sel, v){ return mpAny(sel) || sel.indexOf(v || '—') !== -1; }
+function mpHay(t){ return ((t.name || '') + ' ' + (t.empId || '') + ' ' + (t.hub || '') + ' ' + (t.title || '')).toLowerCase(); }
+
+/* Read the current selections out of the DOM into mpState — the same pattern
+   as the dashboard, where applyDashboardFilters reads the selects directly. */
+function mpSel(id){
+    const el = document.getElementById(id);
+    return el ? Array.prototype.slice.call(el.options).filter(o => o.selected).map(o => o.value) : [];
+}
+function syncMpState(){
+    mpState.cat    = mpSel('mp-cat').map(v => MP_CAT_BY_LABEL[v] || v);
+    mpState.band   = mpSel('mp-band').map(v => MP_BAND_BY_LABEL[v] || v);
+    mpState.hub    = mpSel('mp-hub');
+    mpState.leg    = mpSel('mp-leg');
+    mpState.title  = mpSel('mp-title');
+    mpState.shift  = mpSel('mp-shift');
+    mpState.vendor = mpSel('mp-vendor');
+    const d = document.getElementById('mp-day');   if (d && d.value) mpState.day = d.value;
+    const s = document.getElementById('mp-search'); if (s) mpState.search = s.value.trim();
+}
+
+/* Rows matching every filter EXCEPT the named facet — the base used to count
+   that facet's options. Always limited to people marked on the selected
+   day(s), so the numbers line up with the KPI tiles and the tables. */
+function mpFacetRows(except){
+    const dayCols = mpDayCols();
+    return mpAll.filter(t => {
+        if (except !== 'day' && !dayCols.some(c => t.days[c] && t.days[c].bucket)) return false;
+        if (except !== 'hub'    && !mpIn(mpState.hub,    t.hub))    return false;
+        if (except !== 'leg'    && !mpIn(mpState.leg,    t.leg))    return false;
+        if (except !== 'title'  && !mpIn(mpState.title,  t.title))  return false;
+        if (except !== 'shift'  && !mpIn(mpState.shift,  t.shift))  return false;
+        if (except !== 'vendor' && !mpIn(mpState.vendor, t.vendor)) return false;
+        if (except !== 'band'   && !mpIn(mpState.band,   t.band))   return false;
+        if (except !== 'cat' && !mpAny(mpState.cat) &&
+            !dayCols.some(c => t.days[c] && mpState.cat.indexOf(t.days[c].bucket) !== -1)) return false;
+        if (mpState.search && mpHay(t).indexOf(mpState.search.toLowerCase()) === -1) return false;
+        return true;
+    });
+}
+
+function mpCountFn(facet){
+    const get = { hub: t => t.hub, leg: t => t.leg, title: t => t.title,
+                  shift: t => t.shift, vendor: t => t.vendor }[facet];
+    return function(value){
+        const rows = mpFacetRows(facet);
+        if (facet === 'cat'){
+            const bk = MP_CAT_BY_LABEL[value] || value;
+            const dayCols = mpDayCols();
+            return rows.reduce((s, t) => s + dayCols.filter(c => t.days[c] && t.days[c].bucket === bk).length, 0);
+        }
+        if (facet === 'band'){
+            const k = MP_BAND_BY_LABEL[value] || value;
+            return rows.filter(t => t.band === k).length;
+        }
+        return rows.filter(t => (get(t) || '—') === value).length;
+    };
+}
 
 function mpExitFlagged(t, dayCols){
     return dayCols.some(d => { const x = t.days[d]; return x && /resign|terminat|suspend/i.test(x.raw); });
@@ -4361,69 +4433,78 @@ async function loadManpowerCsv(force){
 }
 
 /* --- filters ------------------------------------------------- */
-function mpFillSelect(id, options, keep){
-    const el = document.getElementById(id);
-    if (!el) return;
-    const prev = (keep !== undefined) ? keep : el.value;
-    el.innerHTML = options.map(o => '<option value="' + esc(o.v) + '">' + esc(o.l) + '</option>').join('');
-    if (options.some(o => o.v === prev)) el.value = prev;
-}
 
-/* Static dimensions (hub, leg, title, shift, vendor + day list); built
-   once after load. Each option carries its headcount so the filter
-   reads like the rest of the dashboard. */
+/* Build the filter options once after load; counts are refreshed on every
+   render by refreshMpCounts() so they always match the active scope. */
 function buildMpStaticOptions(){
-    const dim = get => {
-        const m = new Map();
-        mpAll.forEach(t => { const v = (get(t) || '—'); m.set(v, (m.get(v) || 0) + 1); });
-        return Array.from(m.entries()).sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
+    const uniq = get => {
+        const seen = new Set();
+        mpAll.forEach(t => { const v = get(t); if (v !== null && v !== undefined && String(v).trim() !== '') seen.add(String(v)); });
+        return Array.from(seen).sort((a, b) => String(a).localeCompare(String(b)));
     };
-    mpFillSelect('mp-day', [{ v: MP_ALL, l: 'All days (month)' }].concat(
-        mpCols.map(c => ({ v: c, l: mpPrettyDay(c) + '  (' + mpAll.filter(t => t.days[c] && t.days[c].bucket === 'present').length + ' present)' })
-    )));
-    mpFillSelect('mp-hub',   [{ v: MP_ALL, l: 'All hubs' }].concat(dim(t => t.hub).map(e => ({ v: e[0], l: e[0] + '  (' + e[1] + ')' }))));
-    mpFillSelect('mp-leg',   [{ v: MP_ALL, l: 'All facility legs' }].concat(dim(t => t.leg).map(e => ({ v: e[0], l: e[0] + '  (' + e[1] + ')' }))));
-    mpFillSelect('mp-title', [{ v: MP_ALL, l: 'All titles' }].concat(dim(t => t.title).map(e => ({ v: e[0], l: e[0] + '  (' + e[1] + ')' }))));
-    mpFillSelect('mp-shift', [{ v: MP_ALL, l: 'All shifts' }].concat(dim(t => t.shift).map(e => ({ v: e[0], l: e[0] + '  (' + e[1] + ')' }))));
-    mpFillSelect('mp-vendor',[{ v: MP_ALL, l: 'All vendors' }].concat(dim(t => t.vendor).map(e => ({ v: e[0], l: e[0] + '  (' + e[1] + ')' }))));
-    const bandCounts = {};
-    mpAll.forEach(t => { const k = t.band || 'na'; bandCounts[k] = (bandCounts[k] || 0) + 1; });
-    mpFillSelect('mp-band', [{ v: MP_ALL, l: 'All aging bands' }].concat(
-        MP_BANDS.map(bd => ({ v: bd.k, l: bd.label + '  (' + (bandCounts[bd.k] || 0) + ')' }))
-    ));
+    // Day is a scope switch (whole month vs one day) — a plain dropdown.
+    const dayEl = document.getElementById('mp-day');
+    if (dayEl) dayEl.onchange = function(){ mpState.day = dayEl.value; renderManpower(); };
+
+    mpFillMulti('mp-cat',    Object.keys(MP_BUCKETS).map(k => ({ v: k, l: MP_BUCKETS[k].label })),
+                             mpState.cat.map(k => MP_BUCKETS[k].label));
+    mpFillMulti('mp-band',   MP_BANDS.map(b => ({ v: b.k, l: b.label })),
+                             mpState.band.map(k => (MP_BANDS.find(b => b.k === k) || { label: k }).label));
+    mpFillMulti('mp-hub',    uniq(t => t.hub).map(v => ({ v: v, l: v })), mpState.hub);
+    mpFillMulti('mp-leg',    uniq(t => t.leg).map(v => ({ v: v, l: v })), mpState.leg);
+    mpFillMulti('mp-title',  uniq(t => t.title).map(v => ({ v: v, l: v })), mpState.title);
+    mpFillMulti('mp-shift',  uniq(t => t.shift).map(v => ({ v: v, l: v })), mpState.shift);
+    mpFillMulti('mp-vendor', uniq(t => t.vendor).map(v => ({ v: v, l: v })), mpState.vendor);
+    refreshMpCounts();
     const card = document.getElementById('mpFilterCard');
     if (card) card.style.display = '';
 }
 
-/* Category counts depend on the chosen day, so they are rebuilt on
-   every render while the current selection is preserved. */
-function renderMpCatOptions(){
-    const dayCols = mpState.day === MP_ALL ? mpCols : [mpState.day];
-    const counts = { present: 0, weekoff: 0, leave: 0, noshow: 0, other: 0 };
-    mpAll.forEach(t => dayCols.forEach(c => {
-        const x = t.days[c]; if (x && counts[x.bucket] !== undefined) counts[x.bucket]++;
-    }));
-    mpFillSelect('mp-cat', [{ v: MP_ALL, l: 'All categories' }].concat(
-        Object.keys(MP_BUCKETS).map(b => ({ v: b, l: MP_BUCKETS[b].label + '  (' + (counts[b] || 0) + ')' }))
-    ), mpState.cat);
+/* Option labels carry their live count; the count itself is produced by the
+   faceted countFn, so it updates as other filters change. The display label
+   doubles as the option value (that is what the mcs component shows). */
+function mpFillMulti(id, entries, keepLabels){
+    const el = document.getElementById(id);
+    if (!el) return;
+    const list = (entries || []).map(e => ({ v: String(e.v), l: String(e.l) }));
+    const prev = (keepLabels || []).map(String).filter(v => list.some(e => e.l === v));
+    el.innerHTML = '';
+    list.forEach(e => el.appendChild(new Option(e.l, e.l, false, false)));
+    Array.prototype.slice.call(el.options).forEach(o => { o.selected = prev.indexOf(o.value) !== -1; });
+    mcsInit(el, renderManpower, mpCountFn(MP_FACET[id]));
+    el.__mcs.hideZero = true;
+    el.__mcs.emptyText = 'No values in the roster yet.';
+    mcsSync(el);
+}
+
+/* Re-count every option against the current scope (same as the dashboard's
+   refreshFacetCounts) and rebuild the Day dropdown counts. */
+function refreshMpCounts(){
+    const dayCols = mpDayCols();
+    const base = mpFacetRows('day');
+    const dayEl = document.getElementById('mp-day');
+    if (dayEl){
+        const prev = dayEl.value;
+        dayEl.innerHTML = [{ v: MP_ALL, l: 'All days (month)' }].concat(
+            mpCols.map(c => ({ v: c, l: mpPrettyDay(c) + '  (' + base.filter(t => t.days[c] && t.days[c].bucket === 'present').length + ' present)' })
+        )).map(o => '<option value="' + esc(o.v) + '">' + esc(o.l) + '</option>').join('');
+        if (Array.from(dayEl.options).some(o => o.value === prev)) dayEl.value = prev;
+    }
+    document.querySelectorAll('#mpFilterCard select.mcs-counted').forEach(function(el){ mcsSync(el); });
 }
 
 function mpMatch(t, ignoreCat){
-    if (mpState.hub    !== MP_ALL && ((t.hub    || '—') !== mpState.hub))    return false;
-    if (mpState.leg    !== MP_ALL && ((t.leg    || '—') !== mpState.leg))    return false;
-    if (mpState.title  !== MP_ALL && ((t.title  || '—') !== mpState.title))  return false;
-    if (mpState.shift  !== MP_ALL && ((t.shift  || '—') !== mpState.shift))  return false;
-    if (mpState.vendor !== MP_ALL && ((t.vendor || '—') !== mpState.vendor)) return false;
-    if (mpState.band   !== MP_ALL && ((t.band   || 'na') !== mpState.band))  return false;
-    if (!ignoreCat && mpState.cat !== MP_ALL){
-        const dayCols = mpState.day === MP_ALL ? mpCols : [mpState.day];
-        if (!dayCols.some(c => t.days[c] && t.days[c].bucket === mpState.cat)) return false;
+    if (!mpIn(mpState.hub,    t.hub))    return false;
+    if (!mpIn(mpState.leg,    t.leg))    return false;
+    if (!mpIn(mpState.title,  t.title))  return false;
+    if (!mpIn(mpState.shift,  t.shift))  return false;
+    if (!mpIn(mpState.vendor, t.vendor)) return false;
+    if (!mpIn(mpState.band,   t.band === null ? 'na' : t.band)) return false;
+    if (!ignoreCat && !mpAny(mpState.cat)){
+        const dayCols = mpDayCols();
+        if (!dayCols.some(c => t.days[c] && mpState.cat.indexOf(t.days[c].bucket) !== -1)) return false;
     }
-    if (mpState.search){
-        const q = mpState.search.toLowerCase();
-        const hay = ((t.name || '') + ' ' + (t.empId || '') + ' ' + (t.hub || '') + ' ' + (t.title || '')).toLowerCase();
-        if (!hay.includes(q)) return false;
-    }
+    if (mpState.search && mpHay(t).indexOf(mpState.search.toLowerCase()) === -1) return false;
     return true;
 }
 
@@ -4467,8 +4548,12 @@ function mpRowHtml(row){
 }
 
 function resetMpFilters(){
-    mpState = { day: MP_ALL, cat: MP_ALL, band: MP_ALL, hub: MP_ALL, leg: MP_ALL, title: MP_ALL, shift: MP_ALL, vendor: MP_ALL, search: '' };
-    ['mp-day','mp-cat','mp-band','mp-hub','mp-leg','mp-title','mp-shift','mp-vendor'].forEach(id => { const el = document.getElementById(id); if (el) el.value = MP_ALL; });
+    mpState = { day: MP_ALL, cat: [], band: [], hub: [], leg: [], title: [], shift: [], vendor: [], search: '' };
+    document.querySelectorAll('#mpFilterCard select[multiple]').forEach(function(el){
+        Array.prototype.slice.call(el.options).forEach(o => { o.selected = false; });
+        if (el.__mcs) mcsSync(el);
+    });
+    const d = document.getElementById('mp-day'); if (d) d.value = MP_ALL;
     const s = document.getElementById('mp-search'); if (s) s.value = '';
     renderManpower();
 }
@@ -4556,7 +4641,7 @@ function renderMpVendorAging(rows, dayCols){
 /* --- main render --------------------------------------------- */
 function renderManpower(){
     if (!mpLoaded) return;
-    renderMpCatOptions();
+    syncMpState();
 
     const badge   = document.getElementById('mpBadge');
     const empty   = document.getElementById('mpEmpty');
@@ -4566,7 +4651,7 @@ function renderManpower(){
     if (empty) empty.style.display = 'none';
     if (content) content.style.display = '';
 
-    const dayCols = mpState.day === MP_ALL ? mpCols : [mpState.day];
+    const dayCols = mpDayCols();
     const scoped  = mpAll.filter(t => mpMatch(t, true));                    // every filter except category
     const active  = scoped.filter(t => dayCols.some(d => t.days[d] && t.days[d].bucket));
     const gridded = scoped.filter(t => mpMatch(t, false))
@@ -4577,9 +4662,11 @@ function renderManpower(){
 
     if (scope){
         const bits = [isMonth ? 'Scope: whole month' : 'Scope: ' + mpPrettyDay(mpState.day)];
-        ['hub','leg','title','shift','vendor'].forEach(k => { if (mpState[k] !== MP_ALL) bits.push(k.charAt(0).toUpperCase() + k.slice(1) + ' ' + mpState[k]); });
-        const bd = MP_BANDS.find(x => x.k === mpState.band); if (bd) bits.push('Aging ' + bd.label);
-        if (mpState.cat !== MP_ALL) bits.push('Category ' + MP_BUCKETS[mpState.cat].label);
+        const lbl = { hub: 'Hub', leg: 'Facility leg', title: 'Title', shift: 'Shift', vendor: 'Vendor' };
+        Object.keys(lbl).forEach(k => { if (!mpAny(mpState[k])) bits.push(lbl[k] + ' ' + mpState[k].join(', ')); });
+        if (!mpAny(mpState.band)) bits.push('Aging ' + mpState.band.map(k => (MP_BANDS.find(b => b.k === k) || { label: k }).label).join(', '));
+        if (!mpAny(mpState.cat))  bits.push('Category ' + mpState.cat.map(k => MP_BUCKETS[k].label).join(', '));
+        if (mpState.search) bits.push('Search "' + mpState.search + '"');
         scope.textContent = bits.join('  |  ');
     }
     const scopeBadge = document.getElementById('mpScopeBadge');
@@ -4612,6 +4699,7 @@ function renderManpower(){
         : '<tr><td colspan="7" class="text-center text-muted py-3">No marked attendance in this scope</td></tr>';
     renderMpGrid(gridded, dayCols);
     renderMpVendorAging(active, dayCols);
+    refreshMpCounts();
 }
 
 /* --- charts --------------------------------------------------- */
