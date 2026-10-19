@@ -59,6 +59,20 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 .kpi-mini .val { font-size: 1.55rem; font-weight: 800; color: #111111; line-height: 1.15; }
 .kpi-mini .sub { font-size: .72rem; color: #9a9282; }
 
+/* Manpower roster day-cell colours */
+.mp-cell { font-size: .66rem; font-weight: 700; }
+.mp-c-present { background: #dcfce7; color: #166534; }
+.mp-c-weekoff { background: #fef9c3; color: #854d0e; }
+.mp-c-leave   { background: #e2e8f0; color: #334155; }
+.mp-c-noshow  { background: #fee2e2; color: #991b1b; }
+.mp-c-other   { background: #f1f5f9; color: #64748b; }
+.mp-band-new { background: #f1f5f9; color: #64748b; }
+.mp-band-b1  { background: #fef3c7; color: #92400e; }
+.mp-band-b2  { background: #e0f2fe; color: #075985; }
+.mp-band-b3  { background: #dbeafe; color: #1e40af; }
+.mp-band-b4  { background: #dcfce7; color: #166534; }
+.mp-band-b5  { background: #ede9fe; color: #5b21b6; }
+
 /* Core metric cards */
 .kpi-card { background: var(--brand-white); border-radius: 12px; border: 1px solid #e8e2cf; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative; overflow: hidden; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; height:100%; }
 .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.10); }
@@ -255,6 +269,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
         <ul class="nav nav-pills" id="pageTabs">
             <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard"><i class="bi bi-speedometer2 me-1"></i> Executive Dashboard</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-gap"><i class="bi bi-search-heart me-1"></i> Gap Analysis</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn"><i class="bi bi-people me-1"></i> Manpower</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-pva"><i class="bi bi-clipboard2-check me-1"></i> Plan vs Actual</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live"><i class="bi bi-broadcast me-1"></i> Live Tracking</button></li>
         </ul>
@@ -651,6 +666,183 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                         </thead>
                         <tbody id="tripDetailsBody"></tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ PAGE: MANPOWER / ATTENDANCE ============ -->
+        <div class="tab-pane fade" id="page-mp">
+            <div class="card p-3 mb-4 border-0 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold m-0"><i class="bi bi-people me-2 text-primary"></i>Manpower &amp; Attendance
+                            <span class="text-muted fw-normal fs-6"> — who is on roster, present, off or absent</span></h5>
+                        <div class="small text-muted mt-1" id="mpScopeLine">—</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge text-bg-warning" id="mpBadge">No data yet</span>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadManpowerCsv(true)" title="Reload the Manpower sheet"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FILTERS (attendance-local, each option carries its count) -->
+            <div class="card p-3 mb-4 border-0 shadow-sm" id="mpFilterCard" style="display:none;">
+                <div class="row g-2 align-items-end">
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted mb-1">Day</label>
+                        <select id="mp-day" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted mb-1">Category</label>
+                        <select id="mp-cat" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted mb-1">Hub</label>
+                        <select id="mp-hub" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted mb-1">Facility Leg</label>
+                        <select id="mp-leg" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted mb-1">Title</label>
+                        <select id="mp-title" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted mb-1">Shift</label>
+                        <select id="mp-shift" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted mb-1">Vendor</label>
+                        <select id="mp-vendor" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted mb-1" title="Days worked in the 9 months before this month (from the sheet ageing column)">Aging</label>
+                        <select id="mp-band" class="form-select form-select-sm" onchange="renderManpower()"></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-muted mb-1">Search</label>
+                        <input type="text" id="mp-search" class="form-control form-control-sm" placeholder="Name, ID, hub…" oninput="renderMpGridDebounced()">
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-sm btn-outline-danger w-100" onclick="resetMpFilters()"><i class="bi bi-x-circle me-1"></i>Clear filters</button>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="badge bg-primary-subtle text-primary-emphasis" id="mpScopeBadge">0 employees in scope</span>
+                    </div>
+                </div>
+                <div class="small text-muted mt-2" id="mpLegend">
+                    <i class="bi bi-question-circle me-1"></i>All figures count one person once per day. Present covers Present, Working Public Holiday and Work on Week Off.
+                </div>
+            </div>
+
+            <!-- EMPTY STATE -->
+            <div class="table-container mb-3" id="mpEmpty">
+                <div class="text-center py-5">
+                    <i class="bi bi-people" style="font-size:2.4rem;color:#cbd5e1"></i>
+                    <h6 class="fw-bold mt-3 mb-1">Manpower roster will appear here</h6>
+                    <p class="text-muted mb-2" style="font-size:.85rem">Connects to the <strong>Manpower</strong> tab of the sheet — one row per employee, one column per day.</p>
+                    <button class="btn btn-primary btn-sm" onclick="loadManpowerCsv(false)"><i class="bi bi-arrow-repeat me-1"></i>Load roster</button>
+                </div>
+            </div>
+
+            <!-- CONTENT -->
+            <div id="mpContent" style="display:none;">
+                <!-- KPI STRIP -->
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">On roster</div><div class="val" id="mp-k-roster">—</div><div class="sub" id="mp-k-roster-sub">employees</div></div></div>
+                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">Present</div><div class="val text-success" id="mp-k-present">—</div><div class="sub">incl. WPH &amp; WO work</div></div></div>
+                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">Present rate</div><div class="val text-success" id="mp-k-rate">—</div><div class="sub">of on-roster</div></div></div>
+                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">Week off</div><div class="val text-warning" id="mp-k-wo">—</div><div class="sub">planned off</div></div></div>
+                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">On leave</div><div class="val text-primary" id="mp-k-leave">—</div><div class="sub" id="mp-k-leave-sub">all leave types</div></div></div>
+                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">No show</div><div class="val text-danger" id="mp-k-ns">—</div><div class="sub">unplanned gap</div></div></div>
+                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">Avg aging</div><div class="val text-primary" id="mp-k-aging">—</div><div class="sub">days worked in 9 months</div></div></div>
+                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">New — 0 days</div><div class="val text-warning" id="mp-k-new">—</div><div class="sub">no work in the 9m window</div></div></div>
+                </div>
+
+                <!-- CHARTS -->
+                <div class="row g-3 mb-4">
+                    <div class="col-lg-7">
+                        <div class="card p-3 border-0 shadow-sm chart-card">
+                            <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Manpower coverage by day <span class="text-muted fw-normal" style="font-size:.75rem">— headcount stacked</span></h6>
+                            <div style="height:280px;position:relative;"><canvas id="chartMpTrend"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card p-3 border-0 shadow-sm chart-card">
+                            <h6 class="fw-bold mb-3"><i class="bi bi-building-gear me-2 text-primary"></i>Coverage by hub <span class="text-muted fw-normal" style="font-size:.75rem" id="chartMpHubSub">—</span></h6>
+                            <div style="height:280px;position:relative;"><canvas id="chartMpHub"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BREAKDOWN TABLES -->
+                <div class="row g-3 mb-4">
+                    <div class="col-lg-6">
+                        <div class="card p-3 border-0 shadow-sm">
+                            <h6 class="fw-bold mb-2"><i class="bi bi-building me-2 text-primary"></i>By hub</h6>
+                            <div style="max-height:320px;overflow-y:auto">
+                                <table class="table table-sm align-middle fs-7 mb-0">
+                                    <thead class="table-light"><tr><th>Hub</th><th>Roster</th><th>Present</th><th>Rate</th><th>Week off</th><th>Leave</th><th>No show</th></tr></thead>
+                                    <tbody id="mpHubBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card p-3 border-0 shadow-sm">
+                            <h6 class="fw-bold mb-2"><i class="bi bi-mortarboard me-2 text-primary"></i>By title</h6>
+                            <div style="max-height:320px;overflow-y:auto">
+                                <table class="table table-sm align-middle fs-7 mb-0">
+                                    <thead class="table-light"><tr><th>Title</th><th>Roster</th><th>Present</th><th>Rate</th><th>Week off</th><th>Leave</th><th>No show</th></tr></thead>
+                                    <tbody id="mpTitleBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VENDOR AGING -->
+                <div class="card p-3 mb-4 border-0 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-hourglass-split me-2 text-primary"></i>Vendor aging
+                            <span class="text-muted fw-normal" style="font-size:.75rem">— days worked in the 9 months before this month</span></h6>
+                        <span class="small text-muted">Exit flags (Resigned / Terminate / Suspended) are excluded from the active average and counted separately</span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-lg-7">
+                            <div style="max-height:340px;overflow-y:auto">
+                                <table class="table table-sm align-middle fs-7 mb-0">
+                                    <thead class="table-light"><tr><th>Vendor</th><th>HC</th><th>Avg aging</th><th>New (0d)</th><th>61+ days</th><th>Exit flags</th><th>Avg aging (excl. exits)</th></tr></thead>
+                                    <tbody id="mpVaBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-lg-5">
+                            <div style="height:300px;position:relative;"><canvas id="chartMpVendorAging"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EMPLOYEE GRID -->
+                <div class="card p-3 mb-3 border-0 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Employee roster <span class="text-muted fw-normal" style="font-size:.75rem" id="mpGridNote"></span></h6>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <span class="badge bg-success-subtle text-success">Present / WPH</span>
+                            <span class="badge bg-warning-subtle text-warning-emphasis">Week off</span>
+                            <span class="badge bg-secondary-subtle text-secondary-emphasis">Leave</span>
+                            <span class="badge bg-danger-subtle text-danger">No show</span>
+                            <span class="badge bg-light text-dark border">Other</span>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto; max-height:520px; overflow-y:auto">
+                        <table class="table table-sm align-middle fs-7 mb-0" id="mpGridTable" style="font-size:.72rem">
+                            <thead class="table-light" id="mpGridHead"></thead>
+                            <tbody id="mpGridBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1088,7 +1280,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'V1';
+const BUILD = 'v17 — 2026-10-19';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -2299,6 +2491,12 @@ function bootApp() {
         if (typeof renderPlanVsActual === 'function') renderPlanVsActual();
     });
 
+    // The Manpower tab loads its roster the first time it is opened.
+    const mpTab = document.querySelector('[data-bs-target="#page-mp"]');
+    if (mpTab) mpTab.addEventListener('shown.bs.tab', function(){
+        if (typeof loadManpowerCsv === 'function') loadManpowerCsv(false);
+    });
+
     loadDataFromCSV();
     loadLiveCsv();
     if (typeof loadPlanVsActual === 'function') { try { loadPlanVsActual(); } catch(e){ console.warn('[bootApp] loadPlanVsActual failed:', e); } }
@@ -3161,10 +3359,11 @@ function liveBreachAnalysis(rows){
     const isLate = raw => String(raw || '').toLowerCase().includes('late');
     const hubMap = {}, venMap = {}, laneMap = {};
     const lateOutHub = {}, lateArrHub = {};   // hub -> { n, sum } for LATE-only drift
+    const earlyOutHub = {}, earlyArrHub = {}; // same, for EARLY (ahead of plan)
     const cause = { lateArr:0, earlyArr:0, lateOut:0, earlyOut:0 };
     let breaches = 0;
 
-    const addLate = (map, hub, mins) => {
+    const addDrift = (map, hub, mins) => {
         const key = hub || '—';
         const g = map[key] || (map[key] = { n: 0, sum: 0 });
         g.n++; g.sum += Math.abs(mins);
@@ -3174,11 +3373,15 @@ function liveBreachAnalysis(rows){
         const outBad = isBad(t.outAdhRaw), arrBad = isBad(t.arrAdhRaw);
         if (outBad) { if (isLate(t.outAdhRaw)) cause.lateOut++; else cause.earlyOut++; }
         if (arrBad) { if (isLate(t.arrAdhRaw)) cause.lateArr++; else cause.earlyArr++; }
-        // "late" drill-down: hub + how many minutes late
+        // drift drill-down: hub + how many minutes late / early
         if (outBad && isLate(t.outAdhRaw) && typeof t.outVarMin === 'number' && t.outVarMin > 0)
-            addLate(lateOutHub, t.srcHub, t.outVarMin);
+            addDrift(lateOutHub, t.srcHub, t.outVarMin);
         if (arrBad && isLate(t.arrAdhRaw) && typeof t.arrVarMin === 'number' && t.arrVarMin > 0)
-            addLate(lateArrHub, t.dstHub, t.arrVarMin);
+            addDrift(lateArrHub, t.dstHub, t.arrVarMin);
+        if (outBad && !isLate(t.outAdhRaw) && typeof t.outVarMin === 'number' && t.outVarMin < 0)
+            addDrift(earlyOutHub, t.srcHub, t.outVarMin);
+        if (arrBad && !isLate(t.arrAdhRaw) && typeof t.arrVarMin === 'number' && t.arrVarMin < 0)
+            addDrift(earlyArrHub, t.dstHub, t.arrVarMin);
         if (!outBad && !arrBad) return;
         breaches++;
         const hub = arrBad ? (t.dstHub || t.srcHub || '—') : (t.srcHub || t.dstHub || '—');
@@ -3192,11 +3395,11 @@ function liveBreachAnalysis(rows){
     const byHub  = Object.entries(hubMap).map(([hub, n]) => ({ hub, n, pct: pctOf(n) })).sort((a, b) => b.n - a.n);
     const byLane = Object.entries(laneMap).map(([lane, n]) => ({ lane, n })).sort((a, b) => b.n - a.n);
     const topVendor = Object.entries(venMap).map(([name, n]) => ({ name, n })).sort((a, b) => b.n - a.n)[0] || null;
-    const rankLate = map => Object.entries(map)
+    const rankDrift = map => Object.entries(map)
         .map(([hub, g]) => ({ hub, n: g.n, avg: Math.round(g.sum / g.n), total: g.sum }))
         .sort((a, b) => b.total - a.total);
-    const lateOut = rankLate(lateOutHub);
-    const lateArr = rankLate(lateArrHub);
+    const lateOut  = rankDrift(lateOutHub),  lateArr  = rankDrift(lateArrHub);
+    const earlyOut = rankDrift(earlyOutHub), earlyArr = rankDrift(earlyArrHub);
     const causes = [
         { k: 'Late arrival',   n: cause.lateArr },
         { k: 'Early arrival',  n: cause.earlyArr },
@@ -3204,7 +3407,7 @@ function liveBreachAnalysis(rows){
         { k: 'Early dispatch', n: cause.earlyOut }
     ].filter(c => c.n > 0).sort((a, b) => b.n - a.n);
 
-    return { breaches, byHub, byLane, causes, topVendor, lateOut, lateArr };
+    return { breaches, byHub, byLane, causes, topVendor, lateOut, lateArr, earlyOut, earlyArr };
 }
 
 function liveAdherenceTotals(rows){
@@ -3257,15 +3460,17 @@ function buildTextSummary(rows){
         L.push('What went wrong');
         b.causes.forEach(c => L.push('  ' + c.k.padEnd(15) + ' ' + fmt(c.n)));
     }
-    if (b.lateOut.length){
+    if (b.lateOut.length || b.earlyOut.length){
         L.push('');
-        L.push('Late dispatch — hub, trips, avg delay');
-        b.lateOut.slice(0, 4).forEach(x => L.push('  ' + String(x.hub).padEnd(10) + ' ' + fmt(x.n) + ' trips   avg +' + x.avg + ' min'));
+        L.push('Dispatch by hub — trips, avg drift');
+        if (b.lateOut.length)  b.lateOut.slice(0, 3).forEach(x => L.push('  late  ' + String(x.hub).padEnd(10) + ' ' + fmt(x.n) + ' trips   avg +' + x.avg + ' min'));
+        if (b.earlyOut.length) b.earlyOut.slice(0, 3).forEach(x => L.push('  early ' + String(x.hub).padEnd(10) + ' ' + fmt(x.n) + ' trips   avg -' + x.avg + ' min'));
     }
-    if (b.lateArr.length){
+    if (b.lateArr.length || b.earlyArr.length){
         L.push('');
-        L.push('Late arrival — hub, trips, avg delay');
-        b.lateArr.slice(0, 4).forEach(x => L.push('  ' + String(x.hub).padEnd(10) + ' ' + fmt(x.n) + ' trips   avg +' + x.avg + ' min'));
+        L.push('Arrival by hub — trips, avg drift');
+        if (b.lateArr.length)  b.lateArr.slice(0, 3).forEach(x => L.push('  late  ' + String(x.hub).padEnd(10) + ' ' + fmt(x.n) + ' trips   avg +' + x.avg + ' min'));
+        if (b.earlyArr.length) b.earlyArr.slice(0, 3).forEach(x => L.push('  early ' + String(x.hub).padEnd(10) + ' ' + fmt(x.n) + ' trips   avg -' + x.avg + ' min'));
     }
     if (b.byLane.length){
         L.push('');
@@ -3292,27 +3497,25 @@ function buildSendSummary(rows){
     // 1. Headline adherence.
     L.push('Dispatch adherence ' + t.outPct + '% and arrival adherence ' + t.arrPct + '% in this scope.');
 
-    // 2. Where it went late and by how much (average delay per hub).
-    const lateBits = [];
-    if (b.lateOut.length) lateBits.push('dispatch was late at ' + joinNames(b.lateOut.slice(0, 2).map(x => x.hub + ' by ' + x.avg + 'm')));
-    if (b.lateArr.length) lateBits.push('arrival slipped at ' + joinNames(b.lateArr.slice(0, 2).map(x => x.hub + ' by ' + x.avg + 'm')));
-    if (lateBits.length){
-        const txt = lateBits.join(', and ');
-        L.push(txt.charAt(0).toUpperCase() + txt.slice(1) + '.');
-    }
+    // 2. What ran late and what ran early — per checkpoint, hubs + minutes.
+    //    The missing direction is stated explicitly so the reader always
+    //    knows which one moved and which one did not.
+    const nameHubs = arr => joinNames(arr.slice(0, 2).map(x => x.hub + ' by ' + x.avg + 'm'));
+    const axisLine = (late, early) => {
+        if (late.length && early.length) return 'ran late at ' + nameHubs(late) + ', and early at ' + nameHubs(early) + '.';
+        if (late.length)                 return 'ran late at '  + nameHubs(late)  + ' (nothing early).';
+        if (early.length)                return 'ran early at ' + nameHubs(early) + ' (nothing late).';
+        return '';
+    };
+    const dLine = axisLine(b.lateOut, b.earlyOut);
+    const aLine = axisLine(b.lateArr, b.earlyArr);
+    if (dLine) L.push('Dispatch ' + dLine);
+    if (aLine) L.push('Arrival '  + aLine);
 
     // 3. Share of breaches by hub.
     const hubs = b.byHub.slice(0, 3);
     if (hubs.length)
         L.push('Majority of the breaches with ' + joinNames(hubs.map(h => h.pct.toFixed(2) + '% for ' + h.hub)) + '.');
-
-    // 4. Biggest cause.
-    if (b.causes.length){
-        const c0 = b.causes[0], c1 = b.causes[1];
-        let line = c0.k + ' is the biggest cause with ' + fmt(c0.n) + ' of ' + fmt(b.breaches) + ' breaches';
-        if (c1) line += ', followed by ' + c1.k.toLowerCase() + ' with ' + fmt(c1.n);
-        L.push(line + '.');
-    }
 
     // 5. Vendor + weakest lane.
     const tail = [];
@@ -4001,6 +4204,519 @@ function laneStats(data){
         delay: avg(arr.map(t=>t.varMinutes)),
         o2s: avg(arr.map(t=>t.openToSealMin))
     })).sort((a,b)=>a.adh-b.adh);
+}
+
+/* ================================================================
+   PAGE — MANPOWER / ATTENDANCE
+   Source: the sheet's "Manpower" tab (gid 924760052).
+   One row per employee, one column per day (1-Oct … 31-Oct); each cell
+   holds a status phrase ("Present Morning", "Week Off Night", …).
+   Day cells are grouped into buckets so Present / Working Public
+   Holiday / Work on Week Off all read as present, every leave flavour
+   reads as leave, and Week Off / No Show stay their own buckets.
+================================================================ */
+const MP_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=924760052&single=true&output=csv';
+
+const MP_BUCKETS = {
+    present: { label: 'Present',  color: '#16a34a' },
+    weekoff: { label: 'Week off', color: '#eab308' },
+    leave:   { label: 'Leave',    color: '#64748b' },
+    noshow:  { label: 'No show',  color: '#dc2626' },
+    other:   { label: 'Other',    color: '#94a3b8' }
+};
+/* Aging = the sheet's "aging" column: days worked in the 9 months before
+   this month. Used to age vendors; band colours match the grid cells. */
+const MP_BANDS = [
+    { k: 'new', label: 'New — 0 days',   color: '#94a3b8' },
+    { k: 'b1',  label: '1 – 30 days',    color: '#f59e0b' },
+    { k: 'b2',  label: '31 – 60 days',   color: '#0ea5e9' },
+    { k: 'b3',  label: '61 – 90 days',   color: '#3b82f6' },
+    { k: 'b4',  label: '91 – 180 days',  color: '#16a34a' },
+    { k: 'b5',  label: '181 – 270 days', color: '#7c3aed' }
+];
+function mpBand(v){
+    if (v === null || v === undefined) return null;
+    if (v <= 0)   return 'new';
+    if (v <= 30)  return 'b1';
+    if (v <= 60)  return 'b2';
+    if (v <= 90)  return 'b3';
+    if (v <= 180) return 'b4';
+    return 'b5';
+}
+function mpNum(s){
+    const v = parseFloat(String(s || '').replace(/[^0-9.\-]/g, ''));
+    return isNaN(v) ? null : v;
+}
+const MP_META = [
+    { k: 'empId',  cols: ['Adjusted ID'] },
+    { k: 'leg',    cols: ['Facility Leg'] },
+    { k: 'hub',    cols: ['Hub'] },
+    { k: 'bioId',  cols: ['Bio ID'] },
+    { k: 'hrId',   cols: ['HR ID / National ID ', 'HR ID / National ID'] },
+    { k: 'title',  cols: ['Title'] },
+    { k: 'vendor', cols: ['Vendor'] },
+    { k: 'name',   cols: ['Name'] },
+    { k: 'gender', cols: ['Gander', 'Gender'] },
+    { k: 'shift',  cols: ['Shift'] }
+];
+
+let mpAll = [], mpCols = [], mpLoaded = false, mpLoading = false, mpSearchTimer = null;
+const MP_ALL = '__all';
+let mpState = { day: MP_ALL, cat: MP_ALL, band: MP_ALL, hub: MP_ALL, leg: MP_ALL, title: MP_ALL, shift: MP_ALL, vendor: MP_ALL, search: '' };
+
+function mpExitFlagged(t, dayCols){
+    return dayCols.some(d => { const x = t.days[d]; return x && /resign|terminat|suspend/i.test(x.raw); });
+}
+
+/* --- status → bucket. Order matters: "Work on Week Off" contains
+   "week off" and "Working Public Holiday" contains "holiday", so the
+   worked variants are tested before the generic off-day keywords. --- */
+function mpBucket(raw){
+    const n = String(raw || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (!n) return '';
+    if (n.includes('workonweekoff') || n.includes('workingpublic') || n.startsWith('wph')) return 'present';
+    if (n.includes('present')) return 'present';
+    if (n.includes('weekoff'))  return 'weekoff';
+    if (n.includes('noshow'))   return 'noshow';
+    if (/(leave|suspend|resign|terminat|pilgrimag|matern|patern|militar|marriage|death|birthday|publicholiday)/.test(n)) return 'leave';
+    return 'other';
+}
+
+/* Short code shown inside a day cell (✓ = present). */
+function mpCode(bucket, raw){
+    if (bucket === 'present') return '\u2713';
+    if (bucket === 'weekoff') return 'WO';
+    if (bucket === 'noshow')  return 'NS';
+    if (bucket === 'leave'){
+        const x = String(raw || '').toLowerCase();
+        if (x.startsWith('annual leave casual')) return 'AC';
+        if (x.startsWith('annual'))              return 'AL';
+        if (x.startsWith('sick leave not'))      return 'SN';
+        if (x.startsWith('sick'))                return 'SL';
+        if (x.startsWith('public'))              return 'PH';
+        if (x.startsWith('terminate'))           return 'TR';
+        if (x.startsWith('resign'))              return 'RS';
+        if (x.startsWith('suspend'))             return 'SU';
+        if (x.startsWith('matern'))              return 'MT';
+        if (x.startsWith('patern'))              return 'PT';
+        if (x.startsWith('marriage'))            return 'MR';
+        if (x.startsWith('militar'))             return 'MC';
+        if (x.startsWith('pilgrimag'))           return 'PL';
+        if (x.startsWith('death'))               return 'DE';
+        if (x.startsWith('birthday'))            return 'BD';
+        return 'LV';
+    }
+    return '\u2022';
+}
+
+function mpVal(row, names){
+    for (const nm of names){
+        if (row[nm] !== undefined && row[nm] !== null) return String(row[nm]).trim();
+        const alt = Object.keys(row).find(k => String(k).trim().toLowerCase() === nm.trim().toLowerCase());
+        if (alt !== undefined && row[alt] !== null) return String(row[alt] || '').trim();
+    }
+    return '';
+}
+
+function mpPrettyDay(col){
+    const m = String(col || '').match(/^(\d{1,2})\s*-\s*([A-Za-z]{3})$/);
+    return m ? (m[1] + ' ' + m[2].charAt(0).toUpperCase() + m[2].slice(1)) : String(col || '');
+}
+
+async function loadManpowerCsv(force){
+    if (mpLoading || (mpLoaded && !force)) return;
+    mpLoading = true;
+    const badge = document.getElementById('mpBadge');
+    if (badge) { badge.className = 'badge text-bg-info'; badge.textContent = 'Loading roster…'; }
+    try {
+        const text    = await fetchCsvText(cacheBusted(MP_CSV_URL, Date.now()), null);
+        const parsed  = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: false });
+        const rows    = parsed.data || [];
+        const fields  = (parsed.meta && parsed.meta.fields) ? parsed.meta.fields : Object.keys(rows[0] || {});
+        mpCols = fields.filter(h => /^\s*\d{1,2}\s*-\s*[A-Za-z]{3,}\s*$/.test(String(h || '')));
+        mpAll  = rows
+            .filter(r => mpVal(r, ['Name']) !== '' || mpVal(r, ['Hub']) !== '')
+            .map(r => {
+                const t = { days: {}, counts: { present: 0, weekoff: 0, leave: 0, noshow: 0, other: 0, marked: 0 } };
+                MP_META.forEach(m => { t[m.k] = mpVal(r, m.cols); });
+                t.aging = mpNum(mpVal(r, ['aging ', 'aging']));
+                t.band  = mpBand(t.aging);
+                mpCols.forEach(c => {
+                    const raw = String(r[c] || '').trim();
+                    if (raw === '') return;
+                    const b = mpBucket(raw);
+                    t.days[c] = { raw: raw, bucket: b };
+                    t.counts[b]++; t.counts.marked++;
+                });
+                return t;
+            });
+        mpLoaded = true;
+        buildMpStaticOptions();
+        renderManpower();
+        console.log('[Manpower] loaded', mpAll.length, 'employees across', mpCols.length, 'days');
+    } catch (e) {
+        console.warn('[Manpower] load failed:', e);
+        if (badge) { badge.className = 'badge text-bg-danger'; badge.textContent = 'Load failed — check publish'; }
+    } finally { mpLoading = false; }
+}
+
+/* --- filters ------------------------------------------------- */
+function mpFillSelect(id, options, keep){
+    const el = document.getElementById(id);
+    if (!el) return;
+    const prev = (keep !== undefined) ? keep : el.value;
+    el.innerHTML = options.map(o => '<option value="' + esc(o.v) + '">' + esc(o.l) + '</option>').join('');
+    if (options.some(o => o.v === prev)) el.value = prev;
+}
+
+/* Static dimensions (hub, leg, title, shift, vendor + day list); built
+   once after load. Each option carries its headcount so the filter
+   reads like the rest of the dashboard. */
+function buildMpStaticOptions(){
+    const dim = get => {
+        const m = new Map();
+        mpAll.forEach(t => { const v = (get(t) || '—'); m.set(v, (m.get(v) || 0) + 1); });
+        return Array.from(m.entries()).sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
+    };
+    mpFillSelect('mp-day', [{ v: MP_ALL, l: 'All days (month)' }].concat(
+        mpCols.map(c => ({ v: c, l: mpPrettyDay(c) + '  (' + mpAll.filter(t => t.days[c] && t.days[c].bucket === 'present').length + ' present)' })
+    )));
+    mpFillSelect('mp-hub',   [{ v: MP_ALL, l: 'All hubs' }].concat(dim(t => t.hub).map(e => ({ v: e[0], l: e[0] + '  (' + e[1] + ')' }))));
+    mpFillSelect('mp-leg',   [{ v: MP_ALL, l: 'All facility legs' }].concat(dim(t => t.leg).map(e => ({ v: e[0], l: e[0] + '  (' + e[1] + ')' }))));
+    mpFillSelect('mp-title', [{ v: MP_ALL, l: 'All titles' }].concat(dim(t => t.title).map(e => ({ v: e[0], l: e[0] + '  (' + e[1] + ')' }))));
+    mpFillSelect('mp-shift', [{ v: MP_ALL, l: 'All shifts' }].concat(dim(t => t.shift).map(e => ({ v: e[0], l: e[0] + '  (' + e[1] + ')' }))));
+    mpFillSelect('mp-vendor',[{ v: MP_ALL, l: 'All vendors' }].concat(dim(t => t.vendor).map(e => ({ v: e[0], l: e[0] + '  (' + e[1] + ')' }))));
+    const bandCounts = {};
+    mpAll.forEach(t => { const k = t.band || 'na'; bandCounts[k] = (bandCounts[k] || 0) + 1; });
+    mpFillSelect('mp-band', [{ v: MP_ALL, l: 'All aging bands' }].concat(
+        MP_BANDS.map(bd => ({ v: bd.k, l: bd.label + '  (' + (bandCounts[bd.k] || 0) + ')' }))
+    ));
+    const card = document.getElementById('mpFilterCard');
+    if (card) card.style.display = '';
+}
+
+/* Category counts depend on the chosen day, so they are rebuilt on
+   every render while the current selection is preserved. */
+function renderMpCatOptions(){
+    const dayCols = mpState.day === MP_ALL ? mpCols : [mpState.day];
+    const counts = { present: 0, weekoff: 0, leave: 0, noshow: 0, other: 0 };
+    mpAll.forEach(t => dayCols.forEach(c => {
+        const x = t.days[c]; if (x && counts[x.bucket] !== undefined) counts[x.bucket]++;
+    }));
+    mpFillSelect('mp-cat', [{ v: MP_ALL, l: 'All categories' }].concat(
+        Object.keys(MP_BUCKETS).map(b => ({ v: b, l: MP_BUCKETS[b].label + '  (' + (counts[b] || 0) + ')' }))
+    ), mpState.cat);
+}
+
+function mpMatch(t, ignoreCat){
+    if (mpState.hub    !== MP_ALL && ((t.hub    || '—') !== mpState.hub))    return false;
+    if (mpState.leg    !== MP_ALL && ((t.leg    || '—') !== mpState.leg))    return false;
+    if (mpState.title  !== MP_ALL && ((t.title  || '—') !== mpState.title))  return false;
+    if (mpState.shift  !== MP_ALL && ((t.shift  || '—') !== mpState.shift))  return false;
+    if (mpState.vendor !== MP_ALL && ((t.vendor || '—') !== mpState.vendor)) return false;
+    if (mpState.band   !== MP_ALL && ((t.band   || 'na') !== mpState.band))  return false;
+    if (!ignoreCat && mpState.cat !== MP_ALL){
+        const dayCols = mpState.day === MP_ALL ? mpCols : [mpState.day];
+        if (!dayCols.some(c => t.days[c] && t.days[c].bucket === mpState.cat)) return false;
+    }
+    if (mpState.search){
+        const q = mpState.search.toLowerCase();
+        const hay = ((t.name || '') + ' ' + (t.empId || '') + ' ' + (t.hub || '') + ' ' + (t.title || '')).toLowerCase();
+        if (!hay.includes(q)) return false;
+    }
+    return true;
+}
+
+/* Counts of employees + manually-marked days for the current scope. */
+function mpCounts(rows, dayCols){
+    const c = { roster: 0, present: 0, weekoff: 0, leave: 0, noshow: 0, other: 0, marked: 0 };
+    rows.forEach(t => {
+        let marked = 0;
+        dayCols.forEach(d => { const x = t.days[d]; if (x){ marked++; c[x.bucket]++; } });
+        if (marked){ c.roster++; c.marked += marked; }
+    });
+    return c;
+}
+
+function mpBreakRows(rows, get, dayCols){
+    const m = new Map();
+    rows.forEach(t => {
+        const key = get(t) || '—';
+        const g = m.get(key) || { roster: 0, present: 0, weekoff: 0, leave: 0, noshow: 0, other: 0, marked: 0 };
+        let marked = 0;
+        dayCols.forEach(d => { const x = t.days[d]; if (x){ marked++; g[x.bucket]++; } });
+        if (marked){ g.roster++; g.marked += marked; }
+        m.set(key, g);
+    });
+    return Array.from(m.entries()).map(([k, g]) => ({ key: k, g: g }))
+        .sort((a, b) => b.g.present - a.g.present || b.g.roster - a.g.roster || String(a.key).localeCompare(String(b.key)));
+}
+
+function mpRowHtml(row){
+    const g = row.g;
+    const rate = g.marked ? Math.round(g.present / g.marked * 100) : 0;
+    return '<tr>' +
+        '<td class="fw-bold">' + esc(row.key) + '</td>' +
+        '<td>' + fmt(g.roster) + '</td>' +
+        '<td class="text-success fw-bold">' + fmt(g.present) + '</td>' +
+        '<td>' + (rate ? rate + '%' : '—') + '</td>' +
+        '<td class="text-warning-emphasis">' + fmt(g.weekoff) + '</td>' +
+        '<td class="text-secondary">' + fmt(g.leave) + '</td>' +
+        '<td class="text-danger">' + fmt(g.noshow) + '</td>' +
+        '</tr>';
+}
+
+function resetMpFilters(){
+    mpState = { day: MP_ALL, cat: MP_ALL, band: MP_ALL, hub: MP_ALL, leg: MP_ALL, title: MP_ALL, shift: MP_ALL, vendor: MP_ALL, search: '' };
+    ['mp-day','mp-cat','mp-band','mp-hub','mp-leg','mp-title','mp-shift','mp-vendor'].forEach(id => { const el = document.getElementById(id); if (el) el.value = MP_ALL; });
+    const s = document.getElementById('mp-search'); if (s) s.value = '';
+    renderManpower();
+}
+
+let mpGridTimer = null;
+function renderMpGridDebounced(){
+    if (mpGridTimer) clearTimeout(mpGridTimer);
+    mpGridTimer = setTimeout(() => {
+        const el = document.getElementById('mp-search');
+        mpState.search = el ? el.value.trim() : '';
+        renderManpower();
+    }, 280);
+}
+
+/* Vendor aging — average days worked in the 9 months before this month,
+   per vendor, with exit-flagged people (Resigned / Terminate / Suspended)
+   kept out of the active average and reported on their own. */
+function mpVendorAging(rows, dayCols){
+    const m = new Map();
+    rows.forEach(t => {
+        const key = t.vendor || '—';
+        if (!m.has(key)) m.set(key, { key: key, hc: 0, agingSum: 0, agingN: 0, newCnt: 0, expCnt: 0, exits: 0, actSum: 0, actN: 0 });
+        const g = m.get(key);
+        g.hc++;
+        if (t.aging !== null){ g.agingN++; g.agingSum += t.aging; }
+        if (t.band === 'new') g.newCnt++;
+        if (t.band === 'b3' || t.band === 'b4' || t.band === 'b5') g.expCnt++;
+        if (mpExitFlagged(t, dayCols)) g.exits++;
+        else if (t.aging !== null){ g.actSum += t.aging; g.actN++; }
+    });
+    return Array.from(m.values()).map(g => ({
+        key: g.key, hc: g.hc,
+        avg:    g.agingN ? Math.round(g.agingSum / g.agingN) : null,
+        avgAct: g.actN   ? Math.round(g.actSum / g.actN)     : null,
+        newCnt: g.newCnt, expCnt: g.expCnt, exits: g.exits
+    })).sort((a, b) => (b.avg || 0) - (a.avg || 0) || b.hc - a.hc || String(a.key).localeCompare(String(b.key)));
+}
+
+function mpVaRowHtml(v){
+    return '<tr>' +
+        '<td class="fw-bold">' + esc(v.key) + '</td>' +
+        '<td>' + fmt(v.hc) + '</td>' +
+        '<td class="fw-bold text-primary">' + (v.avg === null ? '—' : v.avg + 'd') + '</td>' +
+        '<td class="text-secondary">' + fmt(v.newCnt) + '</td>' +
+        '<td class="text-success">' + fmt(v.expCnt) + '</td>' +
+        '<td class="text-danger">' + fmt(v.exits) + '</td>' +
+        '<td class="fw-bold">' + (v.avgAct === null ? '—' : v.avgAct + 'd') + '</td>' +
+        '</tr>';
+}
+
+function renderMpVendorAging(rows, dayCols){
+    const body = document.getElementById('mpVaBody');
+    if (!body) return;
+    const va = mpVendorAging(rows, dayCols);
+    body.innerHTML = va.length
+        ? va.map(mpVaRowHtml).join('')
+        : '<tr><td colspan="7" class="text-center text-muted py-3">No employees in this scope</td></tr>';
+    const shown = va.filter(v => v.avg !== null).slice(0, 12);
+    const canvas = document.getElementById('chartMpVendorAging');
+    if (!canvas) return;
+    if (charts.mpVendorAging) charts.mpVendorAging.destroy();
+    charts.mpVendorAging = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: shown.map(v => v.key),
+            datasets: [{
+                label: 'Avg aging (days)',
+                data: shown.map(v => v.avg),
+                backgroundColor: shown.map(v => (v.avg <= 30 ? '#f59e0b' : '#3b82f6')),
+                borderWidth: 0, maxBarThickness: 16
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                x: { beginAtZero: true, grid: { color: 'rgba(148,163,184,.18)' }, title: { display: true, text: 'avg days worked in 9 months', font: { size: 10 } } },
+                y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+            },
+            plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } }
+        }
+    });
+}
+
+/* --- main render --------------------------------------------- */
+function renderManpower(){
+    if (!mpLoaded) return;
+    renderMpCatOptions();
+
+    const badge   = document.getElementById('mpBadge');
+    const empty   = document.getElementById('mpEmpty');
+    const content = document.getElementById('mpContent');
+    const scope   = document.getElementById('mpScopeLine');
+    if (badge){ badge.className = 'badge text-bg-success'; badge.textContent = fmt(mpAll.length) + ' employees • ' + mpCols.length + ' days'; }
+    if (empty) empty.style.display = 'none';
+    if (content) content.style.display = '';
+
+    const dayCols = mpState.day === MP_ALL ? mpCols : [mpState.day];
+    const scoped  = mpAll.filter(t => mpMatch(t, true));                    // every filter except category
+    const active  = scoped.filter(t => dayCols.some(d => t.days[d] && t.days[d].bucket));
+    const gridded = scoped.filter(t => mpMatch(t, false))
+                          .filter(t => dayCols.some(d => t.days[d] && t.days[d].bucket));
+    const c       = mpCounts(active, dayCols);
+    const isMonth = dayCols.length > 1;
+    const rate    = c.marked ? Math.round(c.present / c.marked * 100) : 0;
+
+    if (scope){
+        const bits = [isMonth ? 'Scope: whole month' : 'Scope: ' + mpPrettyDay(mpState.day)];
+        ['hub','leg','title','shift','vendor'].forEach(k => { if (mpState[k] !== MP_ALL) bits.push(k.charAt(0).toUpperCase() + k.slice(1) + ' ' + mpState[k]); });
+        const bd = MP_BANDS.find(x => x.k === mpState.band); if (bd) bits.push('Aging ' + bd.label);
+        if (mpState.cat !== MP_ALL) bits.push('Category ' + MP_BUCKETS[mpState.cat].label);
+        scope.textContent = bits.join('  |  ');
+    }
+    const scopeBadge = document.getElementById('mpScopeBadge');
+    if (scopeBadge) scopeBadge.textContent = fmt(gridded.length) + (isMonth ? ' employees in scope' : ' employees on roster in scope');
+
+    const sub = isMonth ? 'employee-days' : 'employees';
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('mp-k-roster', fmt(c.roster)); set('mp-k-roster-sub', isMonth ? 'employees with marked days' : 'employees');
+    set('mp-k-present', fmt(c.present));
+    set('mp-k-rate', rate + '%');
+    set('mp-k-wo', fmt(c.weekoff));
+    set('mp-k-leave', fmt(c.leave)); set('mp-k-leave-sub', isMonth ? 'leave-days' : 'all leave types');
+    set('mp-k-ns', fmt(c.noshow));
+
+    const aged = scoped.filter(t => t.aging !== null);
+    const avgAging = aged.length ? Math.round(aged.reduce((s, t) => s + t.aging, 0) / aged.length) : null;
+    set('mp-k-aging', avgAging === null ? '—' : avgAging + 'd');
+    set('mp-k-new', fmt(scoped.filter(t => t.band === 'new').length));
+
+    document.getElementById('chartMpHubSub').textContent = isMonth ? 'whole month' : mpPrettyDay(mpState.day);
+    renderMpTrend(scoped);
+    renderMpHubChart(active, dayCols);
+    const hubRows = mpBreakRows(active, t => t.hub, dayCols);
+    document.getElementById('mpHubBody').innerHTML = hubRows.length
+        ? hubRows.map(mpRowHtml).join('')
+        : '<tr><td colspan="7" class="text-center text-muted py-3">No marked attendance in this scope</td></tr>';
+    const titleRows = mpBreakRows(active, t => t.title, dayCols);
+    document.getElementById('mpTitleBody').innerHTML = titleRows.length
+        ? titleRows.map(mpRowHtml).join('')
+        : '<tr><td colspan="7" class="text-center text-muted py-3">No marked attendance in this scope</td></tr>';
+    renderMpGrid(gridded, dayCols);
+    renderMpVendorAging(active, dayCols);
+}
+
+/* --- charts --------------------------------------------------- */
+function renderMpTrend(rows){
+    const base = rows || mpAll;
+    const labels = mpCols.map(mpPrettyDay);
+    const keys = ['present', 'weekoff', 'leave', 'noshow', 'other'];
+    const series = {};
+    keys.forEach(b => series[b] = mpCols.map(cD => base.reduce((s, t) => s + ((t.days[cD] && t.days[cD].bucket === b) ? 1 : 0), 0)));
+    const cfg = {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: keys.map(b => ({
+                label: MP_BUCKETS[b].label, data: series[b],
+                backgroundColor: MP_BUCKETS[b].color, borderWidth: 0, maxBarThickness: 22
+            }))
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                x: { stacked: true, grid: { display: false }, ticks: { font: { size: 9 }, autoSkip: true, maxRotation: 0 } },
+                y:  { stacked: true, beginAtZero: true, grid: { color: 'rgba(148,163,184,.18)' } }
+            },
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
+                tooltip: { mode: 'index', intersect: false }
+            }
+        }
+    };
+    const canvas = document.getElementById('chartMpTrend');
+    if (!canvas) return;
+    if (charts.mpTrend) charts.mpTrend.destroy();
+    charts.mpTrend = new Chart(canvas.getContext('2d'), cfg);
+}
+
+function renderMpHubChart(rows, dayCols){
+    const rowsData = mpBreakRows(rows, t => t.hub, dayCols).slice(0, 14);
+    const labels = rowsData.map(r => r.key);
+    const keys = ['present', 'weekoff', 'leave', 'noshow', 'other'];
+    const cfg = {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: keys.map(b => ({
+                label: MP_BUCKETS[b].label,
+                data: rowsData.map(r => r.g[b]),
+                backgroundColor: MP_BUCKETS[b].color, borderWidth: 0, maxBarThickness: 16
+            }))
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                x: { stacked: true, beginAtZero: true, grid: { color: 'rgba(148,163,184,.18)' } },
+                y: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }
+            },
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
+                tooltip: { mode: 'index', intersect: false }
+            }
+        }
+    };
+    const canvas = document.getElementById('chartMpHub');
+    if (!canvas) return;
+    if (charts.mpHub) charts.mpHub.destroy();
+    charts.mpHub = new Chart(canvas.getContext('2d'), cfg);
+}
+
+/* --- employee grid ------------------------------------------- */
+const MP_GRID_LIMIT = 400;
+
+function renderMpGrid(rows, dayCols){
+    const head = document.getElementById('mpGridHead');
+    const body = document.getElementById('mpGridBody');
+    const note = document.getElementById('mpGridNote');
+    if (!head || !body) return;
+    head.innerHTML = '<tr><th>ID</th><th>Name</th><th>Hub</th><th>Title</th><th>Sft</th><th>9m</th>' +
+        dayCols.map(c => '<th class="text-center" style="min-width:34px">' + esc(mpPrettyDay(c)) + '</th>').join('') + '</tr>';
+    rows = rows.slice().sort((a, b) =>
+        String(a.hub || '').localeCompare(String(b.hub || '')) ||
+        String(a.title || '').localeCompare(String(b.title || '')) ||
+        String(a.name || '').localeCompare(String(b.name || '')));
+    const shown = rows.slice(0, MP_GRID_LIMIT);
+    if (note) note.textContent = rows.length > MP_GRID_LIMIT
+        ? ('showing ' + MP_GRID_LIMIT + ' of ' + fmt(rows.length) + ' — narrow with search or the filters')
+        : (fmt(rows.length) + ' employees');
+    body.innerHTML = shown.map(t => {
+        const cells = dayCols.map(c => {
+            const x = t.days[c];
+            if (!x || !x.bucket) return '<td class="text-center mp-cell" style="color:#e2e8f0">·</td>';
+            const cls = 'mp-c-' + x.bucket;
+            return '<td class="text-center mp-cell ' + cls + '" title="' + esc(x.raw) + ' — ' + esc(t.name || '') + '">' + esc(mpCode(x.bucket, x.raw)) + '</td>';
+        }).join('');
+        return '<tr>' +
+            '<td class="text-muted">' + esc(t.empId || '') + '</td>' +
+            '<td class="fw-bold">' + esc(t.name || '') + '</td>' +
+            '<td>' + esc(t.hub || '—') + '</td>' +
+            '<td class="text-muted">' + esc(t.title || '—') + '</td>' +
+            '<td class="text-muted">' + esc(t.shift || '—') + '</td>' +
+            (t.aging === null
+                ? '<td class="text-muted">—</td>'
+                : '<td class="text-center mp-cell mp-band-' + t.band + '" title="' + fmt(t.aging) + ' days worked in the 9 months before this month">' + fmt(t.aging) + '</td>') +
+            cells + '</tr>';
+    }).join('') || '<tr><td colspan="' + (6 + dayCols.length) + '" class="text-center text-muted py-3">No employees match the current filters</td></tr>';
 }
 
 /* ================================================================
