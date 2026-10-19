@@ -4665,9 +4665,13 @@ function renderMpVendorAging(rows, dayCols){
             '<td class="text-center text-muted small">100%</td></tr>'
     ) : '<tr><td colspan="10" class="text-center text-muted py-3">No employees in this scope</td></tr>';
     const note = document.getElementById('mpVaNote');
-    if (note) note.textContent = va.length
-        ? 'Exit flags (Resigned / Terminate / Suspended) are included in the counts — ' + fmt(exitsAll) + ' across all vendors.'
-        : '';
+    if (note) note.textContent = !va.length ? '' : (
+        (mpState.cat.length
+            ? 'Counting only ' + mpState.cat.map(k => MP_BUCKETS[k].label.toLowerCase()).join(' / ') +
+              ' people on ' + mpRangeLabel() + ' — '
+            : 'Counting everyone on the roster for ' + mpRangeLabel() + ' (present, week off, leave, no show) — tick Category = Present for working people only. ') +
+        'Exit flags (Resigned / Terminate / Suspended) are included in the counts — ' + fmt(exitsAll) + ' across all vendors.'
+    );
     const shown = va.filter(v => v.avg !== null).slice(0, 12);
     const canvas = document.getElementById('chartMpVendorAging');
     if (!canvas) return;
@@ -4756,7 +4760,7 @@ function renderManpower(){
         ? titleRows.map(mpRowHtml).join('')
         : '<tr><td colspan="7" class="text-center text-muted py-3">No marked attendance in this scope</td></tr>';
     renderMpGrid(gridded, dayCols);
-    renderMpVendorAging(active, dayCols);
+    renderMpVendorAging(gridded, dayCols);
     refreshMpCounts();
 }
 
