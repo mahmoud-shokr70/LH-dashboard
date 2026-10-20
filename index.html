@@ -272,7 +272,6 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard"><i class="bi bi-speedometer2 me-1"></i> Executive Dashboard</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-gap"><i class="bi bi-search-heart me-1"></i> Gap Analysis</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn"><i class="bi bi-people me-1"></i> Manpower</button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-pva"><i class="bi bi-clipboard2-check me-1"></i> Plan vs Actual</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live"><i class="bi bi-broadcast me-1"></i> Live Tracking</button></li>
         </ul>
         <button class="btn btn-sm btn-outline-light" id="btnRefresh" title="Reload data from sheet" onclick="refreshData()"><i class="bi bi-arrow-repeat"></i></button>
@@ -842,6 +841,46 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                     </div>
                 </div>
 
+                <!-- PLAN VS ACTUAL (follows the manpower filters above) -->
+                <div class="card p-3 mb-4 border-0 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-clipboard2-check me-2 text-primary"></i>Plan vs Actual
+                            <span class="text-muted fw-normal" style="font-size:.75rem">— follows the filters above · Var = Plan − Actual (positive = fewer people than planned)</span></h6>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-primary active" id="pva-sec-out" onclick="pvaSetSection('out')">Outsource · Core</button>
+                            <button type="button" class="btn btn-outline-primary" id="pva-sec-in" onclick="pvaSetSection('in')">Insource · Noon</button>
+                            <button type="button" class="btn btn-outline-primary" id="pva-sec-none" onclick="pvaSetSection('none')">Unplanned</button>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-lg-7">
+                            <h6 class="small fw-bold text-muted mb-1">Hub level</h6>
+                            <div style="max-height:420px;overflow-y:auto">
+                                <table class="table table-sm align-middle fs-7 mb-0">
+                                    <thead class="table-light"><tr>
+                                        <th>Facility</th><th>Hub</th><th class="text-center">Plan</th><th class="text-center">Actual</th>
+                                        <th class="text-center">Var</th><th class="text-center">Var %</th>
+                                    </tr></thead>
+                                    <tbody id="mpPvaHubBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-lg-5">
+                            <h6 class="small fw-bold text-muted mb-1">Facility level</h6>
+                            <div style="max-height:420px;overflow-y:auto">
+                                <table class="table table-sm align-middle fs-7 mb-0">
+                                    <thead class="table-light"><tr>
+                                        <th>Facility</th><th class="text-center">Plan</th><th class="text-center">Actual</th>
+                                        <th class="text-center">Var</th><th class="text-center">Var %</th>
+                                    </tr></thead>
+                                    <tbody id="mpPvaFacBody"></tbody>
+                                </table>
+                            </div>
+                            <div class="small text-muted mt-2" id="mpPvaNote"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- EMPLOYEE GRID -->
                 <div class="card p-3 mb-3 border-0 shadow-sm">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
@@ -860,52 +899,6 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                             <tbody id="mpGridBody"></tbody>
                         </table>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ============ PAGE 2: PLAN VS ACTUAL ============ -->
-        <div class="tab-pane fade" id="page-pva">
-            <div class="card p-3 mb-4 border-0 shadow-sm">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                        <h5 class="fw-bold m-0"><i class="bi bi-clipboard2-check me-2 text-primary"></i>Plan vs Actual
-                            <span class="text-muted fw-normal fs-6"> — planned vs executed</span></h5>
-                        <div class="small text-muted mt-1" id="pvaScopeLine">—</div>
-                    </div>
-                    <span class="badge text-bg-warning" id="pvaBadge">No data yet</span>
-                </div>
-            </div>
-
-            <!-- KPI STRIP (fills in once data is connected) -->
-            <div class="row g-3 mb-4" id="pvaKpis">
-                <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Trips Planned</div><div class="val" id="pva-k-plan">—</div><div class="sub">from Plan data</div></div></div>
-                <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Trips Actual</div><div class="val" id="pva-k-act">—</div><div class="sub">executed</div></div></div>
-                <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">On Plan</div><div class="val text-success" id="pva-k-onplan">—</div><div class="sub">matches plan</div></div></div>
-                <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Variance</div><div class="val text-warning" id="pva-k-var">—</div><div class="sub">plan vs actual</div></div></div>
-            </div>
-
-            <!-- EMPTY STATE -->
-            <div class="table-container mb-3" id="pvaEmpty">
-                <div class="text-center py-5">
-                    <i class="bi bi-clipboard2-check" style="font-size:2.4rem;color:#cbd5e1"></i>
-                    <h6 class="fw-bold mt-3 mb-1">Plan vs Actual will appear here</h6>
-                    <p class="text-muted mb-2" style="font-size:.85rem">This tab is ready for the Plan vs Actual sheet. Nothing is connected to it yet.</p>
-                    <p class="text-muted mb-0" style="font-size:.78rem">When the data is ready, set <code>PLAN_VS_ACTUAL_CSV_URL</code> in the script to the published CSV URL — this table fills in automatically.</p>
-                </div>
-            </div>
-
-            <!-- CONTENT (hidden until data exists) -->
-            <div class="table-container mb-2" id="pvaContent" style="display:none;">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                    <h5 class="fw-bold m-0"><i class="bi bi-table me-2"></i>Plan vs Actual — Rows</h5>
-                    <span class="small text-muted" id="pvaRowCount">0 rows</span>
-                </div>
-                <div style="overflow-x:auto">
-                    <table id="pvaTable" class="table table-sm align-middle fs-7 mb-0">
-                        <thead class="table-light"><tr id="pvaHead"></tr></thead>
-                        <tbody id="pvaBody"></tbody>
-                    </table>
                 </div>
             </div>
         </div>
@@ -2502,12 +2495,6 @@ function bootApp() {
         });
     });
 
-    // The Plan vs Actual tab is self-contained; render it the first time it is opened.
-    const pvaTab = document.querySelector('[data-bs-target="#page-pva"]');
-    if (pvaTab) pvaTab.addEventListener('shown.bs.tab', () => {
-        if (typeof renderPlanVsActual === 'function') renderPlanVsActual();
-    });
-
     // The Manpower tab loads its roster the first time it is opened.
     const mpTab = document.querySelector('[data-bs-target="#page-mp"]');
     if (mpTab) mpTab.addEventListener('shown.bs.tab', function(){
@@ -2516,7 +2503,6 @@ function bootApp() {
 
     loadDataFromCSV();
     loadLiveCsv();
-    if (typeof loadPlanVsActual === 'function') { try { loadPlanVsActual(); } catch(e){ console.warn('[bootApp] loadPlanVsActual failed:', e); } }
     // Wire the filter dropdowns immediately, even before the sheets answer —
     // otherwise they render as empty, unusable boxes ("options not found").
     // populateDashFilters re-runs once the trips land, keeping current values.
@@ -4462,6 +4448,7 @@ async function loadManpowerCsv(force){
         mpLoaded = true;
         buildMpStaticOptions();
         renderManpower();
+        loadPvaPlan(false);   // plan-vs-actual tables inside the Manpower tab
         console.log('[Manpower] loaded', mpAll.length, 'employees across', mpCols.length, 'days');
     } catch (e) {
         console.warn('[Manpower] load failed:', e);
@@ -4761,6 +4748,7 @@ function renderManpower(){
         : '<tr><td colspan="7" class="text-center text-muted py-3">No marked attendance in this scope</td></tr>';
     renderMpGrid(gridded, dayCols);
     renderMpVendorAging(gridded, dayCols);
+    renderMpPlanVsActual();
     refreshMpCounts();
 }
 
@@ -4871,56 +4859,229 @@ function renderMpGrid(rows, dayCols){
 }
 
 /* ================================================================
-   PAGE — PLAN VS ACTUAL
-   A self-contained tab. Nothing is wired to it yet: set
-   PLAN_VS_ACTUAL_CSV_URL to a published CSV URL when the sheet exists
-   and the tab will parse and display it, one column per sheet column.
-=============================================================== */
-const PLAN_VS_ACTUAL_CSV_URL = '';   // e.g. 'https://docs.google.com/.../pub?gid=0&single=true&output=csv'
-let pvaRows = [];
+   MANPOWER — PLAN VS ACTUAL (inside the Manpower tab)
+   Two tables — hub level and facility level — that FOLLOW the
+   manpower filters above: Hub, Facility leg, Title, Shift,
+   Vendor, Category and the Day From / Day To range all narrow
+   the Actual counts. The Plan is the plan sheet's fixed headcount
+   per facility/hub/day; filters only change Actual, so
+   Var = Plan − Actual moves as filters narrow.
+   Plan sheet blocks: "Plan Outsource, Core Colleague" (vendors
+   except Noon) and "Plan Insource, All except core colleague"
+   (Noon vendor only), one planned headcount per day. Actual =
+   strict "Present" headcount from the filtered roster, joined by
+   hub (the plan says LM; the roster says LM Cairo / LM Giza).
+   To plug in MORE plan sheets later, parsePvaPlan() is generic
+   over the facility, hub, day-columns layout — add a source
+   selector next to the section buttons when that day comes.
+================================================================ */
+const PVA_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=943948063&single=true&output=csv';
+const PVA_CORE = 'Core Colleague';
+const PVA_INSOURCE_VENDORS = ['noon', 'noon da'];      // vendor names treated as insource
+let pvaLoaded = false, pvaLoading = false;
+let pvaPlan = { out: {}, in: {} };                     // key -> planned headcount per day ix
+let pvaDays = [];                                      // [{ix, dayNum}]
+let pvaHubMap = {};                                    // hub (lowercase) -> plan key
+let pvaSection = 'out';
 
-function renderPlanVsActual(){
-    const badge   = document.getElementById('pvaBadge');
-    const empty   = document.getElementById('pvaEmpty');
-    const content = document.getElementById('pvaContent');
-    const scope   = document.getElementById('pvaScopeLine');
+function pvaKey(fac, hub){ return String(fac || '').trim() + '|' + String(hub || '').trim(); }
+/* "Present" = the same bucket the Manpower tab uses: Present + WPH +
+   Work on Week Off (mpBucket already folded them into 'present'),
+   so the Actual lines up with the Manpower Present KPI. */
+function pvaIsPresent(t, c){ const x = t.days[c]; return !!(x && x.bucket === 'present'); }
+function pvaPlanFor(sec, key, ix){ const p = (pvaPlan[sec] || {})[key]; return sec === 'none' ? 0 : (p ? (p[ix] || 0) : 0); }
+function pvaVarCell(p, a){
+    const v = p - a;
+    const pct = p ? Math.round(v / p * 100) + '%' : '—';
+    const cls = v > 0 ? 'text-danger' : (v < 0 ? 'text-info' : 'text-success');
+    return { v: v, pct: pct, cls: cls };
+}
 
-    if (!pvaRows.length){
-        if (badge){ badge.className = 'badge text-bg-warning'; badge.innerText = 'No data yet'; }
-        if (empty) empty.style.display = '';
-        if (content) content.style.display = 'none';
-        if (scope) scope.innerText = 'Connect a Plan vs Actual sheet to populate this tab.';
+/* Parse the two-block plan CSV (facility, hub, 31 day columns). */
+function parsePvaPlan(text){
+    const parsed = Papa.parse(String(text || ''), { skipEmptyLines: false });
+    const rows = (parsed.data || []).filter(r => r.some(c => String(c || '').trim() !== ''));
+    let section = null;
+    pvaPlan = { out: {}, in: {} };
+    pvaDays = [];
+    pvaHubMap = {};
+    rows.forEach(r => {
+        const first = String(r[0] || '').trim();
+        if (/plan\s*outsource/i.test(first))   { section = 'out'; return; }
+        if (/plan\s*insource/i.test(first))    { section = 'in';  return; }
+        if (!section || String(r[0] || '').trim() === 'facility') return;
+        const fac = String(r[0] || '').trim(), hub = String(r[1] || '').trim();
+        if (!hub) return;
+        if (!pvaDays.length){
+            r.slice(2).forEach((h, i) => {
+                const m = String(h || '').match(/(\d{1,2})\s*\/\s*\d{1,2}\s*\/\s*(\d{4})/);
+                pvaDays.push({ ix: i, dayNum: m ? parseInt(m[1], 10) : (i + 1) });
+            });
+        }
+        pvaPlan[section][pvaKey(fac, hub)] = r.slice(2).map(v => {
+            const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ''));
+            return isNaN(n) ? 0 : n;
+        });
+    });
+    // hub -> plan key: the plan's facility label wins when joining
+    ['out', 'in'].forEach(s => Object.keys(pvaPlan[s]).forEach(k => {
+        const h = k.split('|')[1];
+        if (h && !pvaHubMap[h.trim().toLowerCase()]) pvaHubMap[h.trim().toLowerCase()] = k;
+    }));
+}
+
+async function loadPvaPlan(force){
+    if (pvaLoading) return;
+    if (pvaLoaded && !force){ renderMpPlanVsActual(); return; }
+    pvaLoading = true;
+    renderMpPlanVsActual();                // flips the note to "Loading plan…"
+    try {
+        const text = await fetchCsvText(cacheBusted(PVA_CSV_URL, Date.now()), null);
+        parsePvaPlan(text);
+        pvaLoaded = pvaDays.length > 0;
+        if (!pvaLoaded) console.warn('[loadPvaPlan] parsed but no day columns found');
+    } catch(e){
+        console.warn('[loadPvaPlan] failed:', e);
+    }
+    pvaLoading = false;
+    renderMpPlanVsActual();
+}
+
+function pvaSetSection(sec){
+    pvaSection = sec;
+    const o = document.getElementById('pva-sec-out'),
+          n = document.getElementById('pva-sec-in'),
+          u = document.getElementById('pva-sec-none');
+    if (o) o.classList.toggle('active', sec === 'out');
+    if (n) n.classList.toggle('active', sec === 'in');
+    if (u) u.classList.toggle('active', sec === 'none');
+    renderMpPlanVsActual();
+}
+
+/* The two tables, rebuilt on every manpower render. Actual = the
+   Manpower present bucket (Present + WPH + Work on Week Off) over
+   the selected day range, for employees matching ALL filters.
+   Plan = sheet values summed over the same range (plan day ix =
+   day number - 1). People covered by NEITHER plan block are kept
+   under 'none' (the Unplanned button) so the three groups add up
+   to the Manpower Present KPI. */
+function renderMpPlanVsActual(){
+    const hubBody = document.getElementById('mpPvaHubBody');
+    const facBody = document.getElementById('mpPvaFacBody');
+    const note    = document.getElementById('mpPvaNote');
+    if (!hubBody || !facBody || !note) return;
+
+    if (!pvaLoaded){
+        const msg = pvaLoading ? 'Loading plan sheet…' : (mpLoaded ? 'Plan sheet unavailable.' : 'Loads together with the roster.');
+        note.textContent = msg;
+        hubBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">' + msg + '</td></tr>';
+        facBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">' + msg + '</td></tr>';
+        return;
+    }
+    if (!mpLoaded || !mpAll.length){
+        note.textContent = 'Roster not loaded yet.';
+        return;
+    }
+    if (!pvaPlan.out || !Object.keys(pvaPlan.out).length){
+        note.textContent = 'Plan sheet did not contain the expected "Plan Outsource" / "Plan Insource" blocks.';
         return;
     }
 
-    const cols = Object.keys(pvaRows[0]);
-    const head = document.getElementById('pvaHead');
-    if (head) head.innerHTML = cols.map(c => `<th>${esc(c)}</th>`).join('');
-    const body = document.getElementById('pvaBody');
-    if (body) body.innerHTML = pvaRows.map(r =>
-        '<tr>' + cols.map(c => `<td>${esc(r[c])}</td>`).join('') + '</tr>').join('');
+    const dayCols = mpDayCols();
+    const planIx = {};
+    dayCols.forEach(c => {
+        const m = String(c).match(/\s*(\d{1,2})\s*-\s*/);
+        const d = m ? parseInt(m[1], 10) : 0;
+        if (d > 0) planIx[c] = d - 1;
+    });
+    const planSum = (sec, key) => dayCols.reduce((s, c) => {
+        const ix = planIx[c];
+        return s + (ix !== undefined ? pvaPlanFor(sec, key, ix) : 0);
+    }, 0);
 
-    const rc = document.getElementById('pvaRowCount');
-    if (rc) rc.innerText = fmt(pvaRows.length) + ' rows';
-    if (badge){ badge.className = 'badge text-bg-success'; badge.innerText = fmt(pvaRows.length) + ' rows loaded'; }
-    if (scope) scope.innerText = 'Source: Plan vs Actual sheet';
-    if (empty) empty.style.display = 'none';
-    if (content) content.style.display = '';
-    resetTable('#pvaTable');
-    makeTable('#pvaTable', { pageLength: 10, dom: 'tp' });
-}
+    /* Actual tally: one pass, three groups; "none" = uncovered by either block */
+    const tally = { out: {}, in: {}, none: {} };
+    mpAll.filter(t => mpMatch(t)).forEach(t => {
+        const isCore = String(t.title || '').trim() === PVA_CORE;
+        const isNoon = PVA_INSOURCE_VENDORS.indexOf(String(t.vendor || '').trim().toLowerCase()) !== -1;
+        const sec    = (isCore && !isNoon) ? 'out' : ((!isCore && isNoon) ? 'in' : 'none');
+        const key    = pvaHubMap[String(t.hub || '').trim().toLowerCase()] || pvaKey(t.leg, t.hub);
+        dayCols.forEach(c => { if (pvaIsPresent(t, c)) tally[sec][key] = (tally[sec][key] || 0) + 1; });
+    });
 
-async function loadPlanVsActual(){
-    if (!PLAN_VS_ACTUAL_CSV_URL){ renderPlanVsActual(); return; }
-    try {
-        const text = await fetchCsvText(PLAN_VS_ACTUAL_CSV_URL, null);
-        const parsed = Papa.parse(text, { header:true, skipEmptyLines:true });
-        pvaRows = (parsed.data || []).filter(r => Object.keys(r).some(k => String(r[k] || '').trim() !== ''));
-    } catch(e){
-        console.warn('[loadPlanVsActual] failed:', e);
-        pvaRows = [];
-    }
-    renderPlanVsActual();
+    const buildRows = sec => {
+        const planSec = pvaPlan[sec] || {};
+        const list = Object.keys(planSec).filter(k => k.split('|')[1])
+            .map(k => ({ key: k, fac: k.split('|')[0], hub: k.split('|')[1], hasPlan: true }));
+        Object.keys(tally[sec]).forEach(k => {
+            if (!planSec[k] && tally[sec][k] > 0) list.push({ key: k, fac: k.split('|')[0], hub: k.split('|')[1], hasPlan: false });
+        });
+        return list;
+    };
+
+    const sec = pvaSection;
+    const rows = buildRows(sec);
+    let sPlan = 0, sAct = 0, hubHtml = '';
+    const facs = [], facMap = {};
+    rows.forEach(r => {
+        const p = planSum(sec, r.key);
+        const a = tally[sec][r.key] || 0;
+        sPlan += p; sAct += a;
+        const x = pvaVarCell(p, a);
+        hubHtml += '<tr' + (r.hasPlan ? '' : ' class="table-warning"') + '>' +
+            '<td class="fw-bold">' + esc(r.fac || '—') + '</td>' +
+            '<td>' + esc(r.hub) + (r.hasPlan ? '' : ' <span class="small text-muted">no plan row</span>') + '</td>' +
+            '<td class="text-center">' + fmt(p) + '</td>' +
+            '<td class="text-center fw-bold">' + fmt(a) + '</td>' +
+            '<td class="text-center ' + x.cls + '">' + fmt(x.v) + '</td>' +
+            '<td class="text-center small ' + x.cls + '">' + x.pct + '</td></tr>';
+        const fl = r.fac || '—';
+        if (!facMap[fl]){ facMap[fl] = { fac: fl, plan: 0, act: 0 }; facs.push(facMap[fl]); }
+        facMap[fl].plan += p; facMap[fl].act += a;
+    });
+    const sx = pvaVarCell(sPlan, sAct);
+    const secLabel = sec === 'out' ? 'Outsource · Core Colleague' : (sec === 'in' ? 'Insource · Noon' : 'Unplanned — covered by neither plan block');
+    hubHtml += '<tr class="table-light fw-bold">' +
+        '<td colspan="2">Total — ' + secLabel + '</td>' +
+        '<td class="text-center">' + fmt(sPlan) + '</td>' +
+        '<td class="text-center">' + fmt(sAct) + '</td>' +
+        '<td class="text-center ' + sx.cls + '">' + fmt(sx.v) + '</td>' +
+        '<td class="text-center small ' + sx.cls + '">' + sx.pct + '</td></tr>';
+    hubBody.innerHTML = hubHtml;
+
+    let facHtml = '';
+    facs.forEach(f => {
+        const x = pvaVarCell(f.plan, f.act);
+        facHtml += '<tr><td class="fw-bold">' + esc(f.fac) + '</td>' +
+            '<td class="text-center">' + fmt(f.plan) + '</td>' +
+            '<td class="text-center fw-bold">' + fmt(f.act) + '</td>' +
+            '<td class="text-center ' + x.cls + '">' + fmt(x.v) + '</td>' +
+            '<td class="text-center small ' + x.cls + '">' + x.pct + '</td></tr>';
+    });
+    facHtml += '<tr class="table-light fw-bold"><td>Total</td>' +
+        '<td class="text-center">' + fmt(sPlan) + '</td>' +
+        '<td class="text-center">' + fmt(sAct) + '</td>' +
+        '<td class="text-center ' + sx.cls + '">' + fmt(sx.v) + '</td>' +
+        '<td class="text-center small ' + sx.cls + '">' + sx.pct + '</td></tr>';
+    facBody.innerHTML = facHtml;
+
+    // Reconciliation: overall present (all filters) = the three groups together
+    let overall = 0, oAct = 0, iAct = 0, nAct = 0;
+    ['out', 'in', 'none'].forEach(s => {
+        buildRows(s).forEach(r => {
+            const a = tally[s][r.key] || 0;
+            overall += a;
+            if (s === 'out') oAct += a;
+            else if (s === 'in') iAct += a;
+            else nAct += a;
+        });
+    });
+    const bits = ['Present = Present + WPH + Work on Week Off (same as Manpower)',
+        'Scope: ' + (dayCols.length === mpCols.length ? 'whole month' : mpRangeLabel()) +
+        ' · filters narrow Actual only — Plan stays the sheet headcount',
+        '<strong>Overall present (all filters): ' + fmt(overall) + ' = Outsource ' + fmt(oAct) + ' + Insource ' + fmt(iAct) + ' + Unplanned ' + fmt(nAct) + '</strong>',
+        'The Unplanned group has no plan row in the sheet — add them to the plan if they should be planned.'];
+    note.innerHTML = '<i class="bi bi-funnel me-1"></i>' + bits.join(' · ');
 }
 
 function renderGap(data){
