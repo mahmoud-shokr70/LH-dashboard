@@ -848,7 +848,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                             <span class="text-muted fw-normal" style="font-size:.75rem">— follows the filters above · Var = Plan − Actual (positive = fewer people than planned)</span></h6>
                         <div class="btn-group btn-group-sm" role="group">
                             <button type="button" class="btn btn-outline-primary active" id="pva-sec-out" onclick="pvaSetSection('out')">Outsource · Core</button>
-                            <button type="button" class="btn btn-outline-primary" id="pva-sec-in" onclick="pvaSetSection('in')">Insource · Noon</button>
+                            <button type="button" class="btn btn-outline-primary" id="pva-sec-in" onclick="pvaSetSection('in')">Insource · Assoc (LM)</button>
                             <button type="button" class="btn btn-outline-primary" id="pva-sec-none" onclick="pvaSetSection('none')">Unplanned</button>
                         </div>
                     </div>
@@ -4866,11 +4866,16 @@ function renderMpGrid(rows, dayCols){
    the Actual counts. The Plan is the plan sheet's fixed headcount
    per facility/hub/day; filters only change Actual, so
    Var = Plan − Actual moves as filters narrow.
-   Plan sheet blocks: "Plan Outsource, Core Colleague" (vendors
-   except Noon) and "Plan Insource, All except core colleague"
-   (Noon vendor only), one planned headcount per day. Actual =
-   strict "Present" headcount from the filtered roster, joined by
-   hub (the plan says LM; the roster says LM Cairo / LM Giza).
+   Plan sheet blocks: "Plan Outsource, Core Colleague" and
+   "Plan Insource, All except core coleague". Per the user, the
+   insource plan is really for Associate / Senior Associate only
+   and applies ONLY to the LM rows (the roster shows those as
+   LM / LM Cairo / LM Giza) — other insource rows are ignored and
+   their people fall into the Unplanned group. One planned
+   headcount per day. Actual = the Manpower present bucket
+   (Present + WPH + Work on Week Off) from the filtered roster,
+   joined by hub (the plan says LM; the roster says LM Cairo /
+   LM Giza).
    To plug in MORE plan sheets later, parsePvaPlan() is generic
    over the facility, hub, day-columns layout — add a source
    selector next to the section buttons when that day comes.
@@ -4878,6 +4883,8 @@ function renderMpGrid(rows, dayCols){
 const PVA_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=943948063&single=true&output=csv';
 const PVA_CORE = 'Core Colleague';
 const PVA_INSOURCE_VENDORS = ['noon', 'noon da'];      // vendor names treated as insource
+const PVA_INSOURCE_TITLES = ['associate', 'senior associate'];  // insource plan covers these titles only
+const PVA_INSOURCE_FAC = 'LM';                         // insource plan applies to the LM rows only (manpower shows LM / LM Cairo / LM Giza)
 let pvaLoaded = false, pvaLoading = false;
 let pvaPlan = { out: {}, in: {} };                     // key -> planned headcount per day ix
 let pvaDays = [];                                      // [{ix, dayNum}]
@@ -4999,20 +5006,34 @@ function renderMpPlanVsActual(){
         return s + (ix !== undefined ? pvaPlanFor(sec, key, ix) : 0);
     }, 0);
 
-    /* Actual tally: one pass, three groups; "none" = uncovered by either block */
+    /* Actual tally: one pass, three groups.
+       out  = Core Colleague, vendor not Noon (the outsource plan)
+       in   = Associate / Senior Associate from Noon vendor, joined to
+              an LM plan row (the insource plan covers those titles at
+              the LM facilities only — the roster shows LM Cairo /
+              LM Giza / LM for them)
+       none = everything else present (unplanned) */
     const tally = { out: {}, in: {}, none: {} };
     mpAll.filter(t => mpMatch(t)).forEach(t => {
-        const isCore = String(t.title || '').trim() === PVA_CORE;
+        const tit    = String(t.title || '').trim();
+        const isCore = tit === PVA_CORE;
         const isNoon = PVA_INSOURCE_VENDORS.indexOf(String(t.vendor || '').trim().toLowerCase()) !== -1;
-        const sec    = (isCore && !isNoon) ? 'out' : ((!isCore && isNoon) ? 'in' : 'none');
+        const isAsso = PVA_INSOURCE_TITLES.indexOf(tit.toLowerCase()) !== -1;
+        // "LM" must be the person's OWN facility leg (LM / LM Cairo / LM Giza) — not just the hub
+        const legLM  = /^lm/i.test(String(t.leg || '').trim());
         const key    = pvaHubMap[String(t.hub || '').trim().toLowerCase()] || pvaKey(t.leg, t.hub);
+        let sec = 'none';
+        if (isCore && !isNoon) sec = 'out';
+        else if (legLM && !isCore && isNoon && isAsso && String(key.split('|')[0]) === PVA_INSOURCE_FAC) sec = 'in';
         dayCols.forEach(c => { if (pvaIsPresent(t, c)) tally[sec][key] = (tally[sec][key] || 0) + 1; });
     });
 
     const buildRows = sec => {
         const planSec = pvaPlan[sec] || {};
-        const list = Object.keys(planSec).filter(k => k.split('|')[1])
-            .map(k => ({ key: k, fac: k.split('|')[0], hub: k.split('|')[1], hasPlan: true }));
+        // insource table only shows the LM rows — the other insource plan rows are not applied
+        const planKeys = Object.keys(planSec).filter(k => k.split('|')[1])
+            .filter(k => sec !== 'in' || String(k.split('|')[0]) === PVA_INSOURCE_FAC);
+        const list = planKeys.map(k => ({ key: k, fac: k.split('|')[0], hub: k.split('|')[1], hasPlan: true }));
         Object.keys(tally[sec]).forEach(k => {
             if (!planSec[k] && tally[sec][k] > 0) list.push({ key: k, fac: k.split('|')[0], hub: k.split('|')[1], hasPlan: false });
         });
@@ -5040,7 +5061,7 @@ function renderMpPlanVsActual(){
         facMap[fl].plan += p; facMap[fl].act += a;
     });
     const sx = pvaVarCell(sPlan, sAct);
-    const secLabel = sec === 'out' ? 'Outsource · Core Colleague' : (sec === 'in' ? 'Insource · Noon' : 'Unplanned — covered by neither plan block');
+    const secLabel = sec === 'out' ? 'Outsource · Core Colleague' : (sec === 'in' ? 'Insource · Associate / Senior Associate (LM only)' : 'Unplanned — covered by neither plan block');
     hubHtml += '<tr class="table-light fw-bold">' +
         '<td colspan="2">Total — ' + secLabel + '</td>' +
         '<td class="text-center">' + fmt(sPlan) + '</td>' +
@@ -5077,6 +5098,7 @@ function renderMpPlanVsActual(){
         });
     });
     const bits = ['Present = Present + WPH + Work on Week Off (same as Manpower)',
+        'Insource covers Associate / Senior Associate (Noon vendor) at the LM rows only',
         'Scope: ' + (dayCols.length === mpCols.length ? 'whole month' : mpRangeLabel()) +
         ' · filters narrow Actual only — Plan stays the sheet headcount',
         '<strong>Overall present (all filters): ' + fmt(overall) + ' = Outsource ' + fmt(oAct) + ' + Insource ' + fmt(iAct) + ' + Unplanned ' + fmt(nAct) + '</strong>',
