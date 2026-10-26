@@ -31,17 +31,44 @@
     --brand-yellow3: #FFF2CC;       /* Light Yellow 3 - report headers / accents */
     --brand-red: #D32F2F;           /* critical notes */
     --brand-white: #ffffff;
+    --noon: #FEEE00;                /* true noon brand yellow */
+    --noon-soft: #FFF5B8;           /* yellow accent wash */
+    --noon-sunk: #F6E400;           /* pressed yellow */
+    --ink: #16171B;                 /* charcoal for bold type & primary buttons */
+    --warm-line: #EFE8CF;           /* card borders */
+    --warm-sub: #9A9282;            /* secondary text */
     --font-head: 'Montserrat', 'Segoe UI', sans-serif;
     --font-body: 'Open Sans', 'Segoe UI', sans-serif;
     --font-num: 'Roboto Mono', monospace;
+    --radius-xl: 20px;
+    --radius-lg: 14px;
+    --shadow-card: 0 2px 6px rgba(28,26,16,.05), 0 1px 2px rgba(28,26,16,.04);
+    --shadow-lift: 0 10px 22px rgba(28,26,16,.10);
 }
-body { background-color: var(--brand-yellow); font-family: var(--font-body); color: #111111; }
+body { background: linear-gradient(180deg, #FFF9E8 0%, #FBF3D8 100%) fixed; font-family: var(--font-body); color: #111111; }
 h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 700; color: #111111; }
 
-/* Header — black for dashboards, white Montserrat title + slogan */
-.top-navbar { background: var(--brand-black); color: var(--brand-white); padding: 12px 24px; }
-.top-navbar h4 { color: var(--brand-white); font-weight: 800; font-size: 1.6rem; letter-spacing: .3px; }
-.top-navbar .brand-slogan { font-family: var(--font-head); font-size: .72rem; font-weight: 600; color: var(--brand-yellow3); letter-spacing: 1.2px; text-transform: uppercase; }
+/* Thin warm scrollbar with a yellow thumb */
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: #FBF3D8; }
+::-webkit-scrollbar-thumb { background: #E9DFB8; border-radius: 999px; border: 2px solid #FBF3D8; }
+::-webkit-scrollbar-thumb:hover { background: var(--noon); }
+
+/* Header — black for dashboards, white Montserrat title + slogan.
+   Rounded-noon restyle: sticky bar, yellow logo chip, yellow active pill. */
+.top-navbar {
+    background: linear-gradient(120deg, #0C0C0E 0%, #16171B 55%, #1C1D22 100%);
+    color: var(--brand-white);
+    padding: 14px 24px;
+    position: sticky; top: 0; z-index: 1030;
+    box-shadow: 0 1px 0 rgba(254,238,0,.35), 0 8px 22px rgba(0,0,0,.28);
+}
+.logo-chip { display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; flex:0 0 42px;
+    border-radius: 13px; background: var(--noon); color:#16171B; font-family: var(--font-head); font-weight:900;
+    font-size: 1.05rem; letter-spacing:-.5px; box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 3px rgba(254,238,0,.18); }
+.top-navbar h4 { color: var(--brand-white); font-weight: 800; font-size: 1.6rem; letter-spacing: -.3px; }
+.top-navbar .brand-slogan { font-family: var(--font-head); font-size: .7rem; font-weight: 700; color: var(--brand-yellow3); letter-spacing: 1.4px; text-transform: uppercase; }
+.top-navbar .brand-slogan b { color: var(--noon); }
 .meta-line { font-size: .72rem; color: #cfcabc; font-family: var(--font-num); }    .demo-pill { background:#f59e0b; color:#0f172a; font-size:.65rem; font-weight:800; border-radius:999px; padding:2px 8px; }
     /* Build stamp — tells you at a glance whether the browser is running the
        latest file. It is filled in by JS, so the placeholder text below means
@@ -49,15 +76,26 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
     .build-tag { display:inline-block; margin-top:4px; font-family: var(--font-num); font-size:.62rem; font-weight:700;
         background:#f59e0b; color:#1b1b1b; border-radius:999px; padding:1px 8px; }
 
+/* Pill navigation: quiet on black, glowing yellow when active */
+#pageTabs .nav-link { border-radius: 999px; font-family: var(--font-head); font-weight: 700; font-size: .84rem;
+    color: #D8D2C0; padding: .38rem 1rem; transition: background .15s ease, color .15s ease, transform .12s ease; }
+#pageTabs .nav-link:hover:not(.active) { color: #fff; background: rgba(255,255,255,.08); }
+#pageTabs .nav-link.active { background: var(--noon); color: #16171B; box-shadow: 0 3px 0 rgba(0,0,0,.4); transform: translateY(-1px); }
+#pageTabs .nav-link i { margin-right: 4px; }
+
 /* Numbers / metrics always Roboto Mono */
 .kpi-mini .val, .kpi-main-pct, .kpi-stat-val, .score-pill, .mini-tile .v,
 .live-table .time-cell, .live-kpi .v, td[data-order] { font-family: var(--font-num); }
 
-/* Cards & containers rest on white */
-.kpi-mini { background: var(--brand-white); border-radius: 12px; border: 1px solid #e8e2cf; padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04); height: 100%; }
-.kpi-mini .lbl { font-family: var(--font-head); font-size: .68rem; font-weight: 700; text-transform: uppercase; color: #6b6353; letter-spacing: .4px; }
-.kpi-mini .val { font-size: 1.55rem; font-weight: 800; color: #111111; line-height: 1.15; }
-.kpi-mini .sub { font-size: .72rem; color: #9a9282; }
+/* Cards & containers rest on white — rounded & warm system */
+.kpi-mini { background: var(--brand-white); border-radius: var(--radius-xl); border: 1px solid var(--warm-line); padding: 16px 18px; box-shadow: var(--shadow-card); height: 100%; position: relative; overflow: hidden; transition: transform .14s ease, box-shadow .14s ease; }
+.kpi-mini::after { content:''; position:absolute; right:-26px; top:-26px; width:64px; height:64px; border-radius:99px; background: var(--noon-soft); opacity:.55; }
+.kpi-mini:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+.kpi-mini .lbl { font-family: var(--font-head); font-size: .68rem; font-weight: 800; text-transform: uppercase; color: #6b6353; letter-spacing: .5px; display: flex; align-items: center; gap: 6px; }
+.kpi-mini .lbl::before { content:''; width:8px; height:8px; border-radius: 99px; background: var(--noon); box-shadow: 0 0 0 3px rgba(254,238,0,.28); flex: 0 0 8px; }
+.kpi-mini .val { font-size: 1.7rem; font-weight: 800; color: #111111; line-height: 1.12; letter-spacing: -0.5px; }
+.kpi-mini .sub { font-size: .72rem; color: var(--warm-sub); position: relative; z-index: 1; }
+.kpi-mini .val { position: relative; z-index: 1; }
 
 /* Manpower roster day-cell colours */
 .mp-cell { font-size: .66rem; font-weight: 700; }
@@ -76,13 +114,14 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 .mp-band-p60  { background: #a7f3d0; color: #064e3b; }
 
 /* Core metric cards */
-.kpi-card { background: var(--brand-white); border-radius: 12px; border: 1px solid #e8e2cf; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative; overflow: hidden; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; height:100%; }
-.kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,.10); }
-.kpi-card-header { font-family: var(--font-head); font-size: 0.82rem; font-weight: 700; text-transform: uppercase; color: #6b6353; letter-spacing: 0.5px; }
-.kpi-main-pct { font-size: 2.1rem; font-weight: 800; color: #111111; margin: 4px 0; }
-.kpi-stat-row { display: flex; justify-content: space-between; font-size: 0.8rem; padding-top: 8px; border-top: 1px solid #f4efdd; margin-top: 8px; }
+.kpi-card { background: var(--brand-white); border-radius: var(--radius-xl); border: 1px solid var(--warm-line); padding: 20px; box-shadow: var(--shadow-card); position: relative; overflow: hidden; cursor: pointer; transition: transform .14s ease, box-shadow .14s ease; height:100%; }
+.kpi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+.kpi-card-header { font-family: var(--font-head); font-size: 0.82rem; font-weight: 800; text-transform: uppercase; color: #6b6353; letter-spacing: 0.6px; display: flex; align-items: center; gap: 6px; }
+.kpi-card-header::before { content:''; width:8px; height:8px; border-radius:99px; background: var(--noon); box-shadow: 0 0 0 3px rgba(254,238,0,.25); }
+.kpi-main-pct { font-size: 2.1rem; font-weight: 800; color: #111111; margin: 4px 0; letter-spacing: -0.5px; }
+.kpi-stat-row { display: flex; justify-content: space-between; font-size: 0.8rem; padding-top: 8px; border-top: 1px dashed var(--warm-line); margin-top: 8px; }
 .kpi-stat-item { text-align: center; }
-.kpi-stat-label { color: #9a9282; font-weight: 600; text-transform: uppercase; font-size: 0.62rem; }
+.kpi-stat-label { color: var(--warm-sub); font-weight: 600; text-transform: uppercase; font-size: 0.62rem; }
 .kpi-stat-val { font-weight: 700; color: #333333; }
 .card-hint { position:absolute; top:10px; right:12px; font-size:.62rem; color:#d8d2c0; font-weight:700; }
 
@@ -127,11 +166,11 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 .chart-card h6 { font-size:.85rem; }
 
 /* Cards / charts on white */
-.card { background: var(--brand-white); border-radius: 12px; }
-.chart-card { border: 1px solid #e8e2cf; }
+.card { background: var(--brand-white); border-radius: var(--radius-xl); }
+.chart-card { border: 1px solid var(--warm-line); }
 
 /* Gap analysis */
-.insight-card { background: var(--brand-white); border-radius: 10px; border: 1px solid #e8e2cf; border-left-width: 5px; padding: 12px 14px; height: 100%; }
+.insight-card { background: var(--brand-white); border-radius: var(--radius-lg); border: 1px solid var(--warm-line); border-left-width: 5px; padding: 12px 14px; height: 100%; }
 .tone-danger { border-left-color: var(--brand-red); } .tone-warning { border-left-color: #f59e0b; }
 .tone-success { border-left-color: #22c55e; } .tone-info { border-left-color: #0ea5e9; }
 .insight-card .t { font-family: var(--font-head); font-size:.64rem; font-weight:700; text-transform:uppercase; color:#6b6353; letter-spacing:.4px; }
@@ -142,11 +181,15 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 .adh-good { background:#e5f3e0; color:#1e7a2e; } .adh-mid { background:#fdf3ce; color:#8a6d1a; }
 .adh-bad { background:#fdecea; color:var(--brand-red); } .adh-na { background:#efece2; color:#6b6353; }
 
-.table-container { background: var(--brand-white); border-radius: 12px; border: 1px solid #e8e2cf; padding: 20px; }
+.table-container { background: var(--brand-white); border-radius: var(--radius-xl); border: 1px solid var(--warm-line); padding: 20px; box-shadow: var(--shadow-card); }
 
-/* Tables: thin borders all around, no gridlines/stripes */
-.table > :not(caption) > * > * { border: 1px solid #ece7d5 !important; background-color: var(--brand-white); box-shadow: none; }
-.table thead th { background: var(--brand-yellow3) !important; font-family: var(--font-head); font-size: .72rem; text-transform: uppercase; letter-spacing: .3px; color: #111111; }
+/* Tables: soft look — black underline on a yellow header, cream hover,
+   hairline row dividers instead of a full grid */
+.table > :not(caption) > * > * { border: 1px solid #F1EBD8 !important; background-color: var(--brand-white); box-shadow: none; }
+.table thead th { background: var(--brand-yellow3) !important; font-family: var(--font-head); font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .35px; color: #111111; border-bottom: 2px solid var(--ink) !important; }
+.table thead:first-child th:first-child { border-top-left-radius: var(--radius-lg); }
+.table thead:first-child th:last-child { border-top-right-radius: var(--radius-lg); }
+.table tbody tr:hover > * { background-color: #FFFAE6 !important; }
 .table tbody tr:nth-child(odd) > * { background-color: var(--brand-white); }
     .fs-7 { font-size:.82rem; }
     .rca-box-fail { background: #fdecea; border-left: 4px solid var(--brand-red); padding: 12px; border-radius: 6px; margin-bottom: 12px; }
@@ -255,17 +298,169 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
     .var-early { background:#fff3cd; color:#8a6d1a; }
     .var-ok { background:#e5f3e0; color:#1e7a2e; }
     .var-na { background:#efece2; color:#6b6353; }
+
+    /* =============================================================
+       ROUNDED & WARM RESTYLE (noon energy) — additive overrides
+       ============================================================= */
+
+    /* Buttons: pill everywhere; primary goes charcoal with yellow text */
+    .btn { border-radius: 999px; font-weight: 700; transition: transform .1s ease, box-shadow .12s ease, background .12s ease; }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: var(--ink); border-color: var(--ink); color: #fff; }
+    .btn-primary:hover, .btn-primary:focus { background: #000; border-color: #000; color: var(--noon); box-shadow: 0 4px 12px rgba(0,0,0,.25); }
+    .btn-outline-primary { color: var(--ink); border-color: #16171B33; }
+    .btn-outline-primary:hover, .btn-outline-primary.active { background: var(--ink); border-color: var(--ink); color: var(--noon); }
+    .btn-success { background:#1E9E46; border-color:#1E9E46; }
+    .btn-success:hover { background:#167a36; box-shadow: 0 4px 12px rgba(30,158,70,.3); }
+    .chip-bar .btn { font-size: .78rem; }
+
+    /* Forms: friendly rounded inputs, yellow focus halo */
+    .form-control, .form-select, .form-check-input { border-radius: 10px; border-color: #E3DBC2; font-weight: 600; }
+    .form-control:focus, .form-select:focus { border-color: var(--ink); box-shadow: 0 0 0 3.5px rgba(254,238,0,.5); }
+    .form-label { font-family: var(--font-head); font-weight: 700; letter-spacing: .3px; }
+    .form-label.text-muted { color: var(--warm-sub) !important; }
+    input[type="date"] { font-family: var(--font-num); }
+
+    /* Filter bar: black hairline top with a yellow tab like a file folder */
+    #globalFilterBar, .card.p-3.mb-4 { border-top: 3px solid var(--ink) ; }
+    #globalFilterBar h6 i.text-primary { color: #8A6D1A !important; }
+
+    /* Layout nav pills (Manpower scope bar etc.) inherit the yellow active */
+    .btn-group .btn-outline-primary.active { background: var(--ink); color: var(--noon); border-color: var(--ink); }
+
+    /* Sticky table headers get a soft shadow when the page scrolls */
+    .rep-table th { box-shadow: 0 2px 0 rgba(22,23,27,.12); }
+
+    /* Page title strips — bold uppercase tab with a yellow underline dash */
+    .page-strip { display:flex; justify-content:space-between; align-items:flex-end; gap:14px; flex-wrap:wrap;
+        margin: 2px 0 18px; padding-bottom: 10px; border-bottom: 3px solid var(--ink); position: relative; }
+    .page-strip::after { content:''; position:absolute; left:0; bottom:-3px; width:88px; height:3px; background: var(--ink); border-bottom-left-radius:3px; }
+    .page-strip .k { font-family: var(--font-head); font-weight: 900; font-size: 1.5rem; letter-spacing: -.6px; text-transform: uppercase; color: var(--ink); line-height: 1.1; }
+    .page-strip .k i { color:#16171B; margin-right: 9px; background: var(--noon); border-radius: 10px; padding: 5px 7px; font-size: 1rem; vertical-align: 2px; }
+    .page-strip .d { font-size: .78rem; color: var(--warm-sub); max-width: 640px; }
+    .page-strip .m { font-family: var(--font-num); font-size: .7rem; font-weight: 700; color: #16171B; background: var(--brand-yellow3);
+        border: 1px solid #E9DFB8; border-radius: 999px; padding: 3px 12px; white-space: nowrap; }
+
+    /* KPI hero band: charcoal slab holding the headline tiles */
+    .hero-band { background: linear-gradient(115deg, #131418 0%, #1E1F26 70%, #26272F 100%);
+        border-radius: var(--radius-xl); padding: 16px 18px 18px; box-shadow: 0 14px 34px rgba(20,18,10,.22);
+        margin-bottom: 22px; position: relative; overflow: hidden; }
+    .hero-band::before { content:''; position:absolute; left:-40px; top:-70px; width:220px; height:220px; border-radius:99px;
+        background: radial-gradient(circle, rgba(254,238,0,.16) 0%, rgba(254,238,0,0) 70%); pointer-events:none; }
+    .hero-band .kpi-mini { background: rgba(255,255,255,.985); border-radius: 16px; }
+    .hero-band .kpi-mini .val { font-size: 2rem; }
+
+    /* Loader — noon dot-pulse */
+    #loader .spinner-border { color: var(--noon); border-width: .25rem; }
+    #loader .spinner-border { border-color: #16171B; border-right-color: transparent; }
+    #loader p { font-family: var(--font-head); font-weight: 700; color: #6b6353; letter-spacing:.4px; }
+
+    /* Page entering: gentle rise */
+    .tab-pane.fade.active.show { animation: paneRise .28s ease both; }
+    @keyframes paneRise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    /* Section headings inside cards: small yellow kicker feel */
+    .card h6.fw-bold, .chart-card h6, .table-container h6 { font-family: var(--font-head); letter-spacing: -.2px; }
+    .card h6 i { color: #8A6D1A; }
+
+    /* Snapshot button: chunky pill */
+    .snap-btn { border-radius: 999px !important; }
+
+    /* Live page chips */
+    .live-kpi { border-radius: 14px; box-shadow: var(--shadow-card); }
+    .live-kpi .v { letter-spacing: -.4px; }
+    .live-hub-title { letter-spacing: -.3px; }
+
+    /* Verdict cards on the adherence report */
+    .verdict-card { border-radius: var(--radius-xl); box-shadow: var(--shadow-card); }
+    .verdict-card.v-good .verdict-score { color: #1E9E46; }
+
+    /* Score pills: slightly bigger rounds */
+    .score-pill { border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.05); }
+
+    /* Footer keeps the black/yellow brand close */
+    .brand-footer { border-top: 3px solid var(--noon); }
+
+    /* mcs dropdown: rounder panel, yellow header strip */
+    .mcs-panel { border-radius: 14px; border-color: #E3DBC2; }
+    .mcs-actions { background: var(--brand-yellow3); border-radius: 14px 14px 0 0; }
+    .mcs-btn { border-radius: 10px; }
+    .mcs-btn.mcs-active { border-color: var(--ink); box-shadow: 0 0 0 2.5px rgba(254,238,0,.45); }
+
+    /* Secondary/stat text tone */
+    .text-muted { color: var(--warm-sub) !important; }
+
+    /* Select2 dropdown panels: rounded too */
+    .select2-container--bootstrap-5 .select2-selection { border-radius: 10px !important; border-color: #E3DBC2 !important; }
+    .select2-container--bootstrap-5 .select2-selection--multiple { border-radius: 10px !important; }
+    .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice { border-radius: 999px !important; background: var(--brand-yellow3) !important; border-color: #E9DFB8 !important; font-weight: 700; }
+    .select2-dropdown { border-radius: 14px !important; border-color: #E3DBC2 !important; box-shadow: var(--shadow-lift) !important; }
+
+    /* Roster legend & mini tiles stay soft */
+    .mini-tile { border-radius: 12px; background:#FFFDF4; }
+
+    /* Manpower filter bar matches the folder-folder look */
+    .card.p-3.mb-4.border-0.shadow-sm { border-top: 3px solid var(--ink); }
+
+    /* ===== Inner tabs: Dashboard view vs Data view inside every page ===== */
+    .inner-tabs { display: inline-flex; gap: 4px; flex-wrap: wrap; margin: 0 0 18px; padding: 5px 6px;
+        background: #FFFDF2; border: 1px solid var(--warm-line); border-radius: 999px;
+        box-shadow: var(--shadow-card); }
+    .inner-tabs .it-btn { border: 0; background: transparent; border-radius: 999px; padding: 7px 18px;
+        font-family: var(--font-head); font-weight: 800; font-size: .74rem; text-transform: uppercase;
+        letter-spacing: .5px; color: #8A7A5A; cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+        transition: background .12s ease, color .12s ease, transform .1s ease; }
+    .inner-tabs .it-btn i { font-size: .85rem; }
+    .inner-tabs .it-btn:hover:not(.active) { background: var(--brand-yellow3); color: #16171B; }
+    .inner-tabs .it-btn:active { transform: translateY(1px); }
+    .inner-tabs .it-btn.active { background: var(--ink); color: var(--noon); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+    .iview-hidden { display: none !important; }
+
+    /* ===== Welcome gate: opening screen with page choice ===== */
+    .wl-overlay { position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center; justify-content: center;
+        background: radial-gradient(1100px 480px at 50% -8%, rgba(254,238,0,.12), rgba(254,238,0,0) 62%), rgba(12,12,14,.74);
+        backdrop-filter: blur(6px); padding: 24px; }
+    .wl-card { background: #FFFDF4; border-radius: 24px; box-shadow: 0 30px 80px rgba(10,10,12,.45);
+        width: min(940px, 96vw); padding: 28px 30px 22px; border: 1px solid var(--warm-line);
+        position: relative; overflow: hidden; animation: wlRise .35s ease both; }
+    @keyframes wlRise { from { opacity: 0; transform: translateY(18px) scale(.98); } to { opacity: 1; transform: none; } }
+    .wl-card::before { content:''; position:absolute; top:-90px; right:-60px; width:260px; height:260px; border-radius:99px;
+        background: radial-gradient(circle, rgba(254,238,0,.30) 0%, rgba(254,238,0,0) 70%); pointer-events:none; }
+    .wl-leaving { opacity: 0; transition: opacity .25s ease; }
+    .wl-head { display: flex; align-items: center; gap: 14px; position: relative; }
+    .wl-hi { font-family: var(--font-head); font-weight: 800; font-size: .76rem; text-transform: uppercase;
+        letter-spacing: 1.4px; color: #8A6D1A; }
+    .wl-meta { margin-top: 10px; font-family: var(--font-num); font-size: .74rem; font-weight: 700; color: var(--warm-sub); position: relative; }
+    .wl-desc { margin: 8px 0 18px; font-size: .88rem; color: #4f4736; max-width: 640px; position: relative; }
+    .wl-q { font-family: var(--font-head); font-weight: 800; font-size: .8rem; text-transform: uppercase;
+        letter-spacing: .6px; color: var(--ink); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+    .wl-pages { display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 10px; }
+    .wl-page { text-align: left; border: 1px solid var(--warm-line); background: #fff; border-radius: 16px;
+        padding: 12px 14px; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease; }
+    .wl-page:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); border-color: var(--noon); }
+    .wl-page:active { transform: translateY(0); }
+    .wl-page .t { font-family: var(--font-head); font-weight: 800; font-size: .84rem; color: var(--ink);
+        display: flex; align-items: center; gap: 8px; }
+    .wl-page .t i { color: #8A6D1A; background: var(--noon-soft); border-radius: 8px; padding: 4px 6px; font-size: .8rem; }
+    .wl-page .d { font-size: .7rem; color: var(--warm-sub); margin-top: 6px; font-family: var(--font-body); }
+    .wl-foot { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+        margin-top: 20px; padding-top: 14px; border-top: 1px dashed var(--warm-line); }
+    .wl-skip { font-size: .74rem; color: var(--warm-sub); display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; }
+
 </style>
 </head>
 <body>
 
 <!-- Header Navigation -->
 <div class="top-navbar d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div>
-        <h4 class="m-0 fw-bold">Control Tower</h4>
-        <div class="brand-slogan">We Build, Guide, Excel, and Control.</div>
-        <div class="meta-line" id="sheetMeta">Connecting to sheet…</div>
-        <div class="build-tag" id="buildTag">script not running — this is an older copy of the file</div>
+    <div class="d-flex align-items-center gap-3">
+        <span class="logo-chip" title="Control Tower">CT</span>
+        <div>
+            <h4 class="m-0 fw-bold">Control Tower</h4>
+            <div class="brand-slogan">We <b>Build</b>, Guide, Excel &amp; Control.</div>
+            <div class="meta-line" id="sheetMeta">Connecting to sheet…</div>
+            <div class="build-tag" id="buildTag">script not running — this is an older copy of the file</div>
+        </div>
     </div>
     <div class="d-flex align-items-center gap-2">
         <ul class="nav nav-pills" id="pageTabs">
@@ -274,9 +469,9 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn"><i class="bi bi-people me-1"></i> Manpower</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live"><i class="bi bi-broadcast me-1"></i> Live Tracking</button></li>
         </ul>
-        <button class="btn btn-sm btn-outline-light" id="btnRefresh" title="Reload data from sheet" onclick="refreshData()"><i class="bi bi-arrow-repeat"></i></button>
+        <button class="btn btn-sm btn-primary" id="btnRefresh" title="Reload data from sheet" onclick="refreshData()"><i class="bi bi-arrow-repeat"></i> Refresh</button>
         <div class="dropdown d-inline-block">
-            <button class="btn btn-sm btn-outline-light dropdown-toggle" id="autoRefreshBtn" data-bs-toggle="dropdown" title="Auto-reload from the sheet so edits appear here automatically"><i class="bi bi-clock-history me-1"></i><span id="autoRefreshLabel">Auto</span></button>
+            <button class="btn btn-sm btn-outline-light dropdown-toggle rounded-pill" id="autoRefreshBtn" data-bs-toggle="dropdown" title="Auto-reload from the sheet so edits appear here automatically"><i class="bi bi-clock-history me-1"></i><span id="autoRefreshLabel">Auto</span></button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li><a class="dropdown-item" href="javascript:void(0)" onclick="setAutoRefresh(0)">Off</a></li>
                 <li><a class="dropdown-item" href="javascript:void(0)" onclick="setAutoRefresh(1)">Every 1 minute</a></li>
@@ -293,6 +488,49 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
     <div id="loader" class="text-center py-5">
         <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
         <p class="mt-3 text-muted fw-semibold">Loading Operational Log &amp; Analytics...</p>
+    </div>
+
+    <!-- ============ WELCOME GATE (opening screen — pick where to start) ============ -->
+    <div id="welcomeGate" class="wl-overlay" style="display:none;">
+        <div class="wl-card">
+            <div class="wl-head">
+                <span class="logo-chip">CT</span>
+                <div>
+                    <div class="wl-hi" id="wlGreeting">Welcome back</div>
+                    <h4 class="m-0 fw-bold">Control Tower</h4>
+                    <div class="brand-slogan" style="color:#8A6D1A;">We <b>Build</b>, Guide, Excel &amp; Control.</div>
+                </div>
+            </div>
+            <div class="wl-meta" id="wlDate">—</div>
+            <p class="wl-desc">Your middle-mile command center — trips, adherence, manpower planning, and live hub occupancy, all in one place. Data flows from the sheet automatically; pick your starting point below.</p>
+            <div class="wl-q"><i class="bi bi-signpost-2"></i>Where do you want to start?</div>
+            <div class="wl-pages">
+                <button type="button" class="wl-page" data-target="#page-dashboard">
+                    <div class="t"><i class="bi bi-speedometer2"></i>Executive Dashboard</div>
+                    <div class="d">The morning picture — trips &amp; core adherence</div>
+                </button>
+                <button type="button" class="wl-page" data-target="#page-gap">
+                    <div class="t"><i class="bi bi-search-heart"></i>Gap Analysis</div>
+                    <div class="d">Where planning and reality drift apart</div>
+                </button>
+                <button type="button" class="wl-page" data-target="#page-mp">
+                    <div class="t"><i class="bi bi-people"></i>Manpower</div>
+                    <div class="d">Roster health &amp; Plan-vs-Actual</div>
+                </button>
+                <button type="button" class="wl-page" data-target="#page-live">
+                    <div class="t"><i class="bi bi-broadcast"></i>Live Tracking</div>
+                    <div class="d">Who is filling now — live occupancy</div>
+                </button>
+                <button type="button" class="wl-page" data-target="#page-rca">
+                    <div class="t"><i class="bi bi-clipboard2-pulse"></i>Trip Log &amp; RCA</div>
+                    <div class="d">The master trip ledger</div>
+                </button>
+            </div>
+            <div class="wl-foot">
+                <label class="wl-skip"><input type="checkbox" id="wlDontShow"> Don't show this welcome again</label>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" id="wlSkipBtn"><i class="bi bi-arrow-right me-1"></i>Just continue</button>
+            </div>
+        </div>
     </div>
 
     <!-- ============ GLOBAL TRIP FILTER BAR (shared by Executive Dashboard & Gap Analysis) ============ -->
@@ -352,9 +590,21 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 
         <!-- ============ PAGE 1: EXECUTIVE DASHBOARD ============ -->
         <div class="tab-pane fade show active" id="page-dashboard">
+            <div class="page-strip">
+                <div>
+                    <div class="k"><i class="bi bi-speedometer2"></i>Executive Dashboard</div>
+                    <div class="d">The morning picture — trips moved, adherence across the 4 core checkpoints, shipment health.</div>
+                </div>
+                <span class="m">MIDDLE-MILE · EXEC</span>
+            </div>
+            <div class="inner-tabs">
+                <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-speedometer2"></i>Dashboard</button>
+                <button type="button" class="it-btn" data-iview="data" onclick="innerTab(this)"><i class="bi bi-table"></i>Trips Data</button>
+            </div>
 
-            <!-- BUSINESS KPI STRIP -->
-            <div class="row g-3 mb-4">
+            <!-- BUSINESS KPI STRIP (hero band) -->
+            <div class="hero-band">
+                <div class="row g-3">
                 <div class="col-6 col-md-2"><div class="kpi-mini">
                     <div class="lbl">Total Trips</div>
                     <div class="val" id="k-trips">0</div>
@@ -385,6 +635,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                     <div class="val" style="color:#f59e0b" id="k-flag">—</div>
                     <div class="sub"><span id="k-flag-n">0</span> with flags</div>
                 </div></div>
+                </div>
             </div>
 
             <!-- SHIPMENTS CARD (count_of_shipment + sort split) -->
@@ -418,7 +669,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </div>
 
             <!-- 6 CORE METRIC CARDS - Click to select a metric for detailed view -->
-            <div class="row g-3 mb-4">
+            <div class="row g-3 mb-4" data-view="viz">
                 <div class="col-md-2"><div class="kpi-card border-portal metric-card" data-metric="portalAdh" onclick="selectMetricCard(this, 'portalAdh')" title="Click to focus on this metric">
                     <span class="card-hint">SELECT ▸</span>
                     <div class="kpi-card-header">Portal Adh</div>
@@ -482,7 +733,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </div>
 
             <!-- SELECTED METRIC DETAIL PANEL -->
-            <div class="card p-4 mb-4 border-0 shadow-sm metric-detail-panel" id="metricDetailPanel" style="display:none;">
+            <div class="card p-4 mb-4 border-0 shadow-sm metric-detail-panel" id="metricDetailPanel" style="display:none;" data-view="viz">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold m-0" id="metricDetailTitle"><i class="bi bi-circle-info me-2"></i>Select a metric above to see details</h5>
                     <button class="btn btn-sm btn-outline-secondary" onclick="clearMetricSelection()"><i class="bi bi-x"></i> Clear</button>
@@ -517,7 +768,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </div>
 
             <!-- VOLUME VS ADHERENCE + STAGE FAILURES -->
-            <div class="row g-3 mb-4">
+            <div class="row g-3 mb-4" data-view="viz">
                 <div class="col-lg-8">
                     <div class="card p-3 border-0 shadow-sm chart-card h-100">
                         <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line text-primary me-2"></i>Daily Trip Volume vs Composite Adherence</h6>
@@ -534,7 +785,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </div>
 
             <!-- METRIC TREND CHARTS - All 6 metrics over time -->
-            <div class="row g-3 mb-4">
+            <div class="row g-3 mb-4" data-view="viz">
                 <div class="col-lg-6">
                     <div class="card p-3 border-0 shadow-sm chart-card">
                         <h6 class="fw-bold mb-3"><i class="bi bi-graph-up text-primary me-2"></i>Adherence Trend — All Metrics</h6>
@@ -550,8 +801,8 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </div>
 
             <!-- INDIVIDUAL METRIC VISUALIZATIONS -->
-            <h6 class="fw-bold text-muted text-uppercase mb-3" style="font-size:.75rem"><i class="bi bi-eye me-1"></i>Individual Metric Visualizations</h6>
-            <div class="row g-3 mb-4">
+            <h6 class="fw-bold text-muted text-uppercase mb-3" style="font-size:.75rem" data-view="viz"><i class="bi bi-eye me-1"></i>Individual Metric Visualizations</h6>
+            <div class="row g-3 mb-4" data-view="viz">
                 <div class="col-lg-4">
                     <div class="card p-3 border-0 shadow-sm chart-card">
                         <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-primary me-1"></i>Portal Adherence <span class="badge bg-primary-subtle text-primary" id="viz-portalAdh-badge">0%</span></h6>
@@ -597,7 +848,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </div>
 
             <!-- VARIANCE / SLAB / ADHOC / STATUS -->
-            <div class="row g-3 mb-2">
+            <div class="row g-3 mb-2" data-view="viz">
                 <div class="col-lg-3 col-md-6">
                     <div class="card p-3 border-0 shadow-sm chart-card h-100">
                         <h6 class="fw-bold mb-3"><i class="bi bi-clock-history text-warning me-2"></i>Dispatch Variance (Actual − Plan)</h6>
@@ -629,7 +880,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </div>
 
             <!-- TRIP DETAILS TABLE - All trips with full metrics -->
-            <div class="card p-3 mb-4 border-0 shadow-sm">
+            <div class="card p-3 mb-4 border-0 shadow-sm" data-view="data">
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <h5 class="fw-bold m-0"><i class="bi bi-list-ul me-2"></i>Trip Details <span class="text-muted fw-normal" id="tripDetailsCount">(Showing 0 trips)</span></h5>
                     <div class="d-flex gap-2">
@@ -673,6 +924,17 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 
         <!-- ============ PAGE: MANPOWER / ATTENDANCE ============ -->
         <div class="tab-pane fade" id="page-mp">
+            <div class="page-strip">
+                <div>
+                    <div class="k"><i class="bi bi-people"></i>Manpower</div>
+                    <div class="d">Roster health and the plan-vs-actual picture — who showed up, against which plan, at which hub.</div>
+                </div>
+                <span class="m">WORKFORCE · PLANNING</span>
+            </div>
+            <div class="inner-tabs">
+                <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-grid-1x2"></i>Overview</button>
+                <button type="button" class="it-btn" data-iview="data" onclick="innerTab(this)"><i class="bi bi-table"></i>Data &amp; Reports</button>
+            </div>
             <div class="card p-3 mb-4 border-0 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
@@ -754,8 +1016,8 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 
             <!-- CONTENT -->
             <div id="mpContent" style="display:none;">
-                <!-- KPI STRIP -->
-                <div class="row g-3 mb-4">
+                <!-- KPI STRIP (manpower) -->
+                <div class="row g-3 mb-4" data-view="viz">
                     <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">On roster</div><div class="val" id="mp-k-roster">—</div><div class="sub" id="mp-k-roster-sub">employees</div></div></div>
                     <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">Present</div><div class="val text-success" id="mp-k-present">—</div><div class="sub">incl. WPH &amp; WO work</div></div></div>
                     <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">Present rate</div><div class="val text-success" id="mp-k-rate">—</div><div class="sub">of on-roster</div></div></div>
@@ -767,7 +1029,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </div>
 
                 <!-- CHARTS -->
-                <div class="row g-3 mb-4">
+                <div class="row g-3 mb-4" data-view="viz">
                     <div class="col-lg-7">
                         <div class="card p-3 border-0 shadow-sm chart-card">
                             <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Manpower coverage by day <span class="text-muted fw-normal" style="font-size:.75rem">— headcount stacked</span></h6>
@@ -783,7 +1045,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </div>
 
                 <!-- BREAKDOWN TABLES -->
-                <div class="row g-3 mb-4">
+                <div class="row g-3 mb-4" data-view="data">
                     <div class="col-lg-6">
                         <div class="card p-3 border-0 shadow-sm">
                             <h6 class="fw-bold mb-2"><i class="bi bi-building me-2 text-primary"></i>By hub</h6>
@@ -809,7 +1071,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </div>
 
                 <!-- VENDOR AGING -->
-                <div class="card p-3 mb-4 border-0 shadow-sm">
+                <div class="card p-3 mb-4 border-0 shadow-sm" data-view="data">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-hourglass-split me-2 text-primary"></i>Vendor aging
                             <span class="text-muted fw-normal" style="font-size:.75rem">— headcount per vendor by aging (days worked in the 9 months before this month)</span></h6>
@@ -841,7 +1103,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                     </div>
                 </div>
 
-                <!-- PLAN VS ACTUAL (follows the manpower filters above) -->
+                <!-- PLAN VS ACTUAL — always visible in both Overview and Data views (daily workhorse) -->
                 <div class="card p-3 mb-4 border-0 shadow-sm">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-clipboard2-check me-2 text-primary"></i>Plan vs Actual <span id="mpPvaLeftNote" class="text-muted fw-normal" style="font-size:.75rem"></span></h6>
@@ -874,7 +1136,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                     </div>
                 </div>
 
-                <!-- EMPLOYEE GRID -->
+                <!-- EMPLOYEE GRID — always visible in both views -->
                 <div class="card p-3 mb-3 border-0 shadow-sm">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Employee roster <span class="text-muted fw-normal" style="font-size:.75rem" id="mpGridNote"></span></h6>
@@ -898,6 +1160,17 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 
         <!-- ============ PAGE 2: LIVE TRACKING ============ -->
         <div class="tab-pane fade" id="page-live">
+            <div class="page-strip">
+                <div>
+                    <div class="k"><i class="bi bi-broadcast"></i>Live Tracking</div>
+                    <div class="d">Who is filling now — live occupancy across hubs, destinations, and the current wave.</div>
+                </div>
+                <span class="m">MIDDLE-MILE · LIVE OPS</span>
+            </div>
+            <div class="inner-tabs">
+                <button type="button" class="it-btn active" data-iview="board" onclick="innerTab(this)"><i class="bi bi-grid-3x3-gap"></i>Live Board</button>
+                <button type="button" class="it-btn" data-iview="report" onclick="innerTab(this)"><i class="bi bi-table"></i>Full Report</button>
+            </div>
             <div class="card p-3 mb-4 border-0 shadow-sm">
                 <div class="row g-2 align-items-end">
                     <div class="col-6 col-md-2">
@@ -942,10 +1215,10 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </div>
             </div>
                     <div id="liveBoard" style="background:#fff;">
-                <div id="liveTables"></div>
+                <div id="liveTables" data-view="board"></div>
 
-                <!-- FULL ADHERENCE REPORT -->
-                <div class="table-container mt-4" id="liveReportBox">
+                <!-- FULL ADHERENCE REPORT (data/report view) -->
+                <div class="table-container mt-4" id="liveReportBox" data-view="report">
                     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                         <h5 class="fw-bold m-0"><i class="bi bi-clipboard-data me-2 text-primary"></i>Live Adherence Report <span class="text-muted fs-6 fw-normal">— every occurrence, dispatched & arrival</span></h5>
                         <div class="btn-group btn-group-sm" id="reportChips">
@@ -991,6 +1264,17 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 
         <!-- ============ PAGE 3: GAP ANALYSIS ============ -->
         <div class="tab-pane fade" id="page-gap">
+            <div class="page-strip">
+                <div>
+                    <div class="k"><i class="bi bi-search-heart"></i>Gap Analysis</div>
+                    <div class="d">Where planning and reality drift apart — attribute the misses, read the insights, pick the focus.</div>
+                </div>
+                <span class="m">MIDDLE-MILE · DIAGNOSE</span>
+            </div>
+            <div class="inner-tabs">
+                <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-graph-up-arrow"></i>Insights &amp; Charts</button>
+                <button type="button" class="it-btn" data-iview="data" onclick="innerTab(this)"><i class="bi bi-table"></i>Data Tables</button>
+            </div>
 
             <!-- PAGE HEADER -->
             <div class="card p-3 mb-4 border-0 shadow-sm">
@@ -1005,18 +1289,18 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </div>
 
             <!-- 1 · BIGGEST GAPS -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
+            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="viz">
                 <span class="badge text-bg-primary me-2">1</span><span class="text-muted">Biggest Gaps at a Glance</span>
                 <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— click any card to drill in</span>
             </h6>
-            <div class="row g-2 mb-4" id="insightCards"></div>
+            <div class="row g-2 mb-4" id="insightCards" data-view="viz"></div>
 
             <!-- 2 · CHECKPOINT BREAKDOWN -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
+            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="viz">
                 <span class="badge text-bg-primary me-2">2</span><span class="text-muted">Checkpoint Breakdown</span>
                 <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— adhered vs not adhered, per checkpoint</span>
             </h6>
-            <div class="row g-3 mb-4">
+            <div class="row g-3 mb-4" data-view="viz">
                 <div class="col-md-4">
                     <div class="card p-3 border-0 shadow-sm h-100">
                         <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-primary me-1"></i>Portal Adherence</h6>
@@ -1056,11 +1340,11 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </div>
 
             <!-- 3 · VENDOR & LANE PERFORMANCE -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
+            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="viz">
                 <span class="badge text-bg-primary me-2">3</span><span class="text-muted">Vendor &amp; Lane Performance</span>
                 <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— who and where the gaps come from</span>
             </h6>
-            <div class="row g-3 mb-3">
+            <div class="row g-3 mb-3" data-view="viz">
                 <div class="col-lg-6">
                     <div class="card p-3 border-0 shadow-sm chart-card h-100">
                         <h6 class="fw-bold mb-3"><i class="bi bi-stack text-primary me-2"></i>Composite Adherence by Vendor <span class="text-muted fw-normal" style="font-size:.72rem">(top 10 by volume)</span></h6>
@@ -1075,7 +1359,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </div>
             </div>
 
-            <div class="table-container mb-3">
+            <div class="table-container mb-3" data-view="data">
                 <h5 class="fw-bold mb-3"><i class="bi bi-award me-2"></i>Vendor Scorecard</h5>
                 <table id="vendorTable" class="table table-hover align-middle w-100 fs-7 table-sm">
                     <thead class="table-light"><tr>
@@ -1085,7 +1369,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </table>
             </div>
 
-            <div class="row g-3 mb-3">
+            <div class="row g-3 mb-3" data-view="data">
                 <div class="col-lg-7">
                     <div class="table-container h-100">
                         <h5 class="fw-bold mb-3"><i class="bi bi-signpost-split me-2"></i>Lane Performance</h5>
@@ -1108,7 +1392,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </div>
             </div>
 
-            <div class="table-container mb-4">
+            <div class="table-container mb-4" data-view="data">
                 <h5 class="fw-bold mb-1"><i class="bi bi-truck me-2"></i>Vendors — Distinct Trips</h5>
                 <p class="text-muted small mb-3">Number of <strong>unique trips</strong> run by each vendor. “Rows” counts sheet rows; when it is higher than Distinct Trips the sheet has duplicate rows for the same trip.</p>
                 <table id="vendorTripTable" class="table table-hover align-middle w-100 fs-7 table-sm">
@@ -1120,11 +1404,11 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </div>
 
             <!-- 4 · LIVE OPERATIONS -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
+            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="viz">
                 <span class="badge text-bg-primary me-2">4</span><span class="text-muted">Live Operations</span>
                 <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— dispatch vs arrival, from the occurrence sheet</span>
             </h6>
-            <div class="table-container mb-4" id="liveGapBox">
+            <div class="table-container mb-4" id="liveGapBox" data-view="viz">
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <h5 class="fw-bold m-0"><i class="bi bi-broadcast me-2 text-primary"></i>Live Tracking — Gap Analysis</h5>
                     <span class="badge text-bg-light border" id="liveGapBadge">—</span>
@@ -1148,11 +1432,11 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </div>
 
             <!-- 5 · ACCOUNTABILITY -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
+            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="data">
                 <span class="badge text-bg-primary me-2">5</span><span class="text-muted">Accountability</span>
                 <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— failed trips missing a root cause</span>
             </h6>
-            <div class="table-container mb-2">
+            <div class="table-container mb-2" data-view="data">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold m-0"><i class="bi bi-clipboard2-x me-2 text-danger"></i>Failed Trips Missing RCA <span class="text-muted fs-6 fw-normal">(fill these first)</span></h5>
                     <span class="badge bg-danger-subtle text-danger fw-bold" id="pendingCountBadge">0 pending</span>
@@ -1168,6 +1452,13 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 
         <!-- ============ PAGE 4: TRIP LOG & RCA MANAGEMENT ============ -->
         <div class="tab-pane fade" id="page-rca">
+            <div class="page-strip">
+                <div>
+                    <div class="k"><i class="bi bi-clipboard2-pulse"></i>Trip Log &amp; RCA</div>
+                    <div class="d">Every trip, every checkpoint measurement — record root causes and keep the story straight.</div>
+                </div>
+                <span class="m">MIDDLE-MILE · RCA LEDGER</span>
+            </div>
             <div class="table-container">
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <h5 class="fw-bold m-0"><i class="bi bi-journal-text me-2"></i>Master Trip Operational Log</h5>
@@ -2506,6 +2797,83 @@ function bootApp() {
         try { populateDashFilters(); } catch(e){ console.warn('[bootApp] populateDashFilters failed:', e); }
     }
 }
+
+/* ===== Inner tabs (Dashboard view vs Data view) ======================
+   Each page's top-level sections are tagged data-view="viz" or "data".
+   Toggle uses only the .iview-hidden class, so sections that manage
+   their own display-style (metric detail panel, mpContent, …) keep
+   working untouched. The last view per page is remembered in
+   localStorage so the site adapts to how each person works. */
+const IT_VIEW_KEY = 'ctInnerViews';
+function innerTab(btn){
+    const pane = btn.closest('.tab-pane');
+    if (!pane) return;
+    pane.querySelectorAll('.inner-tabs .it-btn').forEach(b => b.classList.toggle('active', b === btn));
+    const view = btn.getAttribute('data-iview');
+    pane.querySelectorAll('[data-view]').forEach(sec => {
+        sec.classList.toggle('iview-hidden', sec.getAttribute('data-view') !== view);
+    });
+    /* remember this page's view for next visit */
+    try {
+        const saved = JSON.parse(localStorage.getItem(IT_VIEW_KEY) || '{}');
+        saved[pane.id] = view;
+        localStorage.setItem(IT_VIEW_KEY, JSON.stringify(saved));
+    } catch (e) { /* storage unavailable — tabs still work, just without memory */ }
+}
+function innerTabInit(){
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(IT_VIEW_KEY) || '{}'); } catch (e) {}
+    document.querySelectorAll('.inner-tabs').forEach(bar => {
+        const pane = bar.closest('.tab-pane');
+        if (!pane) return;
+        const want = saved[pane.id];
+        const target = want && bar.querySelector(`.it-btn[data-iview="${want}"]`)
+            ? bar.querySelector(`.it-btn[data-iview="${want}"]`)
+            : bar.querySelector('.it-btn.active');
+        if (target) innerTab(target);
+    });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', innerTabInit);
+else innerTabInit();
+
+/* ===== Welcome gate ======================================================
+   Shows a branded opening screen (time-based greeting + page choice)
+   each visit; "Don't show again" persists in localStorage. Picking a
+   page simulates a click on its real nav pill, so Bootstrap tabs do
+   the switching — no duplicate logic. */
+const WL_KEY = 'ctWelcomeHidden';
+function wlClose(){
+    const gate = document.getElementById('welcomeGate');
+    if (!gate) return;
+    try {
+        const dont = document.getElementById('wlDontShow');
+        if (dont && dont.checked) localStorage.setItem(WL_KEY, '1');
+    } catch (e) { /* storage unavailable */ }
+    gate.classList.add('wl-leaving');
+    setTimeout(() => { gate.style.display = 'none'; gate.classList.remove('wl-leaving'); }, 260);
+}
+function wlInit(){
+    const gate = document.getElementById('welcomeGate');
+    if (!gate) return;
+    let off = false;
+    try { off = localStorage.getItem(WL_KEY) === '1'; } catch (e) {}
+    if (off) return;
+    const h = new Date().getHours();
+    document.getElementById('wlGreeting').textContent =
+        h < 12 ? 'Good morning' : (h < 17 ? 'Good afternoon' : 'Good evening');
+    document.getElementById('wlDate').textContent =
+        new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    gate.querySelectorAll('.wl-page').forEach(b => b.addEventListener('click', () => {
+        const pill = document.querySelector(`[data-bs-target="${b.dataset.target}"]`);
+        if (pill) pill.click();
+        wlClose();
+    }));
+    const skip = document.getElementById('wlSkipBtn');
+    if (skip) skip.addEventListener('click', wlClose);
+    gate.style.display = '';
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wlInit);
+else wlInit();
 
 // Start as soon as the DOM is parsed (the script sits at the end of <body>,
 // so every element it touches already exists).
