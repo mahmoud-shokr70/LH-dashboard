@@ -844,8 +844,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 <!-- PLAN VS ACTUAL (follows the manpower filters above) -->
                 <div class="card p-3 mb-4 border-0 shadow-sm">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                        <h6 class="fw-bold m-0"><i class="bi bi-clipboard2-check me-2 text-primary"></i>Plan vs Actual
-                            <span class="text-muted fw-normal" style="font-size:.75rem">— follows the filters above · Var = Plan − Actual (positive = fewer people than planned)</span></h6>
+                        <h6 class="fw-bold m-0"><i class="bi bi-clipboard2-check me-2 text-primary"></i>Plan vs Actual <span id="mpPvaLeftNote" class="text-muted fw-normal" style="font-size:.75rem"></span></h6>
                         <div class="btn-group btn-group-sm" role="group">
                             <button type="button" class="btn btn-outline-primary active" id="pva-sec-out" onclick="pvaSetSection('out')">Outsource · Core</button>
                             <button type="button" class="btn btn-outline-primary" id="pva-sec-in" onclick="pvaSetSection('in')">Insource · Assoc (LM)</button>
@@ -854,25 +853,19 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                     </div>
                     <div class="row g-3">
                         <div class="col-lg-7">
-                            <h6 class="small fw-bold text-muted mb-1">Hub level</h6>
-                            <div style="max-height:420px;overflow-y:auto">
+                            <h6 class="small fw-bold text-muted mb-1" id="mpPvaLeftTitle">Core Colleague by hub</h6>
+                            <div style="max-height:520px;overflow-y:auto">
                                 <table class="table table-sm align-middle fs-7 mb-0">
-                                    <thead class="table-light"><tr>
-                                        <th>Facility</th><th>Hub</th><th class="text-center">Plan</th><th class="text-center">Actual</th>
-                                        <th class="text-center">Var</th><th class="text-center">Var %</th>
-                                    </tr></thead>
+                                    <thead class="table-light" id="mpPvaHubHead"></thead>
                                     <tbody id="mpPvaHubBody"></tbody>
                                 </table>
                             </div>
                         </div>
                         <div class="col-lg-5">
-                            <h6 class="small fw-bold text-muted mb-1">Facility level</h6>
-                            <div style="max-height:420px;overflow-y:auto">
+                            <h6 class="small fw-bold text-muted mb-1" id="mpPvaRightTitle">Detail</h6>
+                            <div style="max-height:520px;overflow-y:auto">
                                 <table class="table table-sm align-middle fs-7 mb-0">
-                                    <thead class="table-light"><tr>
-                                        <th>Facility</th><th class="text-center">Plan</th><th class="text-center">Actual</th>
-                                        <th class="text-center">Var</th><th class="text-center">Var %</th>
-                                    </tr></thead>
+                                    <thead class="table-light" id="mpPvaFacHead"></thead>
                                     <tbody id="mpPvaFacBody"></tbody>
                                 </table>
                             </div>
@@ -4904,14 +4897,64 @@ function pvaVarCell(p, a){
     return { v: v, pct: pct, cls: cls };
 }
 
-/* Parse the two-block plan CSV (facility, hub, 31 day columns). */
+/* Parse the plan CSV. Two layouts are supported:
+   old: two blocks of (facility, hub, 31 day columns)
+   V2 : two blocks of (Hub, Function, Total) — "Plan Resource /
+        Senior Associate & Associate" and "Plan outsource / Core
+        Colleague". One YF'26 headcount per hub+function, applied to
+        every date. */
+let pvaV2 = false;
+let pvaV2Plan = { out: {}, in: {} };        // hub -> {func, total}
+let pvaV2Order = { out: [], in: [] };       // hub codes in sheet order
+const PVA_GROUP_ORDER = ['MM', 'LM', 'Sub GWH', 'Bulky', 'Reseller', 'Other'];
+
+function pvaV2NormFunc(f){
+    const s = String(f || '').trim().toLowerCase();
+    if (s === 'lm') return 'LM';
+    if (s === 'gwh' || s.indexOf('gwh') !== -1) return 'GWH';
+    if (s === 'lpc' || s.indexOf('lpc') !== -1) return 'LPC';
+    if (s === 'bulky' || s.indexOf('bulky') !== -1) return 'Bulky';
+    if (s === 'fm' || s.indexOf('first mile') !== -1 || s.indexOf('mile') !== -1) return 'First Mile';
+    if (s) return s.charAt(0).toUpperCase() + s.slice(1);
+    return '';
+}
+function pvaV2Group(hub, func){
+    if (/^cai-b8$/i.test(hub)) return 'Reseller';
+    const f = pvaV2NormFunc(func);
+    if (f === 'GWH' || f === 'LPC') return 'MM';
+    if (f === 'LM') return 'LM';
+    if (f === 'First Mile') return 'Sub GWH';
+    if (f === 'Bulky') return 'Bulky';
+    return 'Other';
+}
+
+function parsePvaPlanV2(rows){
+    let section = null;
+    pvaV2Plan = { out: {}, in: {} };
+    pvaV2Order = { out: [], in: [] };
+    rows.forEach(r => {
+        const a = String(r[0] || '').trim();
+        if (/plan\s*(insource|resource)/i.test(a)) { section = 'in';  return; }
+        if (/plan\s*outsource/i.test(a))           { section = 'out'; return; }
+        if (!section || /^hub$/i.test(a)) return;
+        const func  = String(r[1] || '').trim();
+        const total = parseFloat(String(r[2] || '').replace(/[^0-9.\-]/g, ''));
+        if (!a || isNaN(total)) return;
+        pvaHubMap[a.toLowerCase()] = a;
+        pvaV2Plan[section][a] = { func: pvaV2NormFunc(func), total: total };
+        pvaV2Order[section].push(a);
+    });
+}
+
 function parsePvaPlan(text){
     const parsed = Papa.parse(String(text || ''), { skipEmptyLines: false });
     const rows = (parsed.data || []).filter(r => r.some(c => String(c || '').trim() !== ''));
-    let section = null;
+    pvaV2 = rows.some(r => /^hub$/i.test(String(r[0] || '').trim()) && /^function$/i.test(String(r[1] || '').trim()));
     pvaPlan = { out: {}, in: {} };
     pvaDays = [];
     pvaHubMap = {};
+    if (pvaV2) { parsePvaPlanV2(rows); return; }
+    let section = null;
     rows.forEach(r => {
         const first = String(r[0] || '').trim();
         if (/plan\s*outsource/i.test(first))   { section = 'out'; return; }
@@ -4945,8 +4988,8 @@ async function loadPvaPlan(force){
     try {
         const text = await fetchCsvText(cacheBusted(PVA_CSV_URL, Date.now()), null);
         parsePvaPlan(text);
-        pvaLoaded = pvaDays.length > 0;
-        if (!pvaLoaded) console.warn('[loadPvaPlan] parsed but no day columns found');
+        pvaLoaded = pvaV2 || pvaDays.length > 0;
+        if (!pvaLoaded) console.warn('[loadPvaPlan] parsed but no plan rows found');
     } catch(e){
         console.warn('[loadPvaPlan] failed:', e);
     }
@@ -4965,13 +5008,280 @@ function pvaSetSection(sec){
     renderMpPlanVsActual();
 }
 
-/* The two tables, rebuilt on every manpower render. Actual = the
-   Manpower present bucket (Present + WPH + Work on Week Off) over
-   the selected day range, for employees matching ALL filters.
-   Plan = sheet values summed over the same range (plan day ix =
-   day number - 1). People covered by NEITHER plan block are kept
-   under 'none' (the Unplanned button) so the three groups add up
-   to the Manpower Present KPI. */
+/* ===== V2 report: per-DOD Core Colleague health table ================
+   For each Day-of-Date selected in the day filter:
+     Planned CC      = one YF'26 headcount from the plan sheet
+     Attend          = present bucket (Present+WPH+WeekOff) on that DOD
+     Max / Avg last3 = over calendar days D-2..D (clipped to selection)
+     Peak Deficit    = ROUNDUP(Planned − Avg)
+     Fulfill %       = Avg / Planned
+   Rows grouped MM / LM / Sub GWH / Bulky / Reseller (+Other for hubs
+   that have Core present but no plan row). ============================ */
+function pv2HeadOut(){
+    document.getElementById('mpPvaLeftTitle').textContent = 'Core Colleague — planned vs actual attend';
+    document.getElementById('mpPvaLeftNote').textContent = '— Peak Deficit = ROUNDUP(Planned − Avg of last 3 days) · Fulfill % = Avg / Planned';
+    document.getElementById('mpPvaRightTitle').textContent = 'Function totals (first DOD)';
+    document.getElementById('mpPvaHubHead').innerHTML =
+        '<tr><th>Hub</th><th class="text-center">Planned CC</th><th class="text-center">Attend</th>' +
+        '<th class="text-center">Max last 3d</th><th class="text-center">Avg last 3d</th>' +
+        '<th class="text-center">Peak Deficit</th><th class="text-center">Fulfill %</th></tr>';
+    document.getElementById('mpPvaFacHead').innerHTML =
+        '<tr><th>Function</th><th class="text-center">Planned</th><th class="text-center">Attend</th><th class="text-center">Var</th></tr>';
+}
+function pv2HeadStd(){
+    document.getElementById('mpPvaLeftTitle').textContent = 'Hub level';
+    document.getElementById('mpPvaRightTitle').textContent = 'Facility level';
+    document.getElementById('mpPvaLeftNote').textContent = '— Var = Plan − Actual (positive = fewer people than planned)';
+    document.getElementById('mpPvaHubHead').innerHTML =
+        '<tr><th>Facility</th><th>Hub</th><th class="text-center">Plan</th><th class="text-center">Actual</th>' +
+        '<th class="text-center">Var</th><th class="text-center">Var %</th></tr>';
+    document.getElementById('mpPvaFacHead').innerHTML =
+        '<tr><th>Facility</th><th class="text-center">Plan</th><th class="text-center">Actual</th>' +
+        '<th class="text-center">Var</th><th class="text-center">Var %</th></tr>';
+}
+function pv2FulCls(pct){
+    if (pct === null) return 'text-muted';
+    if (pct >= 85) return 'text-success fw-bold';
+    if (pct >= 70) return 'text-warning fw-bold';
+    return 'text-danger fw-bold';
+}
+
+function renderPvaV2(hubBody, facBody, note){
+    if (!mpLoaded || !mpAll.length){ note.textContent = 'Roster not loaded yet.'; return; }
+    pv2HeadStd();
+    if (!pvaV2Plan.out || !Object.keys(pvaV2Plan.out).length){
+        note.textContent = 'Plan sheet has no "Plan outsource · Core Colleague" rows yet.';
+        return;
+    }
+    const dayCols = mpDayCols();
+    const planIx = {};
+    dayCols.forEach(c => {
+        const m = String(c).match(/\s*(\d{1,2})\s*-\s*/);
+        const d = m ? parseInt(m[1], 10) : 0;
+        if (d > 0) planIx[c] = d;
+    });
+
+    /* one roster pass: per-day + range tally */
+    const dayT   = { out: {}, in: {}, none: {} };   // hubLow -> {colIx: count}
+    const rangeT = { out: {}, in: {}, none: {} };   // hubLow -> count
+    const legFac = { out: {}, in: {}, none: {} };   // hubLow -> facility label
+    mpAll.filter(t => mpMatch(t)).forEach(t => {
+        const tit    = String(t.title || '').trim();
+        const isCore = tit === PVA_CORE;
+        const isNoon = PVA_INSOURCE_VENDORS.indexOf(String(t.vendor || '').trim().toLowerCase()) !== -1;
+        const isAsso = PVA_INSOURCE_TITLES.indexOf(tit.toLowerCase()) !== -1;
+        const legLM  = /^lm/i.test(String(t.leg || '').trim());
+        const hubRaw = String(t.hub || '').trim();
+        const key    = hubRaw.toLowerCase();
+        const planIn = pvaV2Plan.in[pvaHubMap[key] || ''];
+        let sec2 = 'none';
+        if (isCore && !isNoon) sec2 = 'out';
+        else if (legLM && !isCore && isNoon && isAsso && planIn && planIn.func === 'LM') sec2 = 'in';
+        legFac[sec2][key] = String(t.leg || '').trim() || '—';
+        dayCols.forEach((c, i) => {
+            const x = t.days[c];
+            if (x && x.bucket === 'present'){
+                const d0 = dayT[sec2][key] = (dayT[sec2][key] || {});
+                d0[i] = (d0[i] || 0) + 1;
+                rangeT[sec2][key] = (rangeT[sec2][key] || 0) + 1;
+            }
+        });
+    });
+
+    const selDods = dayCols.map((c, i) => ({ c: c, i: i, d: planIx[c] })).filter(o => o.d > 0);
+    const wholeMonth = dayCols.length === mpCols.length;
+    const dods = wholeMonth ? (selDods.length ? [selDods[selDods.length - 1]] : []) : selDods;
+
+    /* ---------- OUT: the DOD health report --------------------------- */
+    if (pvaSection === 'out'){
+        pv2HeadOut();
+        // function rollup for right panel (planned vs first DOD attend)
+        if (dods.length){
+            const funcAgg = {};
+            Object.keys(pvaV2Plan.out).forEach(h => {
+                const row = pvaV2Plan.out[h], f = row.func || 'Other';
+                (funcAgg[f] = funcAgg[f] || { plan: 0, att: 0 });
+                funcAgg[f].plan += row.total;
+                funcAgg[f].att  += ((dayT.out[h.toLowerCase()] || {})[dods[0].i] || 0);
+            });
+            let right = '';
+            Object.keys(funcAgg).forEach(f => {
+                const r = funcAgg[f], v = r.plan - r.att;
+                right += '<tr><td class="fw-bold">' + esc(f) + '</td>' +
+                    '<td class="text-center">' + fmt(r.plan) + '</td>' +
+                    '<td class="text-center fw-bold">' + fmt(r.att) + '</td>' +
+                    '<td class="text-center ' + (v > 0 ? 'text-danger' : (v < 0 ? 'text-info' : 'text-success')) + '">' + fmt(v) + '</td></tr>';
+            });
+            facBody.innerHTML = right;
+        }
+
+        if (!dods.length){
+            hubBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No date columns found.</td></tr>';
+        } else {
+            let html = '';
+            dods.forEach(o => {
+                const win = selDods.filter(w => w.d >= o.d - 2 && w.d <= o.d);
+                const groups = {};
+                Object.keys(pvaV2Plan.out).forEach(h => {
+                    const g = pvaV2Group(h, pvaV2Plan.out[h].func);
+                    (groups[g] = groups[g] || []).push(h);
+                });
+                const extra = Object.keys(dayT.out).filter(h =>
+                    !(pvaHubMap[h] && pvaV2Plan.out[pvaHubMap[h]]) &&
+                    Object.keys(dayT.out[h]).some(i => win.some(w => +i === w.i)));
+                if (extra.length) groups['Other'] = (groups['Other'] || []).concat(extra);
+
+                html += '<tr class="table-dark"><td colspan="7" class="small fw-bold">DOD ' + esc('October ' + o.d +
+                    ' · window: ' + (win.length ? win[0].d + '–' + win[win.length - 1].d : '—')) + '</td></tr>';
+
+                let tot = { plan: 0, att: 0, max: 0, avg: 0.0, def: 0.0, cnt: 0 };
+                PVA_GROUP_ORDER.forEach(gn => {
+                    const hubs = groups[gn];
+                    if (!hubs || !hubs.length) return;
+                    let gAgg = { plan: 0, att: 0, max: 0, avg: 0, def: 0 };
+                    let rowsHtml = '';
+                    hubs.forEach(h => {
+                        const hubLow = h.toLowerCase();
+                        const dt = dayT.out[hubLow] || {};
+                        const vals = win.map(w => dt[w.i] || 0);
+                        const plan = (pvaHubMap[hubLow] && pvaV2Plan.out[pvaHubMap[hubLow]]) ? pvaV2Plan.out[pvaHubMap[hubLow]].total : 0;
+                        const att  = dt[o.i] || 0;
+                        const mx   = vals.length ? Math.max.apply(null, vals) : 0;
+                        const av   = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+                        const def  = plan ? Math.ceil(plan - av) : 0;
+                        const pct  = plan ? av / plan * 100 : null;
+                        gAgg.plan += plan; gAgg.att += att;
+                        gAgg.max  += mx;   gAgg.avg += av;
+                        const hasPlan = !!plan;
+                        rowsHtml += '<tr' + (hasPlan ? '' : ' class="table-warning"') + '>' +
+                            '<td class="fw-bold">' + esc(h) + (hasPlan ? '' : ' <span class="small text-muted">no plan row</span>') + '</td>' +
+                            '<td class="text-center">' + fmt(plan) + '</td>' +
+                            '<td class="text-center fw-bold">' + fmt(att) + '</td>' +
+                            '<td class="text-center">' + fmt(mx) + '</td>' +
+                            '<td class="text-center">' + fmt(av) + '</td>' +
+                            '<td class="text-center ' + (plan && plan - av > 0 ? 'text-danger' : 'text-info') + '">' + fmt(def) + '</td>' +
+                            '<td class="text-center small ' + pv2FulCls(pct) + '">' + (pct === null ? '—' : pct.toFixed(2) + '%') + '</td></tr>';
+                    });
+                    const gdef = Math.ceil(gAgg.plan - gAgg.avg);
+                    const gpct = gAgg.plan ? gAgg.avg / gAgg.plan * 100 : null;
+                    rowsHtml += '<tr class="table-light fw-bold">' +
+                        '<td>' + esc(gn) + '</td>' +
+                        '<td class="text-center">' + fmt(gAgg.plan) + '</td>' +
+                        '<td class="text-center">' + fmt(gAgg.att) + '</td>' +
+                        '<td class="text-center">' + fmt(gAgg.max) + '</td>' +
+                        '<td class="text-center">' + fmt(gAgg.avg) + '</td>' +
+                        '<td class="text-center ' + (gdef > 0 ? 'text-danger' : 'text-info') + '">' + fmt(gdef) + '</td>' +
+                        '<td class="text-center small ' + pv2FulCls(gpct) + '">' + (gpct === null ? '—' : gpct.toFixed(2) + '%') + '</td></tr>'; html += rowsHtml;
+                    tot.plan += gAgg.plan; tot.cnt += hubs.length;
+                });
+                html += '<tr class="table-secondary fw-bold"><td>Overall planned CC</td>' +
+                    '<td class="text-center">' + fmt(tot.plan) + '</td><td colspan="5" class="small text-muted">hubs: ' + tot.cnt + '</td></tr>';
+            });
+            hubBody.innerHTML = html;
+        }
+
+        const oSum = Object.keys(rangeT.out).length ? Object.values(rangeT.out).reduce((a, b) => a + b, 0) : 0;
+        const iSum = Object.keys(rangeT.in).length ? Object.values(rangeT.in).reduce((a, b) => a + b, 0) : 0;
+        const nSum = Object.keys(rangeT.none).length ? Object.values(rangeT.none).reduce((a, b) => a + b, 0) : 0;
+        const dodLbl = dods.length ? dods.map(o => o.d).join(', ') : '—';
+        note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
+            'Planned CC = one YF\'26 headcount from the plan sheet (not per-day) · Attend = present bucket on the DOD (Present + WPH + Work on Week Off), all filters apply · ' +
+            'Max/Avg = last 3 calendar days clipped to the selection · Peak Deficit = ROUNDUP(Planned − Avg) · Fulfill % = Avg / Planned · ' +
+            'Insource = Associate / Senior Associate (Noon) at LM-function plan rows · ' +
+            '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Core ' + fmt(oSum) + ' + Insource ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
+        return;
+    }
+
+    /* ---------- IN: plan resource rows (LM function) ------------------ */
+    if (pvaSection === 'in'){
+        document.getElementById('mpPvaLeftTitle').textContent = 'Plan Resource — Senior Associate & Associate (LM plan rows)';
+        document.getElementById('mpPvaLeftNote').textContent = '— Plan = YF\'26 headcount · Actual = present over the selected day range';
+        document.getElementById('mpPvaRightTitle').textContent = 'Full plan sheet (all functions)';
+        document.getElementById('mpPvaHubHead').innerHTML =
+            '<tr><th>Hub</th><th>Function</th><th class="text-center">Plan</th><th class="text-center">Actual</th>' +
+            '<th class="text-center">Var</th><th class="text-center">Var %</th></tr>';
+        document.getElementById('mpPvaFacHead').innerHTML =
+            '<tr><th>Hub</th><th>Function</th><th class="text-center">Plan</th></tr>';
+        let html = '', sP = 0, sA = 0;
+        pvaV2Order.in.filter(h => pvaV2Plan.in[h].func === 'LM').forEach(h => {
+            const row = pvaV2Plan.in[h];
+            const a = rangeT['in'][h.toLowerCase()] || 0;
+            const p = row.total, v = p - a;
+            const pct = p ? Math.round(v / p * 100) + '%' : '—';
+            sP += p; sA += a;
+            html += '<tr><td class="fw-bold">' + esc(h) + '</td><td>' + esc(row.func) + '</td>' +
+                '<td class="text-center">' + fmt(p) + '</td><td class="text-center fw-bold">' + fmt(a) + '</td>' +
+                '<td class="text-center ' + (v > 0 ? 'text-danger' : (v < 0 ? 'text-info' : 'text-success')) + '">' + fmt(v) + '</td>' +
+                '<td class="text-center small ' + (v > 0 ? 'text-danger' : (v < 0 ? 'text-info' : 'text-success')) + '">' + pct + '</td></tr>';
+        });
+        Object.keys(rangeT['in']).forEach(k => {
+            const hk = pvaHubMap[k] || k;
+            if (pvaV2Plan.in[hk]) return;
+            const a = rangeT['in'][k];
+            sA += a;
+            html += '<tr class="table-warning"><td class="fw-bold">' + esc(hk) + '</td><td>—</td>' +
+                '<td class="text-center">0</td><td class="text-center fw-bold">' + fmt(a) + '</td>' +
+                '<td class="text-center text-danger">' + a + '</td><td class="text-center small text-muted">no plan row</td></tr>';
+        });
+        html += '<tr class="table-light fw-bold"><td colspan="2">Total</td>' +
+            '<td class="text-center">' + fmt(sP) + '</td><td class="text-center">' + fmt(sA) + '</td>' +
+            '<td class="text-center ' + (sP - sA > 0 ? 'text-danger' : (sP - sA < 0 ? 'text-info' : 'text-success')) + '">' + fmt(sP - sA) + '</td>' +
+            '<td class="text-center small">' + (sP ? Math.round((sP - sA) / sP * 100) + '%' : '—') + '</td></tr>';
+        hubBody.innerHTML = html;
+
+        let rhtml = '';
+        pvaV2Order.in.forEach(h => {
+            const row = pvaV2Plan.in[h];
+            rhtml += '<tr><td class="fw-bold">' + esc(h) + '</td><td>' + esc(row.func) + '</td><td class="text-center">' + fmt(row.total) + '</td></tr>';
+        });
+        facBody.innerHTML = rhtml;
+
+        const oSum = Object.values(rangeT.out).reduce((a, b) => a + b, 0);
+        const iSum = Object.values(rangeT.in).reduce((a, b) => a + b, 0);
+        const nSum = Object.values(rangeT.none).reduce((a, b) => a + b, 0);
+        note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
+            'Plan = YF\'26 headcount from the plan sheet · Actual = present over the selected day range (all filters) · ' +
+            'Insource covers Associate / Senior Associate (Noon vendor) at the plan\'s LM-function rows only · ' +
+            '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Core ' + fmt(oSum) + ' + Insource ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
+        return;
+    }
+
+    /* ---------- NONE: unplanned -------------------------------------- */
+    pv2HeadStd();
+    document.getElementById('mpPvaLeftTitle').textContent = 'Unplanned — present people covered by neither plan block';
+    document.getElementById('mpPvaRightTitle').textContent = 'Unplanned with facility leg';
+    document.getElementById('mpPvaHubHead').innerHTML =
+        '<tr><th>Hub</th><th class="text-center">Actual (range)</th></tr>';
+    document.getElementById('mpPvaFacHead').innerHTML =
+        '<tr><th>Hub</th><th>Facility leg</th><th class="text-center">Actual (range)</th></tr>';
+    const keys = Object.keys(rangeT.none).sort((a, b) => rangeT.none[b] - rangeT.none[a]);
+    let nHtml = '', nSum = 0;
+    keys.forEach(k => {
+        nSum += rangeT.none[k];
+        nHtml += '<tr><td class="fw-bold">' + esc(k) + '</td><td class="text-center fw-bold">' + fmt(rangeT.none[k]) + '</td></tr>';
+    });
+    if (!keys.length) nHtml = '<tr><td colspan="2" class="text-center text-muted py-3">Nothing unplanned in this range.</td></tr>';
+    hubBody.innerHTML = nHtml;
+    let lHtml = '';
+    keys.forEach(k => {
+        lHtml += '<tr><td class="fw-bold">' + esc(k) + '</td><td>' + esc(legFac.none[k] || '—') + '</td><td class="text-center fw-bold">' + fmt(rangeT.none[k]) + '</td></tr>';
+    });
+    if (!keys.length) lHtml = '<tr><td colspan="3" class="text-center text-muted py-3">—</td></tr>';
+    facBody.innerHTML = lHtml;
+    const oSum2 = Object.values(rangeT.out).reduce((a, b) => a + b, 0);
+    const nSum2 = Object.values(rangeT.none).reduce((a, b) => a + b, 0);
+    const iSum2 = Object.values(rangeT.in).reduce((a, b) => a + b, 0);
+    note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
+        'People matching the filters whose section is neither Core Colleague (outsource) nor the Insource plan rows — add them to the plan sheet if they should be planned · ' +
+        '<strong>Overall present (range): ' + fmt(oSum2 + nSum2 + iSum2) + ' = Core ' + fmt(oSum2) + ' + Insource ' + fmt(iSum2) + ' + Unplanned ' + fmt(nSum2) + '</strong>';
+}
+
+/* Legacy tables (old per-day plan layout), rebuilt on every manpower
+   render. Actual = the Manpower present bucket over the selected day
+   range for employees matching ALL filters. Plan = sheet values summed
+   over the same range (plan day ix = day number - 1). People covered
+   by NEITHER plan block are kept under 'none' so the three groups add
+   up to the Manpower Present KPI. */
 function renderMpPlanVsActual(){
     const hubBody = document.getElementById('mpPvaHubBody');
     const facBody = document.getElementById('mpPvaFacBody');
@@ -4981,10 +5291,11 @@ function renderMpPlanVsActual(){
     if (!pvaLoaded){
         const msg = pvaLoading ? 'Loading plan sheet…' : (mpLoaded ? 'Plan sheet unavailable.' : 'Loads together with the roster.');
         note.textContent = msg;
-        hubBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">' + msg + '</td></tr>';
-        facBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">' + msg + '</td></tr>';
+        hubBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">' + msg + '</td></tr>';
+        facBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">' + msg + '</td></tr>';
         return;
     }
+    if (pvaV2) { renderPvaV2(hubBody, facBody, note); return; }
     if (!mpLoaded || !mpAll.length){
         note.textContent = 'Roster not loaded yet.';
         return;
