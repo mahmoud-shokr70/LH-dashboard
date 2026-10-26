@@ -4904,6 +4904,7 @@ function pvaVarCell(p, a){
         Colleague". One YF'26 headcount per hub+function, applied to
         every date. */
 let pvaV2 = false;
+const PVA_EXCLUDE_HUBS = ['cai-z5'];         // hubs never shown in Plan vs Actual
 let pvaV2Plan = { out: {}, in: {} };        // hub -> {func, total}
 let pvaV2Order = { out: [], in: [] };       // hub codes in sheet order
 const PVA_GROUP_ORDER = ['MM', 'LM', 'Sub GWH', 'Bulky', 'Reseller', 'Other'];
@@ -4943,6 +4944,18 @@ function parsePvaPlanV2(rows){
         pvaHubMap[a.toLowerCase()] = a;
         pvaV2Plan[section][a] = { func: pvaV2NormFunc(func), total: total };
         pvaV2Order[section].push(a);
+    });
+    // drop excluded hubs so they never appear in the report
+    PVA_EXCLUDE_HUBS.forEach(h0 => {
+        Object.keys(pvaV2Plan).forEach(sec => {
+            Object.keys(pvaV2Plan[sec]).forEach(k => {
+                if (String(k).toLowerCase() === h0){
+                    delete pvaV2Plan[sec][k];
+                    pvaV2Order[sec] = pvaV2Order[sec].filter(x => String(x).toLowerCase() !== h0);
+                }
+            });
+        });
+        delete pvaHubMap[h0];
     });
 }
 
@@ -5019,7 +5032,7 @@ function pvaSetSection(sec){
    that have Core present but no plan row). ============================ */
 function pv2HeadOut(){
     document.getElementById('mpPvaLeftTitle').textContent = 'Core Colleague — planned vs actual attend';
-    document.getElementById('mpPvaLeftNote').textContent = '— Peak Deficit = ROUNDUP(Planned − Avg of last 3 days) · Fulfill % = Avg / Planned';
+    document.getElementById('mpPvaLeftNote').textContent = '— Peak Deficit = ROUNDUP(Planned − Avg of the last 3 days from today) · Fulfill % = Avg / Planned';
     document.getElementById('mpPvaRightTitle').textContent = 'Function totals (first DOD)';
     document.getElementById('mpPvaHubHead').innerHTML =
         '<tr><th>Hub</th><th class="text-center">Planned CC</th><th class="text-center">Attend</th>' +
@@ -5078,11 +5091,11 @@ function renderPvaV2(hubBody, facBody, note){
         if (isCore && !isNoon) sec2 = 'out';
         else if (legLM && !isCore && isNoon && isAsso && planIn && planIn.func === 'LM') sec2 = 'in';
         legFac[sec2][key] = String(t.leg || '').trim() || '—';
-        dayCols.forEach((c, i) => {
+        dayCols.forEach((c) => {
             const x = t.days[c];
             if (x && x.bucket === 'present'){
                 const d0 = dayT[sec2][key] = (dayT[sec2][key] || {});
-                d0[i] = (d0[i] || 0) + 1;
+                d0[c] = (d0[c] || 0) + 1;
                 rangeT[sec2][key] = (rangeT[sec2][key] || 0) + 1;
             }
         });
@@ -5095,6 +5108,17 @@ function renderPvaV2(hubBody, facBody, note){
     /* ---------- OUT: the DOD health report --------------------------- */
     if (pvaSection === 'out'){
         pv2HeadOut();
+        // Max/Avg window: the last 3 days ending TODAY, taken from ALL
+        // roster columns (independent of the selected date filter, which
+        // only picks which DOD block is shown).
+        const todayD = new Date().getDate();
+        const pvWin = mpCols.map((c, i) => {
+                const m = String(c).match(/\s*(\d{1,2})\s*-\s*/);
+                return { c: c, i: i, d: m ? parseInt(m[1], 10) : 0 };
+            })
+            .filter(o => o.d > 0 && o.d <= todayD)
+            .slice(-3);
+        const pvWinLbl = pvWin.length ? (pvWin.length > 1 ? (pvWin[0].d + '–' + pvWin[pvWin.length - 1].d) : String(pvWin[0].d)) : '—';
         // function rollup for right panel (planned vs first DOD attend)
         if (dods.length){
             const funcAgg = {};
@@ -5102,7 +5126,7 @@ function renderPvaV2(hubBody, facBody, note){
                 const row = pvaV2Plan.out[h], f = row.func || 'Other';
                 (funcAgg[f] = funcAgg[f] || { plan: 0, att: 0 });
                 funcAgg[f].plan += row.total;
-                funcAgg[f].att  += ((dayT.out[h.toLowerCase()] || {})[dods[0].i] || 0);
+                funcAgg[f].att  += ((dayT.out[h.toLowerCase()] || {})[dods[0].c] || 0);
             });
             let right = '';
             Object.keys(funcAgg).forEach(f => {
@@ -5120,19 +5144,20 @@ function renderPvaV2(hubBody, facBody, note){
         } else {
             let html = '';
             dods.forEach(o => {
-                const win = selDods.filter(w => w.d >= o.d - 2 && w.d <= o.d);
+                const win = pvWin;
                 const groups = {};
                 Object.keys(pvaV2Plan.out).forEach(h => {
                     const g = pvaV2Group(h, pvaV2Plan.out[h].func);
                     (groups[g] = groups[g] || []).push(h);
                 });
                 const extra = Object.keys(dayT.out).filter(h =>
+                    !PVA_EXCLUDE_HUBS.includes(h) &&
                     !(pvaHubMap[h] && pvaV2Plan.out[pvaHubMap[h]]) &&
-                    Object.keys(dayT.out[h]).some(i => win.some(w => +i === w.i)));
+                    Object.keys(dayT.out[h]).some(cc => win.some(w => cc === w.c)));
                 if (extra.length) groups['Other'] = (groups['Other'] || []).concat(extra);
 
                 html += '<tr class="table-dark"><td colspan="7" class="small fw-bold">DOD ' + esc('October ' + o.d +
-                    ' · window: ' + (win.length ? win[0].d + '–' + win[win.length - 1].d : '—')) + '</td></tr>';
+                    ' · Attend on this DOD · Max/Avg over last 3 days: ' + pvWinLbl) + '</td></tr>';
 
                 let tot = { plan: 0, att: 0, max: 0, avg: 0.0, def: 0.0, cnt: 0 };
                 PVA_GROUP_ORDER.forEach(gn => {
@@ -5143,9 +5168,9 @@ function renderPvaV2(hubBody, facBody, note){
                     hubs.forEach(h => {
                         const hubLow = h.toLowerCase();
                         const dt = dayT.out[hubLow] || {};
-                        const vals = win.map(w => dt[w.i] || 0);
+                        const vals = win.map(w => dt[w.c] || 0);
                         const plan = (pvaHubMap[hubLow] && pvaV2Plan.out[pvaHubMap[hubLow]]) ? pvaV2Plan.out[pvaHubMap[hubLow]].total : 0;
-                        const att  = dt[o.i] || 0;
+                        const att  = dt[o.c] || 0;
                         const mx   = vals.length ? Math.max.apply(null, vals) : 0;
                         const av   = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
                         const def  = plan ? Math.ceil(plan - av) : 0;
@@ -5186,7 +5211,7 @@ function renderPvaV2(hubBody, facBody, note){
         const dodLbl = dods.length ? dods.map(o => o.d).join(', ') : '—';
         note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
             'Planned CC = one YF\'26 headcount from the plan sheet (not per-day) · Attend = present bucket on the DOD (Present + WPH + Work on Week Off), all filters apply · ' +
-            'Max/Avg = last 3 calendar days clipped to the selection · Peak Deficit = ROUNDUP(Planned − Avg) · Fulfill % = Avg / Planned · ' +
+            'Max/Avg = the last 3 days ending today (' + pvWinLbl + '), independent of the day filter · Peak Deficit = ROUNDUP(Planned − Avg) · Fulfill % = Avg / Planned · ' +
             'Insource = Associate / Senior Associate (Noon) at LM-function plan rows · ' +
             '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Core ' + fmt(oSum) + ' + Insource ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
         return;
