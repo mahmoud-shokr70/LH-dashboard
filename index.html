@@ -54,34 +54,54 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 ::-webkit-scrollbar-thumb { background: #E9DFB8; border-radius: 999px; border: 2px solid #FBF3D8; }
 ::-webkit-scrollbar-thumb:hover { background: var(--noon); }
 
-/* Header — black for dashboards, white Montserrat title + slogan.
-   Rounded-noon restyle: sticky bar, yellow logo chip, yellow active pill. */
-.top-navbar {
-    background: linear-gradient(120deg, #0C0C0E 0%, #16171B 55%, #1C1D22 100%);
+/* Header — vertical left rail (fixed sidebar): charcoal with a yellow seam,
+   logo chip on top, stacked nav pills below, controls pinned to the bottom. */
+.side-navbar {
+    background: linear-gradient(180deg, #0C0C0E 0%, #16171B 55%, #1B1C21 100%);
     color: var(--brand-white);
-    padding: 14px 24px;
-    position: sticky; top: 0; z-index: 1030;
-    box-shadow: 0 1px 0 rgba(254,238,0,.35), 0 8px 22px rgba(0,0,0,.28);
+    position: fixed; top: 0; left: 0; bottom: 0; width: 228px; z-index: 1040;
+    padding: 20px 14px 16px; display: flex; flex-direction: column; gap: 14px;
+    overflow-y: auto; overflow-x: hidden;
+    border-right: 1px solid rgba(254,238,0,.28);
+    box-shadow: 6px 0 24px rgba(0,0,0,.30);
 }
-.logo-chip { display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; flex:0 0 42px;
+.side-brand { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; padding: 0 4px; }
+.side-navbar h4 { color: var(--brand-white); font-weight: 800; font-size: 1.22rem; letter-spacing: -.3px; line-height: 1.15; }
+.side-navbar .brand-slogan { font-family: var(--font-head); font-size: .58rem; font-weight: 700; color: var(--brand-yellow3); letter-spacing: 1.2px; text-transform: uppercase; }
+.side-navbar .brand-slogan b { color: var(--noon); }
+.side-meta { padding: 0 4px; display: flex; flex-direction: column; gap: 6px; }
+.logo-chip { display:inline-flex; align-items:center; justify-content:center; width:46px; height:46px; flex:0 0 46px;
     border-radius: 13px; background: var(--noon); color:#16171B; font-family: var(--font-head); font-weight:900;
     font-size: 1.05rem; letter-spacing:-.5px; box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 3px rgba(254,238,0,.18); }
-.top-navbar h4 { color: var(--brand-white); font-weight: 800; font-size: 1.6rem; letter-spacing: -.3px; }
-.top-navbar .brand-slogan { font-family: var(--font-head); font-size: .7rem; font-weight: 700; color: var(--brand-yellow3); letter-spacing: 1.4px; text-transform: uppercase; }
-.top-navbar .brand-slogan b { color: var(--noon); }
-.meta-line { font-size: .72rem; color: #cfcabc; font-family: var(--font-num); }    .demo-pill { background:#f59e0b; color:#0f172a; font-size:.65rem; font-weight:800; border-radius:999px; padding:2px 8px; }
+.meta-line { font-size: .68rem; color: #cfcabc; font-family: var(--font-num); word-break: break-word; }    .demo-pill { background:#f59e0b; color:#0f172a; font-size:.65rem; font-weight:800; border-radius:999px; padding:2px 8px; }
     /* Build stamp — tells you at a glance whether the browser is running the
        latest file. It is filled in by JS, so the placeholder text below means
        the script never ran (stale copy / blocked CDN). */
-    .build-tag { display:inline-block; margin-top:4px; font-family: var(--font-num); font-size:.62rem; font-weight:700;
+    .build-tag { display:inline-block; margin-top:4px; font-family: var(--font-num); font-size:.6rem; font-weight:700;
         background:#f59e0b; color:#1b1b1b; border-radius:999px; padding:1px 8px; }
 
-/* Pill navigation: quiet on black, glowing yellow when active */
-#pageTabs .nav-link { border-radius: 999px; font-family: var(--font-head); font-weight: 700; font-size: .84rem;
-    color: #D8D2C0; padding: .38rem 1rem; transition: background .15s ease, color .15s ease, transform .12s ease; }
-#pageTabs .nav-link:hover:not(.active) { color: #fff; background: rgba(255,255,255,.08); }
-#pageTabs .nav-link.active { background: var(--noon); color: #16171B; box-shadow: 0 3px 0 rgba(0,0,0,.4); transform: translateY(-1px); }
-#pageTabs .nav-link i { margin-right: 4px; }
+/* Content shifts right to clear the fixed rail */
+body { padding-left: 228px !important; }
+
+/* Pill navigation: stacked in the rail — quiet on black, glowing yellow when active */
+#pageTabs { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+#pageTabs .nav-item { width: 100%; }
+#pageTabs .nav-link { display: flex; align-items: center; text-align: left; width: 100%;
+    border-radius: 12px; font-family: var(--font-head); font-weight: 800; font-size: .8rem;
+    color: #D8D2C0; padding: .6rem .85rem; transition: background .15s ease, color .15s ease, transform .12s ease; }
+#pageTabs .nav-link:hover:not(.active) { color: #fff; background: rgba(255,255,255,.08); transform: translateX(2px); }
+#pageTabs .nav-link.active { background: var(--noon); color: #16171B; box-shadow: 0 3px 0 rgba(0,0,0,.4); transform: none; }
+#pageTabs .nav-link i { margin-right: 8px; font-size: .95rem; }
+.side-controls { margin-top: auto; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,.14);
+    display: flex; flex-direction: column; gap: 8px; }
+.side-controls .btn { width: 100%; justify-content: center; display: inline-flex; align-items: center; }
+@media (max-width: 900px) {
+    body { padding-left: 0 !important; }
+    .side-navbar { position: static; width: auto; flex-direction: column; }
+    #pageTabs { flex-direction: row; flex-wrap: wrap; }
+    #pageTabs .nav-item { width: auto; }
+    #pageTabs .nav-link { width: auto; display: inline-flex; border-radius: 999px; }
+}
 
 /* Numbers / metrics always Roboto Mono */
 .kpi-mini .val, .kpi-main-pct, .kpi-stat-val, .score-pill, .mini-tile .v,
@@ -451,26 +471,28 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 </head>
 <body>
 
-<!-- Header Navigation -->
-<div class="top-navbar d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div class="d-flex align-items-center gap-3">
+<!-- Header Navigation — fixed left rail -->
+<nav class="side-navbar">
+    <div class="side-brand">
         <span class="logo-chip" title="Control Tower">CT</span>
         <div>
             <h4 class="m-0 fw-bold">Control Tower</h4>
             <div class="brand-slogan">We <b>Build</b>, Guide, Excel &amp; Control.</div>
-            <div class="meta-line" id="sheetMeta">Connecting to sheet…</div>
-            <div class="build-tag" id="buildTag">script not running — this is an older copy of the file</div>
         </div>
     </div>
-    <div class="d-flex align-items-center gap-2">
-        <ul class="nav nav-pills" id="pageTabs">
-            <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard"><i class="bi bi-speedometer2 me-1"></i> Executive Dashboard</button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-gap"><i class="bi bi-search-heart me-1"></i> Gap Analysis</button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn"><i class="bi bi-people me-1"></i> Manpower</button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live"><i class="bi bi-broadcast me-1"></i> Live Tracking</button></li>
-        </ul>
+    <div class="side-meta">
+        <div class="meta-line" id="sheetMeta">Connecting to sheet…</div>
+        <div class="build-tag" id="buildTag">script not running — this is an older copy of the file</div>
+    </div>
+    <ul class="nav nav-pills" id="pageTabs">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard"><i class="bi bi-speedometer2"></i> Executive Dashboard</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-gap"><i class="bi bi-search-heart"></i> Gap Analysis</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn"><i class="bi bi-people"></i> Manpower</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live"><i class="bi bi-broadcast"></i> Live Tracking</button></li>
+    </ul>
+    <div class="side-controls">
         <button class="btn btn-sm btn-primary" id="btnRefresh" title="Reload data from sheet" onclick="refreshData()"><i class="bi bi-arrow-repeat"></i> Refresh</button>
-        <div class="dropdown d-inline-block">
+        <div class="dropdown d-grid">
             <button class="btn btn-sm btn-outline-light dropdown-toggle rounded-pill" id="autoRefreshBtn" data-bs-toggle="dropdown" title="Auto-reload from the sheet so edits appear here automatically"><i class="bi bi-clock-history me-1"></i><span id="autoRefreshLabel">Auto</span></button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li><a class="dropdown-item" href="javascript:void(0)" onclick="setAutoRefresh(0)">Off</a></li>
@@ -480,7 +502,7 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
             </ul>
         </div>
     </div>
-</div>
+</nav>
 
     <div class="container-fluid p-4">
 
@@ -1167,10 +1189,6 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </div>
                 <span class="m">MIDDLE-MILE · LIVE OPS</span>
             </div>
-            <div class="inner-tabs">
-                <button type="button" class="it-btn active" data-iview="board" onclick="innerTab(this)"><i class="bi bi-grid-3x3-gap"></i>Live Board</button>
-                <button type="button" class="it-btn" data-iview="report" onclick="innerTab(this)"><i class="bi bi-table"></i>Full Report</button>
-            </div>
             <div class="card p-3 mb-4 border-0 shadow-sm">
                 <div class="row g-2 align-items-end">
                     <div class="col-6 col-md-2">
@@ -1215,10 +1233,10 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
                 </div>
             </div>
                     <div id="liveBoard" style="background:#fff;">
-                <div id="liveTables" data-view="board"></div>
+                <div id="liveTables"></div>
 
-                <!-- FULL ADHERENCE REPORT (data/report view) -->
-                <div class="table-container mt-4" id="liveReportBox" data-view="report">
+                <!-- FULL ADHERENCE REPORT -->
+                <div class="table-container mt-4" id="liveReportBox">
                     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                         <h5 class="fw-bold m-0"><i class="bi bi-clipboard-data me-2 text-primary"></i>Live Adherence Report <span class="text-muted fs-6 fw-normal">— every occurrence, dispatched & arrival</span></h5>
                         <div class="btn-group btn-group-sm" id="reportChips">
