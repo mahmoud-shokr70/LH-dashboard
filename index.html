@@ -5067,6 +5067,7 @@ function renderPvaV2(hubBody, facBody, note){
         return;
     }
     const dayCols = mpDayCols();
+    const selSet = new Set(dayCols);
     const planIx = {};
     dayCols.forEach(c => {
         const m = String(c).match(/\s*(\d{1,2})\s*-\s*/);
@@ -5074,9 +5075,23 @@ function renderPvaV2(hubBody, facBody, note){
         if (d > 0) planIx[c] = d;
     });
 
-    /* one roster pass: per-day + range tally */
-    const dayT   = { out: {}, in: {}, none: {} };   // hubLow -> {colIx: count}
-    const rangeT = { out: {}, in: {}, none: {} };   // hubLow -> count
+    /* one roster pass: per-day + range tally.
+       dayT counts EVERY roster day column (so the last-3-days window can
+       reach outside the selected date filter); rangeT adds only the
+       selected columns. */
+    const fullDayCols = mpCols.filter(c => /\s*\d{1,2}\s*-/.test(String(c)));
+    const pvHasData = {};                          // column name -> day actually loaded
+    // a day counts as "loaded" when at least one employee (unfiltered)
+    // was PRESENT that day — Week Off / leave pre-entries on future days
+    // do not make a day real
+    mpAll.forEach(t => {
+        fullDayCols.forEach(c => {
+            const x = t.days[c];
+            if (!pvHasData[c] && x && x.bucket === 'present') pvHasData[c] = true;
+        });
+    });
+    const dayT   = { out: {}, in: {}, none: {} };   // hubLow -> {colName: count}
+    const rangeT = { out: {}, in: {}, none: {} };   // hubLow -> count (selected range)
     const legFac = { out: {}, in: {}, none: {} };   // hubLow -> facility label
     mpAll.filter(t => mpMatch(t)).forEach(t => {
         const tit    = String(t.title || '').trim();
@@ -5091,12 +5106,12 @@ function renderPvaV2(hubBody, facBody, note){
         if (isCore && !isNoon) sec2 = 'out';
         else if (legLM && !isCore && isNoon && isAsso && planIn && planIn.func === 'LM') sec2 = 'in';
         legFac[sec2][key] = String(t.leg || '').trim() || '—';
-        dayCols.forEach((c) => {
+        fullDayCols.forEach((c) => {
             const x = t.days[c];
             if (x && x.bucket === 'present'){
                 const d0 = dayT[sec2][key] = (dayT[sec2][key] || {});
                 d0[c] = (d0[c] || 0) + 1;
-                rangeT[sec2][key] = (rangeT[sec2][key] || 0) + 1;
+                if (selSet.has(c)) rangeT[sec2][key] = (rangeT[sec2][key] || 0) + 1;
             }
         });
     });
@@ -5108,16 +5123,19 @@ function renderPvaV2(hubBody, facBody, note){
     /* ---------- OUT: the DOD health report --------------------------- */
     if (pvaSection === 'out'){
         pv2HeadOut();
-        // Max/Avg window: the last 3 days ending TODAY, taken from ALL
-        // roster columns (independent of the selected date filter, which
-        // only picks which DOD block is shown).
+        // Max/Avg window: the 3 most recent days that have attendance
+        // data (today, today-1, today-2 by default), taken from ALL
+        // roster columns and independent of the selected date filter.
+        // A day with no data is skipped so a stale 'today' cannot drag
+        // the average down with a fake zero.
         const todayD = new Date().getDate();
-        const pvWin = mpCols.map((c, i) => {
+        const dayMeta = mpCols.map((c, i) => {
                 const m = String(c).match(/\s*(\d{1,2})\s*-\s*/);
                 return { c: c, i: i, d: m ? parseInt(m[1], 10) : 0 };
             })
-            .filter(o => o.d > 0 && o.d <= todayD)
-            .slice(-3);
+            .filter(o => o.d > 0 && pvHasData[o.c]);
+        let pvWin = dayMeta.filter(o => o.d <= todayD).slice(-3);
+        if (!pvWin.length) pvWin = dayMeta.slice(-3);
         const pvWinLbl = pvWin.length ? (pvWin.length > 1 ? (pvWin[0].d + '–' + pvWin[pvWin.length - 1].d) : String(pvWin[0].d)) : '—';
         // function rollup for right panel (planned vs first DOD attend)
         if (dods.length){
@@ -5211,7 +5229,7 @@ function renderPvaV2(hubBody, facBody, note){
         const dodLbl = dods.length ? dods.map(o => o.d).join(', ') : '—';
         note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
             'Planned CC = one YF\'26 headcount from the plan sheet (not per-day) · Attend = present bucket on the DOD (Present + WPH + Work on Week Off), all filters apply · ' +
-            'Max/Avg = the last 3 days ending today (' + pvWinLbl + '), independent of the day filter · Peak Deficit = ROUNDUP(Planned − Avg) · Fulfill % = Avg / Planned · ' +
+            'Max/Avg = the 3 most recent days with data ending today (' + pvWinLbl + '), independent of the day filter · Peak Deficit = ROUNDUP(Planned − Avg) · Fulfill % = Avg / Planned · ' +
             'Insource = Associate / Senior Associate (Noon) at LM-function plan rows · ' +
             '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Core ' + fmt(oSum) + ' + Insource ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
         return;
