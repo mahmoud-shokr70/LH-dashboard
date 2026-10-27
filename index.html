@@ -149,7 +149,40 @@ body { padding-left: 244px !important; }
 #autoRefreshBtn:hover { background: rgba(255,255,255,.12); color: #fff; }
 .rail-foot { text-align: center; font-family: var(--font-num); font-size: .56rem; letter-spacing: 1.8px;
     color: #7A745F; text-transform: uppercase; }
+/* Collapsed rail: logo chip + nav icons only */
+body { transition: none; }
+.side-navbar { transition: width .22s ease; }
+.rail-toggle { position: fixed; top: 20px; left: 226px; z-index: 1041; width: 34px; height: 34px;
+    border-radius: 99px; background: var(--ink); color: var(--noon); border: 2px solid var(--noon);
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,.35); transition: left .22s ease; font-size: .85rem; padding: 0; }
+.rail-toggle:hover { background: #000; box-shadow: 0 4px 14px rgba(254,238,0,.35); }
+.rail-toggle i { transition: transform .22s ease; }
+body.rail-collapsed .rail-toggle { left: 67px; }
+body.rail-collapsed .rail-toggle i { transform: rotate(180deg); }
+body.rail-collapsed .side-navbar { width: 84px; padding: 18px 10px 14px; }
+body.rail-collapsed .side-brand { align-items: center; padding-right: 0; }
+body.rail-collapsed .side-brand .logo-chip { width: 44px; height: 44px; flex: 0 0 44px; }
+body.rail-collapsed .side-brand .rail-kicker,
+body.rail-collapsed .side-brand h4,
+body.rail-collapsed .side-brand .brand-slogan { display: none; }
+body.rail-collapsed .rail-status,
+body.rail-collapsed .rail-label,
+body.rail-collapsed .rail-foot { display: none; }
+body.rail-collapsed #pageTabs { padding-left: 0; }
+body.rail-collapsed #pageTabs::before { left: 50%; }
+body.rail-collapsed #pageTabs .nav-link { justify-content: center; padding: .55rem 0; }
+body.rail-collapsed #pageTabs .nav-link .nl-txt { display: none; }
+body.rail-collapsed #pageTabs .nav-link i { margin-right: 0; }
+body.rail-collapsed #pageTabs .nav-link.active::after { display: none; }
+body.rail-collapsed .side-controls { align-items: stretch; }
+body.rail-collapsed #btnRefresh { width: 44px; margin: 0 auto; padding-left: 0; padding-right: 0; }
+body.rail-collapsed #btnRefresh span { display: none; }
+body.rail-collapsed #autoRefreshBtn { width: 44px; margin: 0 auto; padding: .375rem 0; }
+body.rail-collapsed #autoRefreshLabel { display: none; }
+body.rail-collapsed { padding-left: 84px !important; }
 @media (max-width: 900px) {
+    .rail-toggle { display: none; }
     body { padding-left: 0 !important; }
     .side-navbar { position: static; width: auto; flex-direction: column; }
     #pageTabs { flex-direction: row; flex-wrap: wrap; padding-left: 0; }
@@ -417,14 +450,11 @@ body { padding-left: 244px !important; }
     .page-strip .m { font-family: var(--font-num); font-size: .7rem; font-weight: 700; color: #16171B; background: var(--brand-yellow3);
         border: 1px solid #E9DFB8; border-radius: 999px; padding: 3px 12px; white-space: nowrap; }
 
-    /* KPI hero band: charcoal slab holding the headline tiles */
-    .hero-band { background: linear-gradient(115deg, #131418 0%, #1E1F26 70%, #26272F 100%);
-        border-radius: var(--radius-xl); padding: 16px 18px 18px; box-shadow: 0 14px 34px rgba(20,18,10,.22);
-        margin-bottom: 22px; position: relative; overflow: hidden; }
-    .hero-band::before { content:''; position:absolute; left:-40px; top:-70px; width:220px; height:220px; border-radius:99px;
-        background: radial-gradient(circle, rgba(254,238,0,.16) 0%, rgba(254,238,0,0) 70%); pointer-events:none; }
-    .hero-band .kpi-mini { background: rgba(255,255,255,.985); border-radius: 16px; }
-    .hero-band .kpi-mini .val { font-size: 2rem; }
+    /* KPI strip on the LH Adherence page — same light treatment as Manpower */
+    .hero-band { background: transparent; border-radius: 0; padding: 0;
+        box-shadow: none; margin-bottom: 22px; position: static; overflow: visible; }
+    .hero-band::before { display: none; }
+    .hero-band .kpi-mini { background: var(--brand-white); border-radius: var(--radius-xl); }
 
     /* Loader — noon dot-pulse */
     #loader .spinner-border { color: var(--noon); border-width: .25rem; }
@@ -547,14 +577,14 @@ body { padding-left: 244px !important; }
     </div>
     <div class="rail-label">Navigate</div>
     <ul class="nav nav-pills" id="pageTabs">
-        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard"><i class="bi bi-speedometer2"></i> Executive Dashboard</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-gap"><i class="bi bi-search-heart"></i> Gap Analysis</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn"><i class="bi bi-people"></i> Manpower</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live"><i class="bi bi-broadcast"></i> Live Tracking</button></li>
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard" title="LH Adherence"><i class="bi bi-speedometer2"></i> <span class="nl-txt">LH Adherence</span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-gap" title="Final Report"><i class="bi bi-search-heart"></i> <span class="nl-txt">Final Report</span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn" title="Manpower"><i class="bi bi-people"></i> <span class="nl-txt">Manpower</span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live" title="Live Tracking LH"><i class="bi bi-broadcast"></i> <span class="nl-txt">Live Tracking LH</span></button></li>
     </ul>
     <div class="side-controls">
         <div class="rail-label">Controls</div>
-        <button class="btn btn-sm btn-primary" id="btnRefresh" title="Reload data from sheet" onclick="refreshData()"><i class="bi bi-arrow-repeat"></i> Refresh</button>
+        <button class="btn btn-sm btn-primary" id="btnRefresh" title="Reload data from sheet" onclick="refreshData()"><i class="bi bi-arrow-repeat"></i> <span>Refresh</span></button>
         <div class="dropdown d-grid">
             <button class="btn btn-sm btn-outline-light dropdown-toggle rounded-pill" id="autoRefreshBtn" data-bs-toggle="dropdown" title="Auto-reload from the sheet so edits appear here automatically"><i class="bi bi-clock-history me-1"></i><span id="autoRefreshLabel">Auto</span></button>
             <ul class="dropdown-menu dropdown-menu-end">
@@ -567,6 +597,7 @@ body { padding-left: 244px !important; }
         <div class="rail-foot">We Build · Guide · Excel · Control</div>
     </div>
 </nav>
+<button type="button" class="rail-toggle" id="railToggle" title="Collapse / expand the rail" onclick="railToggleFn()"><i class="bi bi-chevron-left"></i></button>
 
     <div class="container-fluid p-4">
 
@@ -592,11 +623,11 @@ body { padding-left: 244px !important; }
             <div class="wl-q"><i class="bi bi-signpost-2"></i>Where do you want to start?</div>
             <div class="wl-pages">
                 <button type="button" class="wl-page" data-target="#page-dashboard">
-                    <div class="t"><i class="bi bi-speedometer2"></i>Executive Dashboard</div>
+                    <div class="t"><i class="bi bi-speedometer2"></i>LH Adherence</div>
                     <div class="d">The morning picture — trips &amp; core adherence</div>
                 </button>
                 <button type="button" class="wl-page" data-target="#page-gap">
-                    <div class="t"><i class="bi bi-search-heart"></i>Gap Analysis</div>
+                    <div class="t"><i class="bi bi-search-heart"></i>Final Report</div>
                     <div class="d">Where planning and reality drift apart</div>
                 </button>
                 <button type="button" class="wl-page" data-target="#page-mp">
@@ -604,7 +635,7 @@ body { padding-left: 244px !important; }
                     <div class="d">Roster health &amp; Plan-vs-Actual</div>
                 </button>
                 <button type="button" class="wl-page" data-target="#page-live">
-                    <div class="t"><i class="bi bi-broadcast"></i>Live Tracking</div>
+                    <div class="t"><i class="bi bi-broadcast"></i>Live Tracking LH</div>
                     <div class="d">Who is filling now — live occupancy</div>
                 </button>
                 <button type="button" class="wl-page" data-target="#page-rca">
@@ -678,10 +709,10 @@ body { padding-left: 244px !important; }
         <div class="tab-pane fade show active" id="page-dashboard">
             <div class="page-strip">
                 <div>
-                    <div class="k"><i class="bi bi-speedometer2"></i>Executive Dashboard</div>
+                    <div class="k"><i class="bi bi-speedometer2"></i>LH Adherence</div>
                     <div class="d">The morning picture — trips moved, adherence across the 4 core checkpoints, shipment health.</div>
                 </div>
-                <span class="m">MIDDLE-MILE · EXEC</span>
+                <span class="m">MIDDLE-MILE · LH ADH</span>
             </div>
             <div class="inner-tabs">
                 <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-speedometer2"></i>Dashboard</button>
@@ -1071,6 +1102,14 @@ body { padding-left: 244px !important; }
                         <select id="mp-vendor" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted mb-1" title="Insource = Core Colleague · Outsource = Associate / Senior Associate">Workforce Type</label>
+                        <div class="btn-group btn-group-sm w-100" id="mpTypeBtns" role="group" title="Insource = Core Colleague · Outsource = Associate / Senior Associate">
+                            <button type="button" class="btn btn-outline-primary active" data-mptype="all">All</button>
+                            <button type="button" class="btn btn-outline-primary" data-mptype="in" title="Core Colleague">Insource</button>
+                            <button type="button" class="btn btn-outline-primary" data-mptype="out" title="Associate / Senior Associate">Outsource</button>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted mb-1" title="Days worked in the 9 months before this month (from the sheet ageing column)">Aging</label>
                         <select id="mp-band" class="form-select" multiple="multiple"></select>
                     </div>
@@ -1194,8 +1233,8 @@ body { padding-left: 244px !important; }
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-clipboard2-check me-2 text-primary"></i>Plan vs Actual <span id="mpPvaLeftNote" class="text-muted fw-normal" style="font-size:.75rem"></span></h6>
                         <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-outline-primary active" id="pva-sec-out" onclick="pvaSetSection('out')">Outsource · Core</button>
-                            <button type="button" class="btn btn-outline-primary" id="pva-sec-in" onclick="pvaSetSection('in')">Insource · Assoc (LM)</button>
+                            <button type="button" class="btn btn-outline-primary active" id="pva-sec-out" onclick="pvaSetSection('out')">Insource · Core</button>
+                            <button type="button" class="btn btn-outline-primary" id="pva-sec-in" onclick="pvaSetSection('in')">Outsource · Assoc (LM)</button>
                             <button type="button" class="btn btn-outline-primary" id="pva-sec-none" onclick="pvaSetSection('none')">Unplanned</button>
                         </div>
                     </div>
@@ -1248,7 +1287,7 @@ body { padding-left: 244px !important; }
         <div class="tab-pane fade" id="page-live">
             <div class="page-strip">
                 <div>
-                    <div class="k"><i class="bi bi-broadcast"></i>Live Tracking</div>
+                    <div class="k"><i class="bi bi-broadcast"></i>Live Tracking LH</div>
                     <div class="d">Who is filling now — live occupancy across hubs, destinations, and the current wave.</div>
                 </div>
                 <span class="m">MIDDLE-MILE · LIVE OPS</span>
@@ -1348,7 +1387,7 @@ body { padding-left: 244px !important; }
         <div class="tab-pane fade" id="page-gap">
             <div class="page-strip">
                 <div>
-                    <div class="k"><i class="bi bi-search-heart"></i>Gap Analysis</div>
+                    <div class="k"><i class="bi bi-search-heart"></i>Final Report</div>
                     <div class="d">Where planning and reality drift apart — attribute the misses, read the insights, pick the focus.</div>
                 </div>
                 <span class="m">MIDDLE-MILE · DIAGNOSE</span>
@@ -1362,7 +1401,7 @@ body { padding-left: 244px !important; }
             <div class="card p-3 mb-4 border-0 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
-                        <h5 class="fw-bold m-0"><i class="bi bi-search-heart me-2 text-primary"></i>Gap Analysis
+                        <h5 class="fw-bold m-0"><i class="bi bi-search-heart me-2 text-primary"></i>Final Report
                             <span class="text-muted fw-normal fs-6">— where time leaks, by checkpoint, vendor and lane</span></h5>
                         <div class="small text-muted mt-1">Scope follows the <strong>Filters</strong> bar above — slice by hub, vendor, facility, flag or date, and every card, chart and table below updates together.</div>
                     </div>
@@ -2956,6 +2995,26 @@ function wlInit(){
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wlInit);
 else wlInit();
+
+/* ===== Command rail: collapse / expand ==================================
+   Collapsed = logo chip + nav icons only (labels, status card and
+   controls hide); state persists in localStorage. The chevron button
+   floats on the rail's seam. */
+const RAIL_KEY = 'ctRailCollapsed';
+function railApply(){
+    let c = false;
+    try { c = localStorage.getItem(RAIL_KEY) === '1'; } catch (e) {}
+    document.body.classList.toggle('rail-collapsed', c);
+    const btn = document.getElementById('railToggle');
+    if (btn) btn.title = c ? 'Expand the rail' : 'Collapse the rail';
+}
+function railToggleFn(){
+    const c = document.body.classList.contains('rail-collapsed');
+    try { localStorage.setItem(RAIL_KEY, c ? '0' : '1'); } catch (e) {}
+    railApply();
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', railApply);
+else railApply();
 
 // Start as soon as the DOM is parsed (the script sits at the end of <body>,
 // so every element it touches already exists).
@@ -4714,6 +4773,17 @@ const MP_META = [
 let mpAll = [], mpCols = [], mpLoaded = false, mpLoading = false, mpSearchTimer = null;
 const MP_ALL = '__all';
 let mpState = { dayFrom: MP_ALL, dayTo: MP_ALL, cat: [], band: [], hub: [], leg: [], title: [], shift: [], vendor: [], search: '' };
+/* Workforce type: 'all' | 'in' (Insource = Core Colleague) | 'out'
+   (Outsource = Associate / Senior Associate). Titles that name neither
+   bucket stay visible only under All. */
+let mpTypeFilter = 'all';
+function mpTypeOk(t){
+    if (mpTypeFilter === 'all') return true;
+    const s = String(t.title || '').toLowerCase();
+    const isOut = s.indexOf('associate') !== -1;
+    const isIn  = s.indexOf('core') !== -1;
+    return mpTypeFilter === 'out' ? isOut : isIn;
+}
 
 /* Multi-select facets wired through the shared mcs component, exactly like
    the dashboard and Live Tracking filters: every option is counted against
@@ -4770,6 +4840,7 @@ function syncMpState(){
 function mpFacetRows(except){
     const dayCols = mpDayCols();
     return mpAll.filter(t => {
+        if (!mpTypeOk(t)) return false;
         if (except !== 'day' && !dayCols.some(c => t.days[c] && t.days[c].bucket)) return false;
         if (except !== 'hub'    && !mpIn(mpState.hub,    t.hub))    return false;
         if (except !== 'leg'    && !mpIn(mpState.leg,    t.leg))    return false;
@@ -4966,6 +5037,7 @@ function refreshMpCounts(){
 }
 
 function mpMatch(t, ignoreCat){
+    if (!mpTypeOk(t))          return false;
     if (!mpIn(mpState.hub,    t.hub))    return false;
     if (!mpIn(mpState.leg,    t.leg))    return false;
     if (!mpIn(mpState.title,  t.title))  return false;
@@ -5028,8 +5100,26 @@ function resetMpFilters(){
     const df = document.getElementById('mp-day-from'); if (df) df.value = MP_ALL;
     const dt = document.getElementById('mp-day-to');   if (dt) dt.value = MP_ALL;
     const s = document.getElementById('mp-search'); if (s) s.value = '';
+    mpSetType('all', false);
     renderManpower();
 }
+
+/* Workforce-type segmented filter: All / Insource (Core Colleague) /
+   Outsource (Associate & Senior Associate). */
+function mpSetType(type, rerender){
+    mpTypeFilter = (type === 'in' || type === 'out') ? type : 'all';
+    document.querySelectorAll('#mpTypeBtns [data-mptype]').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-mptype') === mpTypeFilter);
+    });
+    if (rerender !== false) renderManpower();
+}
+function mpTypeInit(){
+    document.querySelectorAll('#mpTypeBtns [data-mptype]').forEach(b => {
+        b.addEventListener('click', () => mpSetType(b.getAttribute('data-mptype')));
+    });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mpTypeInit);
+else mpTypeInit();
 
 let mpGridTimer = null;
 function renderMpGridDebounced(){
@@ -5154,6 +5244,7 @@ function renderManpower(){
     if (scope){
         const isWhole = dayCols.length === mpCols.length;
         const bits = [isWhole ? 'Scope: whole month' : 'Scope: ' + mpRangeLabel()];
+        if (mpTypeFilter !== 'all') bits.push('Type ' + (mpTypeFilter === 'in' ? 'Insource (Core Colleague)' : 'Outsource (Associate / Senior Associate)'));
         const lbl = { hub: 'Hub', leg: 'Facility leg', title: 'Title', shift: 'Shift', vendor: 'Vendor' };
         Object.keys(lbl).forEach(k => { if (!mpAny(mpState[k])) bits.push(lbl[k] + ' ' + mpState[k].join(', ')); });
         if (!mpAny(mpState.band)) bits.push('Aging ' + mpState.band.map(k => (MP_BANDS.find(b => b.k === k) || { label: k }).label).join(', '));
@@ -5680,8 +5771,8 @@ function renderPvaV2(hubBody, facBody, note){
         note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
             'Planned CC = one YF\'26 headcount from the plan sheet (not per-day) · Attend = present bucket on the DOD (Present + WPH + Work on Week Off), all filters apply · ' +
             'Max/Avg = the 3 most recent days with data ending today (' + pvWinLbl + '), independent of the day filter · Peak Deficit = ROUNDUP(Planned − Avg) · Fulfill % = Avg / Planned · ' +
-            'Insource = Associate / Senior Associate (Noon) at LM-function plan rows · ' +
-            '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Core ' + fmt(oSum) + ' + Insource ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
+            'Outsource = Associate / Senior Associate (Noon) at LM-function plan rows · ' +
+            '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Core ' + fmt(oSum) + ' + Outsource ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
         return;
     }
 
@@ -5734,8 +5825,8 @@ function renderPvaV2(hubBody, facBody, note){
         const nSum = Object.values(rangeT.none).reduce((a, b) => a + b, 0);
         note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
             'Plan = YF\'26 headcount from the plan sheet · Actual = present over the selected day range (all filters) · ' +
-            'Insource covers Associate / Senior Associate (Noon vendor) at the plan\'s LM-function rows only · ' +
-            '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Core ' + fmt(oSum) + ' + Insource ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
+            'Outsource covers Associate / Senior Associate (Noon vendor) at the plan\'s LM-function rows only · ' +
+            '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Core ' + fmt(oSum) + ' + Outsource ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
         return;
     }
 
@@ -5765,7 +5856,7 @@ function renderPvaV2(hubBody, facBody, note){
     const nSum2 = Object.values(rangeT.none).reduce((a, b) => a + b, 0);
     const iSum2 = Object.values(rangeT.in).reduce((a, b) => a + b, 0);
     note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
-        'People matching the filters whose section is neither Core Colleague (outsource) nor the Insource plan rows — add them to the plan sheet if they should be planned · ' +
+        'People matching the filters whose section is neither Core Colleague (insource) nor the Outsource plan rows — add them to the plan sheet if they should be planned · ' +
         '<strong>Overall present (range): ' + fmt(oSum2 + nSum2 + iSum2) + ' = Core ' + fmt(oSum2) + ' + Insource ' + fmt(iSum2) + ' + Unplanned ' + fmt(nSum2) + '</strong>';
 }
 
@@ -5865,7 +5956,7 @@ function renderMpPlanVsActual(){
         facMap[fl].plan += p; facMap[fl].act += a;
     });
     const sx = pvaVarCell(sPlan, sAct);
-    const secLabel = sec === 'out' ? 'Outsource · Core Colleague' : (sec === 'in' ? 'Insource · Associate / Senior Associate (LM only)' : 'Unplanned — covered by neither plan block');
+    const secLabel = sec === 'out' ? 'Insource · Core Colleague' : (sec === 'in' ? 'Outsource · Associate / Senior Associate (LM only)' : 'Unplanned — covered by neither plan block');
     hubHtml += '<tr class="table-light fw-bold">' +
         '<td colspan="2">Total — ' + secLabel + '</td>' +
         '<td class="text-center">' + fmt(sPlan) + '</td>' +
@@ -5902,10 +5993,10 @@ function renderMpPlanVsActual(){
         });
     });
     const bits = ['Present = Present + WPH + Work on Week Off (same as Manpower)',
-        'Insource covers Associate / Senior Associate (Noon vendor) at the LM rows only',
+        'Outsource covers Associate / Senior Associate (Noon vendor) at the LM rows only',
         'Scope: ' + (dayCols.length === mpCols.length ? 'whole month' : mpRangeLabel()) +
         ' · filters narrow Actual only — Plan stays the sheet headcount',
-        '<strong>Overall present (all filters): ' + fmt(overall) + ' = Outsource ' + fmt(oAct) + ' + Insource ' + fmt(iAct) + ' + Unplanned ' + fmt(nAct) + '</strong>',
+        '<strong>Overall present (all filters): ' + fmt(overall) + ' = Outsource ' + fmt(oAct) + ' + Outsource ' + fmt(iAct) + ' + Unplanned ' + fmt(nAct) + '</strong>',
         'The Unplanned group has no plan row in the sheet — add them to the plan if they should be planned.'];
     note.innerHTML = '<i class="bi bi-funnel me-1"></i>' + bits.join(' · ');
 }
