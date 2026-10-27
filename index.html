@@ -595,7 +595,6 @@ body.rail-collapsed { padding-left: 84px !important; }
     <div class="rail-label">Navigate</div>
     <ul class="nav nav-pills" id="pageTabs">
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard" title="LH Adherence"><i class="bi bi-speedometer2"></i> <span class="nl-txt">LH Adherence</span></button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-gap" title="Final Report"><i class="bi bi-search-heart"></i> <span class="nl-txt">Final Report</span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn" title="Manpower"><i class="bi bi-people"></i> <span class="nl-txt">Manpower</span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live" title="Live Tracking LH"><i class="bi bi-broadcast"></i> <span class="nl-txt">Live Tracking LH</span></button></li>
     </ul>
@@ -642,10 +641,6 @@ body.rail-collapsed { padding-left: 84px !important; }
                 <button type="button" class="wl-page" data-target="#page-dashboard">
                     <div class="t"><i class="bi bi-speedometer2"></i>LH Adherence</div>
                     <div class="d">The morning picture — trips &amp; core adherence</div>
-                </button>
-                <button type="button" class="wl-page" data-target="#page-gap">
-                    <div class="t"><i class="bi bi-search-heart"></i>Final Report</div>
-                    <div class="d">Where planning and reality drift apart</div>
                 </button>
                 <button type="button" class="wl-page" data-target="#page-mp">
                     <div class="t"><i class="bi bi-people"></i>Manpower</div>
@@ -702,10 +697,6 @@ body.rail-collapsed { padding-left: 84px !important; }
             <div class="col-6 col-md-3">
                 <label class="form-label fw-bold small text-muted">Facility DST <span class="fw-normal">(Facility_DST)</span></label>
                 <select id="dash-fac-dst" class="form-select" multiple="multiple"></select>
-            </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label fw-bold small text-muted">Flag Hubs <span class="fw-normal">(FLAG_HUBS)</span></label>
-                <select id="dash-flag" class="form-select" multiple="multiple"></select>
             </div>
             <div class="col-6 col-md-2">
                 <label class="form-label fw-bold small text-muted">Trip Flag</label>
@@ -767,11 +758,6 @@ body.rail-collapsed { padding-left: 84px !important; }
                     <div class="val" style="color:#0ea5e9" id="k-util">—</div>
                     <div class="sub"><span id="k-util-n">0</span> trips under 70%</div>
                 </div></div>
-                <div class="col-6 col-md-2"><div class="kpi-mini">
-                    <div class="lbl">Flag Hubs</div>
-                    <div class="val" style="color:#f59e0b" id="k-flag">—</div>
-                    <div class="sub"><span id="k-flag-n">0</span> with flags</div>
-                </div></div>
                 </div>
             </div>
 
@@ -817,7 +803,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                         <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Fail</div><div class="kpi-stat-val text-danger" id="m-portalAdh-fail">0</div></div>
                     </div>
                 </div></div>
-                <div class="col-md-2"><div class="kpi-card border-actual metric-card" data-metric="portalPlanVsActualAdh" onclick="selectMetricCard(this, 'portalPlanVsActualAdh')" title="Click to focus on this metric">
+                <div class="col-md-2"><div class="kpi-card border-actual metric-card" data-metric="portalPlanVsActualAdh" hidden-card onclick="selectMetricCard(this, 'portalPlanVsActualAdh')" title="Click to focus on this metric">
                     <span class="card-hint">SELECT ▸</span>
                     <div class="kpi-card-header">Port Act/Plan</div>
                     <div class="kpi-main-pct" style="color:#8b5cf6" id="m-portalPlanVsActualAdh-pct">0%</div>
@@ -837,7 +823,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                         <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Fail</div><div class="kpi-stat-val text-danger" id="m-gateInToOpenAdh-fail">0</div></div>
                     </div>
                 </div></div>
-                <div class="col-md-2"><div class="kpi-card border-openseal metric-card" data-metric="openToSealAdh" onclick="selectMetricCard(this, 'openToSealAdh')" title="Click to focus on this metric">
+                <div class="col-md-2"><div class="kpi-card border-openseal metric-card" data-metric="openToSealAdh" hidden-card onclick="selectMetricCard(this, 'openToSealAdh')" title="Click to focus on this metric">
                     <span class="card-hint">SELECT ▸</span>
                     <div class="kpi-card-header">Open→Seal</div>
                     <div class="kpi-main-pct text-success" id="m-openToSealAdh-pct">0%</div>
@@ -855,16 +841,6 @@ body.rail-collapsed { padding-left: 84px !important; }
                         <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="m-arrivalAdh-total">0</div></div>
                         <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Pass</div><div class="kpi-stat-val text-success" id="m-arrivalAdh-pass">0</div></div>
                         <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Fail</div><div class="kpi-stat-val text-danger" id="m-arrivalAdh-fail">0</div></div>
-                    </div>
-                </div></div>
-                <div class="col-md-2"><div class="kpi-card border-vehicle metric-card" data-metric="vehicleAdh" onclick="selectMetricCard(this, 'vehicleAdh')" title="Click to focus on this metric">
-                    <span class="card-hint">SELECT ▸</span>
-                    <div class="kpi-card-header">Vendor Adh</div>
-                    <div class="kpi-main-pct text-danger" id="m-vehicleAdh-pct">0%</div>
-                    <div class="kpi-stat-row">
-                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="m-vehicleAdh-total">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Pass</div><div class="kpi-stat-val text-success" id="m-vehicleAdh-pass">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Fail</div><div class="kpi-stat-val text-danger" id="m-vehicleAdh-fail">0</div></div>
                     </div>
                 </div></div>
             </div>
@@ -937,53 +913,6 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
             </div>
 
-            <!-- INDIVIDUAL METRIC VISUALIZATIONS -->
-            <h6 class="fw-bold text-muted text-uppercase mb-3" style="font-size:.75rem" data-view="viz"><i class="bi bi-eye me-1"></i>Individual Metric Visualizations</h6>
-            <div class="row g-3 mb-4" data-view="viz">
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-primary me-1"></i>Portal Adherence <span class="badge bg-primary-subtle text-primary" id="viz-portalAdh-badge">0%</span></h6>
-                        <div style="height:180px;position:relative;"><canvas id="viz-portalAdh"></canvas></div>
-                        <div class="text-muted small mt-1" id="viz-portalAdh-info"></div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-purple" style="color:#8b5cf6" me-1"></i>Port Act vs Plan <span class="badge bg-purple-subtle" style="background:#f3e8ff;color:#7e22ce;" id="viz-portalPlanVsActualAdh-badge">0%</span></h6>
-                        <div style="height:180px;position:relative;"><canvas id="viz-portalPlanVsActualAdh"></canvas></div>
-                        <div class="text-muted small mt-1" id="viz-portalPlanVsActualAdh-info"></div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-info me-1"></i>Gate→Open Adh <span class="badge bg-info-subtle" style="background:#e0f2fe;color:#0369a1;" id="viz-gateInToOpenAdh-badge">0%</span></h6>
-                        <div style="height:180px;position:relative;"><canvas id="viz-gateInToOpenAdh"></canvas></div>
-                        <div class="text-muted small mt-1" id="viz-gateInToOpenAdh-info"></div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-success me-1"></i>Open→Seal Adh <span class="badge bg-success-subtle" style="background:#dcfce7;color:#15803d;" id="viz-openToSealAdh-badge">0%</span></h6>
-                        <div style="height:180px;position:relative;"><canvas id="viz-openToSealAdh"></canvas></div>
-                        <div class="text-muted small mt-1" id="viz-openToSealAdh-info"></div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-warning me-1"></i>Arrival Adh <span class="badge bg-warning-subtle" style="background:#fef3c7;color:#92400e;" id="viz-arrivalAdh-badge">0%</span></h6>
-                        <div style="height:180px;position:relative;"><canvas id="viz-arrivalAdh"></canvas></div>
-                        <div class="text-muted small mt-1" id="viz-arrivalAdh-info"></div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-danger me-1"></i>Vendor Adh <span class="badge bg-danger-subtle" style="background:#fee2e2;color:#991b1b;" id="viz-vehicleAdh-badge">0%</span></h6>
-                        <div style="height:180px;position:relative;"><canvas id="viz-vehicleAdh"></canvas></div>
-                        <div class="text-muted small mt-1" id="viz-vehicleAdh-info"></div>
-                    </div>
-                </div>
-            </div>
-
             <!-- VARIANCE / SLAB / ADHOC / STATUS -->
             <div class="row g-3 mb-2" data-view="viz">
                 <div class="col-lg-3 col-md-6">
@@ -1045,15 +974,162 @@ body.rail-collapsed { padding-left: 84px !important; }
                                 <th>Gate→Open</th>
                                 <th>Open→Seal</th>
                                 <th>Arrival</th>
-                                <th>Vendor Adh</th>
+              
                                 <th>Shipments</th>
                                 <th>Util %</th>
                                 <th>Perfect</th>
-                                <th>Flag Hubs</th>
+                
                                 <th>RCA</th>
                             </tr>
                         </thead>
                         <tbody id="tripDetailsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ============ FINAL REPORT (inside LH Adherence) ============ -->
+            <div class="mt-4" id="finalReportSection">
+                <div class="page-strip">
+                    <div>
+                        <div class="k"><i class="bi bi-search-heart"></i>Final Report</div>
+                        <div class="d">Where planning and reality drift apart — attribute the misses, read the insights, pick the focus.</div>
+                    </div>
+                    <span class="m">MIDDLE-MILE · DIAGNOSE</span>
+                </div>
+                <div class="inner-tabs-row">
+                    <div class="inner-tabs">
+                        <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-graph-up-arrow"></i>Insights &amp; Charts</button>
+                        <button type="button" class="it-btn" data-iview="data" onclick="innerTab(this)"><i class="bi bi-table"></i>Data Tables</button>
+                    </div>
+                    <span class="it-meta" id="gapTabMeta">—</span>
+                </div>
+
+                <!-- PAGE HEADER -->
+                <div class="card p-3 mb-4 border-0 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <h5 class="fw-bold m-0"><i class="bi bi-search-heart me-2 text-primary"></i>Final Report
+                                <span class="text-muted fw-normal fs-6">— where time leaks, by checkpoint, vendor and lane</span></h5>
+                            <div class="small text-muted mt-1">Scope follows the <strong>Filters</strong> bar above — slice by hub, vendor, facility, flag or date, and every card, chart and table below updates together.</div>
+                        </div>
+                        <button class="btn btn-sm btn-success" onclick="copyDashboardReport()"><i class="bi bi-clipboard me-1"></i> Copy Gap Report</button>
+                    </div>
+                </div>
+
+                <!-- 1 · BIGGEST GAPS -->
+                <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="viz">
+                    <span class="badge text-bg-primary me-2">1</span><span class="text-muted">Biggest Gaps at a Glance</span>
+                    <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— click any card to drill in</span>
+                </h6>
+                <div class="row g-2 mb-4" id="insightCards" data-view="viz"></div>
+
+                <!-- 3 · VENDOR & LANE PERFORMANCE -->
+                <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="viz">
+                    <span class="badge text-bg-primary me-2">3</span><span class="text-muted">Vendor &amp; Lane Performance</span>
+                    <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— who and where the gaps come from</span>
+                </h6>
+                <div class="row g-3 mb-3" data-view="viz">
+                    <div class="col-lg-6">
+                        <div class="card p-3 border-0 shadow-sm chart-card h-100">
+                            <h6 class="fw-bold mb-3"><i class="bi bi-stack text-primary me-2"></i>Composite Adherence by Vendor <span class="text-muted fw-normal" style="font-size:.72rem">(top 10 by volume)</span></h6>
+                            <div class="chart-box"><canvas id="chartVendorAdh"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card p-3 border-0 shadow-sm chart-card h-100">
+                            <h6 class="fw-bold mb-3"><i class="bi bi-stopwatch text-success me-2"></i>Average Stage Durations</h6>
+                            <div class="chart-box"><canvas id="chartStageTime"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container mb-3" data-view="data">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-award me-2"></i>Vendor Scorecard</h5>
+                    <table id="vendorTable" class="table table-hover align-middle w-100 fs-7 table-sm">
+                        <thead class="table-light"><tr>
+                            <th>Vendor</th><th>Trips</th><th>Shipments</th><th>Portal %</th><th>Act vs Plan %</th><th>Open→Seal %</th><th>Arrival %</th><th>Avg Util</th><th>RCA Fill %</th><th>Composite</th>
+                        </tr></thead>
+                        <tbody id="vendorTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="row g-3 mb-3" data-view="data">
+                    <div class="col-lg-7">
+                        <div class="table-container h-100">
+                            <h5 class="fw-bold mb-3"><i class="bi bi-signpost-split me-2"></i>Lane Performance</h5>
+                            <table id="laneTable" class="table table-hover align-middle w-100 fs-7 table-sm">
+                                <thead class="table-light"><tr>
+                                    <th>Lane</th><th>Trips</th><th>Shipments</th><th>Adherence</th><th>Avg Dispatch Delay</th><th>Avg Open→Seal</th>
+                                </tr></thead>
+                                <tbody id="laneTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="table-container h-100">
+                            <h5 class="fw-bold mb-3"><i class="bi bi-cone-striped me-2 text-danger"></i>Repeat Offenders <span class="text-muted fw-normal fs-6">(trucks, 2+ trips)</span></h5>
+                            <table class="table table-hover align-middle w-100 fs-7 table-sm">
+                                <thead class="table-light"><tr><th>Plate</th><th>Vendor</th><th>Trips</th><th>Failed</th><th>Fail Rate</th></tr></thead>
+                                <tbody id="offenderBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container mb-4" data-view="data">
+                    <h5 class="fw-bold mb-1"><i class="bi bi-truck me-2"></i>Vendors — Distinct Trips</h5>
+                    <p class="text-muted small mb-3">Number of <strong>unique trips</strong> run by each vendor. “Rows” counts sheet rows; when it is higher than Distinct Trips the sheet has duplicate rows for the same trip.</p>
+                    <table id="vendorTripTable" class="table table-hover align-middle w-100 fs-7 table-sm">
+                        <thead class="table-light"><tr>
+                            <th>Vendor</th><th>Distinct Trips</th><th>Rows</th><th>Share of Trips</th>
+                        </tr></thead>
+                        <tbody id="vendorTripTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- 4 · LIVE OPERATIONS -->
+                <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="viz">
+                    <span class="badge text-bg-primary me-2">4</span><span class="text-muted">Live Operations</span>
+                    <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— dispatch vs arrival, from the occurrence sheet</span>
+                </h6>
+                <div class="table-container mb-4" id="liveGapBox" data-view="viz">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <h5 class="fw-bold m-0"><i class="bi bi-broadcast me-2 text-primary"></i>Live Tracking — Gap Analysis</h5>
+                        <span class="badge text-bg-light border" id="liveGapBadge">—</span>
+                    </div>
+                    <div class="row g-2 mb-3" id="liveInsightCards"></div>
+                    <div class="row g-3">
+                        <div class="col-lg-7">
+                            <div class="card p-3 border-0 shadow-sm chart-card h-100">
+                                <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line text-warning me-2"></i>Average Variance by Lane <span class="text-muted fw-normal" style="font-size:.72rem">(minutes · − early / + late)</span></h6>
+                                <div class="chart-box"><canvas id="chartLiveVar"></canvas></div>
+                            </div>
+                        </div>
+                        <div class="col-lg-5">
+                            <div class="card p-3 border-0 shadow-sm chart-card h-100">
+                                <h6 class="fw-bold mb-3"><i class="bi bi-diagram-3 text-danger me-2"></i>Why The Arrival Was Late</h6>
+                                <div class="chart-box"><canvas id="chartLiveCause"></canvas></div>
+                                <div class="text-muted mt-2" style="font-size:.72rem">Dispatched on time or early but arrived late → the time was lost after leaving, i.e. <strong>vendor / en-route delay</strong>.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5 · ACCOUNTABILITY -->
+                <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="data">
+                    <span class="badge text-bg-primary me-2">5</span><span class="text-muted">Accountability</span>
+                    <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— failed trips missing a root cause</span>
+                </h6>
+                <div class="table-container mb-2" data-view="data">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold m-0"><i class="bi bi-clipboard2-x me-2 text-danger"></i>Failed Trips Missing RCA <span class="text-muted fs-6 fw-normal">(fill these first)</span></h5>
+                        <span class="badge bg-danger-subtle text-danger fw-bold" id="pendingCountBadge">0 pending</span>
+                    </div>
+                    <table id="pendingTable" class="table table-hover align-middle w-100 fs-7 table-sm">
+                        <thead class="table-light"><tr>
+                            <th>Date</th><th>Trip ID</th><th>Route</th><th>Vendor</th><th>Checkpoints Missing RCA</th><th>Action</th>
+                        </tr></thead>
+                        <tbody id="pendingTableBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -1352,10 +1428,6 @@ body.rail-collapsed { padding-left: 84px !important; }
                         <label class="form-label fw-bold small text-muted">Vendors</label>
                         <select id="live-vendor" class="form-select select2-live" multiple="multiple"></select>
                     </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted" title="FLAG_HUBS column from the live sheet">Flag Hubs</label>
-                        <select id="live-flag" class="form-select select2-live" multiple="multiple"></select>
-                    </div>
                     <div class="col-6 col-md-2 d-flex align-items-end">
                         <div class="form-check ms-2">
                             <input type="checkbox" class="form-check-input" id="live-auto" onchange="toggleAutoRefresh()">
@@ -1418,197 +1490,6 @@ body.rail-collapsed { padding-left: 84px !important; }
                         </table>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- ============ PAGE 3: GAP ANALYSIS ============ -->
-        <div class="tab-pane fade" id="page-gap">
-            <div class="page-strip">
-                <div>
-                    <div class="k"><i class="bi bi-search-heart"></i>Final Report</div>
-                    <div class="d">Where planning and reality drift apart — attribute the misses, read the insights, pick the focus.</div>
-                </div>
-                <span class="m">MIDDLE-MILE · DIAGNOSE</span>
-            </div>
-            <div class="inner-tabs-row">
-                <div class="inner-tabs">
-                    <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-graph-up-arrow"></i>Insights &amp; Charts</button>
-                    <button type="button" class="it-btn" data-iview="data" onclick="innerTab(this)"><i class="bi bi-table"></i>Data Tables</button>
-                </div>
-                <span class="it-meta" id="gapTabMeta">—</span>
-            </div>
-
-            <!-- PAGE HEADER -->
-            <div class="card p-3 mb-4 border-0 shadow-sm">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                        <h5 class="fw-bold m-0"><i class="bi bi-search-heart me-2 text-primary"></i>Final Report
-                            <span class="text-muted fw-normal fs-6">— where time leaks, by checkpoint, vendor and lane</span></h5>
-                        <div class="small text-muted mt-1">Scope follows the <strong>Filters</strong> bar above — slice by hub, vendor, facility, flag or date, and every card, chart and table below updates together.</div>
-                    </div>
-                    <button class="btn btn-sm btn-success" onclick="copyDashboardReport()"><i class="bi bi-clipboard me-1"></i> Copy Gap Report</button>
-                </div>
-            </div>
-
-            <!-- 1 · BIGGEST GAPS -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="viz">
-                <span class="badge text-bg-primary me-2">1</span><span class="text-muted">Biggest Gaps at a Glance</span>
-                <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— click any card to drill in</span>
-            </h6>
-            <div class="row g-2 mb-4" id="insightCards" data-view="viz"></div>
-
-            <!-- 2 · CHECKPOINT BREAKDOWN -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="viz">
-                <span class="badge text-bg-primary me-2">2</span><span class="text-muted">Checkpoint Breakdown</span>
-                <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— adhered vs not adhered, per checkpoint</span>
-            </h6>
-            <div class="row g-3 mb-4" data-view="viz">
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm h-100">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-primary me-1"></i>Portal Adherence</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-portalAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm h-100">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle me-1" style="color:#8b5cf6"></i>Port Act vs Plan</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-portalPlanVsActualAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm h-100">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-info me-1"></i>Gate → Open Adh</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-gateInToOpenAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm h-100">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-success me-1"></i>Open → Seal Adh</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-openToSealAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm h-100">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-warning me-1"></i>Arrival Adherence</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-arrivalAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm h-100">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-danger me-1"></i>Vendor Compliance</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-vehicleAdh"></canvas></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3 · VENDOR & LANE PERFORMANCE -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="viz">
-                <span class="badge text-bg-primary me-2">3</span><span class="text-muted">Vendor &amp; Lane Performance</span>
-                <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— who and where the gaps come from</span>
-            </h6>
-            <div class="row g-3 mb-3" data-view="viz">
-                <div class="col-lg-6">
-                    <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-stack text-primary me-2"></i>Composite Adherence by Vendor <span class="text-muted fw-normal" style="font-size:.72rem">(top 10 by volume)</span></h6>
-                        <div class="chart-box"><canvas id="chartVendorAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                        <h6 class="fw-bold mb-3"><i class="bi bi-stopwatch text-success me-2"></i>Average Stage Durations</h6>
-                        <div class="chart-box"><canvas id="chartStageTime"></canvas></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="table-container mb-3" data-view="data">
-                <h5 class="fw-bold mb-3"><i class="bi bi-award me-2"></i>Vendor Scorecard</h5>
-                <table id="vendorTable" class="table table-hover align-middle w-100 fs-7 table-sm">
-                    <thead class="table-light"><tr>
-                        <th>Vendor</th><th>Trips</th><th>Shipments</th><th>Portal %</th><th>Act vs Plan %</th><th>Open→Seal %</th><th>Arrival %</th><th>Avg Util</th><th>RCA Fill %</th><th>Composite</th>
-                    </tr></thead>
-                    <tbody id="vendorTableBody"></tbody>
-                </table>
-            </div>
-
-            <div class="row g-3 mb-3" data-view="data">
-                <div class="col-lg-7">
-                    <div class="table-container h-100">
-                        <h5 class="fw-bold mb-3"><i class="bi bi-signpost-split me-2"></i>Lane Performance</h5>
-                        <table id="laneTable" class="table table-hover align-middle w-100 fs-7 table-sm">
-                            <thead class="table-light"><tr>
-                                <th>Lane</th><th>Trips</th><th>Shipments</th><th>Adherence</th><th>Avg Dispatch Delay</th><th>Avg Open→Seal</th>
-                            </tr></thead>
-                            <tbody id="laneTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="col-lg-5">
-                    <div class="table-container h-100">
-                        <h5 class="fw-bold mb-3"><i class="bi bi-cone-striped me-2 text-danger"></i>Repeat Offenders <span class="text-muted fw-normal fs-6">(trucks, 2+ trips)</span></h5>
-                        <table class="table table-hover align-middle w-100 fs-7 table-sm">
-                            <thead class="table-light"><tr><th>Plate</th><th>Vendor</th><th>Trips</th><th>Failed</th><th>Fail Rate</th></tr></thead>
-                            <tbody id="offenderBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="table-container mb-4" data-view="data">
-                <h5 class="fw-bold mb-1"><i class="bi bi-truck me-2"></i>Vendors — Distinct Trips</h5>
-                <p class="text-muted small mb-3">Number of <strong>unique trips</strong> run by each vendor. “Rows” counts sheet rows; when it is higher than Distinct Trips the sheet has duplicate rows for the same trip.</p>
-                <table id="vendorTripTable" class="table table-hover align-middle w-100 fs-7 table-sm">
-                    <thead class="table-light"><tr>
-                        <th>Vendor</th><th>Distinct Trips</th><th>Rows</th><th>Share of Trips</th>
-                    </tr></thead>
-                    <tbody id="vendorTripTableBody"></tbody>
-                </table>
-            </div>
-
-            <!-- 4 · LIVE OPERATIONS -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="viz">
-                <span class="badge text-bg-primary me-2">4</span><span class="text-muted">Live Operations</span>
-                <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— dispatch vs arrival, from the occurrence sheet</span>
-            </h6>
-            <div class="table-container mb-4" id="liveGapBox" data-view="viz">
-                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                    <h5 class="fw-bold m-0"><i class="bi bi-broadcast me-2 text-primary"></i>Live Tracking — Gap Analysis</h5>
-                    <span class="badge text-bg-light border" id="liveGapBadge">—</span>
-                </div>
-                <div class="row g-2 mb-3" id="liveInsightCards"></div>
-                <div class="row g-3">
-                    <div class="col-lg-7">
-                        <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                            <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line text-warning me-2"></i>Average Variance by Lane <span class="text-muted fw-normal" style="font-size:.72rem">(minutes · − early / + late)</span></h6>
-                            <div class="chart-box"><canvas id="chartLiveVar"></canvas></div>
-                        </div>
-                    </div>
-                    <div class="col-lg-5">
-                        <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                            <h6 class="fw-bold mb-3"><i class="bi bi-diagram-3 text-danger me-2"></i>Why The Arrival Was Late</h6>
-                            <div class="chart-box"><canvas id="chartLiveCause"></canvas></div>
-                            <div class="text-muted mt-2" style="font-size:.72rem">Dispatched on time or early but arrived late → the time was lost after leaving, i.e. <strong>vendor / en-route delay</strong>.</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 5 · ACCOUNTABILITY -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="data">
-                <span class="badge text-bg-primary me-2">5</span><span class="text-muted">Accountability</span>
-                <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— failed trips missing a root cause</span>
-            </h6>
-            <div class="table-container mb-2" data-view="data">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold m-0"><i class="bi bi-clipboard2-x me-2 text-danger"></i>Failed Trips Missing RCA <span class="text-muted fs-6 fw-normal">(fill these first)</span></h5>
-                    <span class="badge bg-danger-subtle text-danger fw-bold" id="pendingCountBadge">0 pending</span>
-                </div>
-                <table id="pendingTable" class="table table-hover align-middle w-100 fs-7 table-sm">
-                    <thead class="table-light"><tr>
-                        <th>Date</th><th>Trip ID</th><th>Route</th><th>Vendor</th><th>Checkpoints Missing RCA</th><th>Action</th>
-                    </tr></thead>
-                    <tbody id="pendingTableBody"></tbody>
-                </table>
             </div>
         </div>
 
@@ -1704,8 +1585,8 @@ body.rail-collapsed { padding-left: 84px !important; }
     <option value="Damaged shipment repacking"></option>
     <option value="Late dock / belt allocation"></option>
     <option value="System issue during scan/close"></option>
-</datalist>
-<datalist id="dl-arrivalRca">
+</datalist> <datalist id="dl-arrivalRca">
+
     <option value="Traffic congestion on route"></option>
     <option value="Vehicle breakdown en route"></option>
     <option value="Driver delayed / rest stop"></option>
@@ -1714,7 +1595,6 @@ body.rail-collapsed { padding-left: 84px !important; }
     <option value="Toll plaza delay"></option>
     <option value="Weather conditions"></option>
 </datalist>
-<datalist id="dl-vehicleRca">
     <option value="Wrong vehicle type assigned"></option>
     <option value="Vehicle capacity mismatch"></option>
     <option value="Non-compliant vehicle (docs)"></option>
@@ -1913,7 +1793,7 @@ const METRICS = [
   { key:'gateInToOpenAdh',       label:'Gate-in to Open',        short:'GO', color:'#06b6d4', rca:null,            remark:null },
   { key:'openToSealAdh',         label:'Open to Seal',           short:'OS', color:'#10b981', rca:'openSealRca',   remark:'openSealRemark' },
   { key:'arrivalAdh',            label:'Arrival Adherence',      short:'AR', color:'#f59e0b', rca:'arrivalRca',    remark:'arrivalRemark' },
-  { key:'vehicleAdh',            label:'Vehicle Compliance',     short:'VH', color:'#ef4444', rca:'vehicleRca',    remark:'vehicleRemark' }
+
 ];
 const CORE_KEYS = ['portalAdh','portalPlanVsActualAdh','openToSealAdh','arrivalAdh'];
 
@@ -2195,7 +2075,7 @@ function facetValue(row, facet){
     if (facet === 'src')    return row.srcHub;
     if (facet === 'dst')    return row.dstHub;
     if (facet === 'vendor') return row.vendor;
-    if (facet === 'flag')   return String(row.flagHubs || '').trim();
+    if (facet === 'flag')   return '';
     if (facet === 'facSrc') return row.facilitySrc || row.facility;
     if (facet === 'facDst') return row.facilityDst;
     if (facet === 'status') return row.tripStatus;
@@ -2407,7 +2287,7 @@ function pruneDashSelections(){
 const DASH_CHIP_FACETS = [
     ['#dash-src','Src Hub'], ['#dash-dst','Dst Hub'], ['#dash-vendor','Vendor'],
     ['#dash-fac-src','Facility SRC'], ['#dash-fac-dst','Facility DST'],
-    ['#dash-flag','Flag Hubs'], ['#dash-status','Trip Flag']
+    ['#dash-status','Trip Flag']
 ];
 
 /* The live "what is filtered + how many trips" strip under the filter bar. */
@@ -2466,7 +2346,7 @@ function applyDashboardFilters(){
     if (dashSrcSelection.length) data = data.filter(t => dashSrcSelection.includes(t.srcHub));
     if (dashDstSelection.length) data = data.filter(t => dashDstSelection.includes(t.dstHub));
     if (dashVendorSelection.length) data = data.filter(t => dashVendorSelection.includes(t.vendor));
-    if (dashFlagSelection.length) data = data.filter(t => dashFlagSelection.includes(String(t.flagHubs||'').trim()));
+
     if (dashPerfectSelection.length) data = data.filter(t => isPerfectFlag(t.perfectFlag));
     if (dashFacilitySrcSelection.length) data = data.filter(t => dashFacilitySrcSelection.includes(t.facilitySrc || t.facility));
     if (dashFacilityDstSelection.length) data = data.filter(t => dashFacilityDstSelection.includes(t.facilityDst));
@@ -2503,13 +2383,13 @@ function syncFilterBarVisibility(target){
         const activeBtn = document.querySelector('#pageTabs .nav-link.active');
         target = activeBtn ? activeBtn.getAttribute('data-bs-target') : '#page-dashboard';
     }
-    bar.style.display = (target === '#page-dashboard' || target === '#page-gap') ? '' : 'none';
+    bar.style.display = (target === '#page-dashboard' || target === '#finalReportSection') ? '' : 'none';
 }
 
 function renderActiveAuxPages(){
     if (!rawTrips.length) return;
-    const gap = document.getElementById('page-gap');
-    if (gap && gap.classList.contains('active')) {
+    const gap = document.getElementById('finalReportSection');
+    if (gap && gap.offsetParent !== null) {
         renderGap(getFilteredDashboardData());
         gapState = 'live';
     }
@@ -2538,7 +2418,7 @@ function populateDashFilters(){
     const curSrc = selValues('#dash-src');
     const curDst = selValues('#dash-dst');
     const curVen = selValues('#dash-vendor');
-    const curFlag = selValues('#dash-flag');
+    const curFlag = [];
     const curPerfect = selValues('#dash-perfect');
     const curFacSrc = selValues('#dash-fac-src');
     const curFacDst = selValues('#dash-fac-dst');
@@ -2547,7 +2427,7 @@ function populateDashFilters(){
     const outlets = uniq(t => t.srcHub);
     const dests  = uniq(t => t.dstHub);
     const vendors = uniq(t => t.vendor);
-    const flags    = uniq(t => t.flagHubs);
+
     const facSrcs  = uniq(t => t.facilitySrc || t.facility);
     const facDsts  = uniq(t => t.facilityDst);
     const statuses = uniq(t => t.tripStatus);
@@ -2555,7 +2435,7 @@ function populateDashFilters(){
     fillDashSelect('#dash-src', outlets, curSrc);
     fillDashSelect('#dash-dst', dests, curDst);
     fillDashSelect('#dash-vendor', vendors, curVen);
-    fillDashSelect('#dash-flag', flags, curFlag);
+
     fillDashSelect('#dash-perfect', ['YES','TRUE','1','Y','PERFECT','Perfect'], curPerfect);
     fillDashSelect('#dash-fac-src', facSrcs, curFacSrc);
     fillDashSelect('#dash-fac-dst', facDsts, curFacDst);
@@ -2673,7 +2553,6 @@ const METRIC_DEF = {
     gateInToOpenAdh:      { target:'Target ≤ 5 min',            how:'Minutes from source gate-in to dock open.', tol:'over 5 min = late', kind:'gate' },
     openToSealAdh:        { target:'Target window 6 – 30 min',  how:'Minutes from dock open to seal applied at the source hub.', tol:'over 30 = slow, under 6 = early', kind:'seal' },
     arrivalAdh:           { target:'Target ±15 min',            how:'Actual destination gate-in vs the planned arrival clock.', tol:'over +15 = late, under −15 = early', kind:'arrival' },
-    vehicleAdh:           { target:'Vehicle / document compliance', how:'No time variance on this checkpoint — the sheet flags the vehicle itself.', tol:'—', kind:'none' }
 };
 
 /* Returns { mins, measured, text, dir } for a trip + checkpoint. dir is
@@ -2778,9 +2657,8 @@ function renderMetricDetailRows(key, mode){
         const raw = String(t[key] === undefined || t[key] === null ? '' : t[key]).trim();
         const ok = isPass(t[key]);
         const badge = ok ? '<span class="badge bg-success-subtle text-success">Adhered</span>'
-                         : '<span class="badge bg-danger-subtle text-danger">' + esc(raw || 'blank') + '</span>';
-        const truck = [t.plateNr, t.vehicleType].filter(Boolean).join(' · ');
-        const measured = (key === 'vehicleAdh')
+                         : '<span class="badge bg-danger-subtle text-danger">' + esc(raw || 'blank') + '</span>';         const truck = [t.plateNr, t.vehicleType].filter(Boolean).join(' · ');        const measured = false
+
             ? esc(t.vehicleType || '—')
             : (v ? esc(v.measured) : '<span class="text-muted">—</span>');
         // RCA + Remark are read straight from the Line Haul sheet (no editing here).
@@ -2821,7 +2699,7 @@ function getFilteredDashboardData(except){
     if (except !== 'src'    && dashSrcSelection.length) data = data.filter(t => dashSrcSelection.includes(t.srcHub));
     if (except !== 'dst'    && dashDstSelection.length) data = data.filter(t => dashDstSelection.includes(t.dstHub));
     if (except !== 'vendor' && dashVendorSelection.length) data = data.filter(t => dashVendorSelection.includes(t.vendor));
-    if (except !== 'flag'   && dashFlagSelection.length) data = data.filter(t => dashFlagSelection.includes(String(t.flagHubs||'').trim()));
+
     if (dashPerfectSelection.length) data = data.filter(t => isPerfectFlag(t.perfectFlag));
     if (except !== 'facSrc' && dashFacilitySrcSelection.length) data = data.filter(t => dashFacilitySrcSelection.includes(t.facilitySrc || t.facility));
     if (except !== 'facDst' && dashFacilityDstSelection.length) data = data.filter(t => dashFacilityDstSelection.includes(t.facilityDst));
@@ -2925,7 +2803,8 @@ function bootApp() {
     if (missing.length) { showBootDiagnostics(missing); return; }
 
     rcaModalObj = new bootstrap.Modal(document.getElementById('rcaModal'));
-    document.querySelector('[data-bs-target="#page-gap"]').addEventListener('shown.bs.tab', () => {
+    // Final Report is now inside LH Adherence tab, render when dashboard shows
+    document.querySelector('[data-bs-target="#page-dashboard"]').addEventListener('shown.bs.tab', () => {
         if (gapState !== 'live' && rawTrips.length) { renderGap(getFilteredDashboardData()); gapState = 'live'; }
     });
     // Chart.js measures its container when it draws. A tab that was hidden when a
@@ -3130,7 +3009,6 @@ function loadLiveCsv() {
                 arrRaw:     row['Arriv_Time'] || '',
                 planArrRaw: row['arrival time'] || '',
                 arrAdhRaw:  row['Arrival_adherence'] || '',
-                flagHubs:   row['FLAG_HUBS'] || '',
                 // Signed variance in minutes (negative = early, positive = late),
                 // derived from the two clocks in the sheet.
                 outVarMin:  hhmmDiff(row['Out_Time'], row['plan time']),
@@ -3332,7 +3210,6 @@ function loadDataFromCSV() {
                     vehicleType: row['vehicle_type'] || '',
                     isAdhoc: row['is_adhoc'] || '',
                     perfectFlag: row['Perfect_Flag'] || row['PERFECT_FLAG'] || '',
-                    flagHubs: row['FLAG_HUBS'] || '',
                     rankTrip: row['RANK_TRIP'] || '',
                     // Facility now comes as a pair: Facility_SRC and Facility_DST.
                     // `facility` is kept as the source side so older charts/reports
@@ -3380,7 +3257,7 @@ function loadDataFromCSV() {
                     gateInToOpenAdh: rp('gate in to open adherence') || '',
                     openToSealAdh: rp('Open_to_seal_Adhrence') || '',
                     arrivalAdh: rp('Arrival_Adherence') || '',
-                    vehicleAdh: rp('Vendor_Adherence', 'vehicle_adherence') || '',
+
                     lmAdherence: rp('LM adherence') || '',
                     portalAdhRaw: rp('Portal_Adherence') || '',
 
@@ -3400,9 +3277,7 @@ function loadDataFromCSV() {
                     openSealRca: rp('Open_to_seal_Adhrence RCA', 'Open to seal Adhrence RCA') || '',
                     openSealRemark: rp('Remark - Open_to_seal', 'Remark - Open to seal') || '',
                     arrivalRca: rp('Arrival_Adherence RCA') || '',
-                    arrivalRemark: rp('Remark - Arrival') || '',
-                    vehicleRca: rp('vehicle_adherence RCA', 'Vendor_Adherence RCA') || '',
-                    vehicleRemark: rp('vehicle_adherence RCA Remark', 'Vendor_Adherence RCA Remark') || ''
+                    arrivalRemark: rp('Remark - Arrival') || ''
                 };
             });
             // Pre-parse live tracking dates once
@@ -3527,12 +3402,11 @@ function populateLiveFilters(){
     const curSrc = selValues('#live-src');
     const curDst = selValues('#live-dst');
     const curVen = selValues('#live-vendor');
-    const curFlag = selValues('#live-flag');
+    const curFlag = [];
     const uniq = (fn) => [...new Set(liveRows.map(fn).filter(x => x !== null && x !== undefined && String(x).trim() !== ''))].sort();
     fillLiveSelect('#live-src', uniq(t => t.srcHub), curSrc);
     fillLiveSelect('#live-dst', uniq(t => t.dstHub), curDst);
     fillLiveSelect('#live-vendor', uniq(t => t.vendor), curVen);
-    fillLiveSelect('#live-flag', uniq(t => t.flagHubs), curFlag);
 }
 
 function fillLiveSelect(sel, values, keepVals){
@@ -3645,7 +3519,6 @@ function getLiveScopeRows(except){
     if (except !== 'src'    && srcSel.length)  rows = rows.filter(t => srcSel.includes(t.srcHub));
     if (except !== 'dst'    && dstSel.length)  rows = rows.filter(t => dstSel.includes(t.dstHub));
     if (except !== 'vendor' && venSel.length)  rows = rows.filter(t => venSel.includes(t.vendor));
-    if (except !== 'flag'   && flagSel.length) rows = rows.filter(t => flagSel.includes(String(t.flagHubs).trim()));
     return rows;
 }
 
@@ -3752,6 +3625,28 @@ function pruneLiveSelections(){
     return dropped;
 }
 
+function getWeakVendors(rows, threshold){
+    // Find vendors with late arrivals above the threshold percentage
+    const vendorStats = {};
+    rows.forEach(t => {
+        const v = t.vendor;
+        if (!v) return;
+        if (!vendorStats[v]) vendorStats[v] = { total: 0, lateArrivals: 0 };
+        vendorStats[v].total++;
+        const s = String(t.arrAdhRaw || '').trim().toLowerCase();
+        if (s.includes('late')) vendorStats[v].lateArrivals++;
+    });
+    const result = [];
+    for (const [vendor, stats] of Object.entries(vendorStats)) {
+        if (stats.total < 3) continue; // ignore vendors with too few trips
+        const latePct = stats.lateArrivals / stats.total * 100;
+        if (latePct >= (threshold || 30)) {
+            result.push({ vendor, total: stats.total, lateArrivals: stats.lateArrivals, latePct: Math.round(latePct) });
+        }
+    }
+    return result.sort((a, b) => b.latePct - a.latePct);
+}
+
 function renderLiveTracking(){
     pruneLiveSelections();   // untick values a sibling live filter made impossible
     bumpFacets();   // live option counts are recomputed for this scope
@@ -3770,14 +3665,22 @@ function renderLiveTracking(){
     const planned  = rows.filter(t => String(t.outAdhRaw).trim() !== '' && String(t.outAdhRaw).trim().toLowerCase() !== 'extra');
     const dOk = planned.filter(t => String(t.outAdhRaw).trim().toLowerCase() === 'adhered').length;
     const plannedArr = rows.filter(t => String(t.arrAdhRaw).trim() !== '' && String(t.arrAdhRaw).trim().toLowerCase() !== 'extra');
-    const aOk = plannedArr.filter(t => String(t.arrAdhRaw).trim().toLowerCase() === 'adhered').length;
+    // Arrival adherence: only count "not adhered late" as failure (early is OK)
+    const aOk = plannedArr.filter(t => {
+        const s = String(t.arrAdhRaw).trim().toLowerCase();
+        return s === 'adhered' || !s.includes('late');
+    }).length;
+
+    // Weak vendors (late arrival rate >= 30%)
+    const weakVendors = getWeakVendors(rows, 30);
 
     document.getElementById('liveSummary').innerHTML = rows.length ? `
         <span class="live-kpi"><div class="l">Occurrences</div><div class="v">${fmt(rows.length)}</div></span>
         <span class="live-kpi"><div class="l">With Plan</div><div class="v">${fmt(planned.length)} / ${fmt(rows.length)}</div></span>
         <span class="live-kpi"><div class="l">Dispatch Adherence</div><div class="v" style="color:${adhColor(planned.length?dOk/planned.length*100:0)}">${planned.length?Math.round(dOk/planned.length*100):0}%</div></span>
         <span class="live-kpi"><div class="l">Arrival Adherence</div><div class="v" style="color:${adhColor(plannedArr.length?aOk/plannedArr.length*100:0)}">${plannedArr.length?Math.round(aOk/plannedArr.length*100):0}%</div></span>
-        <span class="live-kpi"><div class="l">Extra (no plan)</div><div class="v">${fmt(rows.length - planned.length)}</div></span>`
+        <span class="live-kpi"><div class="l">Extra (no plan)</div><div class="v">${fmt(rows.length - planned.length)}</div></span>
+        ${weakVendors.length ? `<span class="live-kpi" style="border-left:3px solid #dc2626;"><div class="l" style="color:#dc2626;">⚠ Weak Vendors</div><div class="v" style="color:#dc2626;font-size:.85rem;">${weakVendors.map(v=>`${esc(v.vendor)} (${v.latePct}%)`).join(' • ')}</div></span>` : '' }`
         : '';
 
     if (!rows.length) {
@@ -3861,6 +3764,17 @@ function liveAdhState(raw){
     if (s.includes('early')) return { cls:'adh-mid', label:'not adhered early' };
     if (s.includes('late'))  return { cls:'adh-bad', label:'not adhered late' };
     return { cls:'adh-na', label: s };
+}
+
+/* Arrival adherence that counts ONLY "not adhered late" as a failure.
+   "Not adhered early" is treated as adhered for this metric (early is fine). */
+function liveArrivalLateOnly(raw){
+    const s = String(raw||'').trim().toLowerCase();
+    if (!s || s==='extra')  return { cls:'adh-na',  label:'no data' };
+    if (s==='adhered')       return { cls:'adh-good', label:'adhered' };
+    if (s.includes('late'))  return { cls:'adh-bad', label:'not adhered late' };
+    // early or anything else = treated as adhered for late-only metric
+    return { cls:'adh-good', label:'adhered' };
 }
 
 function setLiveReportMode(m){
@@ -4122,7 +4036,7 @@ function buildDashboardTextReport(data){
     const facSrcSel = dashFacilitySrcSelection.length ? dashFacilitySrcSelection : [];
     const facDstSel = dashFacilityDstSelection.length ? dashFacilityDstSelection : [];
     const statusSel = dashStatusSelection.length ? dashStatusSelection : [];
-    const flagSel = dashFlagSelection.length ? dashFlagSelection : [];
+    const flagSel = [];
     const perfectSel = dashPerfectSelection.length ? dashPerfectSelection : [];
 
     const scope = [
@@ -4133,7 +4047,6 @@ function buildDashboardTextReport(data){
         facSrcSel.length ? `Facility SRC: ${facSrcSel.join(', ')}` : 'Facility SRC: All',
         facDstSel.length ? `Facility DST: ${facDstSel.join(', ')}` : 'Facility DST: All',
         statusSel.length ? `Status: ${statusSel.join(', ')}` : 'Status: All',
-        flagSel.length ? `Flag Hubs: ${flagSel.join(', ')}` : 'Flag Hubs: All',
         perfectSel.length ? `Perfect Flag: YES` : 'Perfect Flag: All'
     ].join(' | ');
 
@@ -4177,7 +4090,6 @@ function buildDashboardTextReport(data){
     const totalTarget = data.reduce((s,t)=>s+(t.targetCount||0),0);
     const comp = composite(data);
     const perfect = data.filter(t => CORE_KEYS.every(k => isPass(t[k]))).length;
-    const flagged = data.filter(t => String(t.flagHubs||'').trim() !== '').length;
     const perfectFlagged = data.filter(t => isPerfectFlag(t.perfectFlag)).length;
     const pendingRca = data.filter(rcaPendingTrip).length;
     const completed = data.filter(t => t.tripStatus === 'completed').length;
@@ -4189,7 +4101,6 @@ function buildDashboardTextReport(data){
     L.push(`Composite Adherence: ${Math.round(comp)}%  |  Avg Utilization: ${avgUtil===null?'—':Math.round(avgUtil)+'%'}`);
     L.push(`Perfect Trips (all 4 core): ${fmt(perfect)} (${total?Math.round(perfect/total*100):0}% )`);
     L.push(`Perfect Flag Trips: ${fmt(perfectFlagged)} (${total?Math.round(perfectFlagged/total*100):0}%)`);
-    L.push(`Trips with Flag Hubs: ${fmt(flagged)} (${total?Math.round(flagged/total*100):0}%)`);
     L.push(`RCA Pending: ${fmt(pendingRca)} failed checkpoints without RCA`);
     L.push('');
 
@@ -4391,7 +4302,6 @@ function renderDashboard(data){
     const lowUtil = data.filter(t => t.utilPct !== null && t.utilPct < BIZ.LOW_UTIL).length;
     const rc = rcaCounts(data);
     const pendingTrips = data.filter(rcaPendingTrip).length;
-    const flagHubsCount = data.filter(t => String(t.flagHubs||'').trim() !== '').length;
     const perfectFlagCount = data.filter(t => isPerfectFlag(t.perfectFlag)).length;
     const completedTrips = data.filter(t => t.tripStatus === 'completed').length;
     const inProgressTrips = data.filter(t => t.tripStatus === 'in_progress' || t.tripStatus === 'started').length;
@@ -4407,8 +4317,6 @@ function renderDashboard(data){
     document.getElementById('k-o2s-sub').innerText = avgO2S===null ? 'no timing data' : (avgO2S<=BIZ.O2S_TARGET? `within ${BIZ.O2S_TARGET}m target` : `above ${BIZ.O2S_TARGET}m target`);
     document.getElementById('k-util').innerText = avgUtil===null ? '—' : Math.round(avgUtil) + '%';
     document.getElementById('k-util-n').innerText = fmt(lowUtil);
-    document.getElementById('k-flag').innerText = total ? Math.round(flagHubsCount/total*100) + '%' : '—';
-    document.getElementById('k-flag-n').innerText = fmt(flagHubsCount);
 
     // ---- Shipments card: count_of_shipment + sort / non-sort split ----
     let shipTotal = 0, targetTotal = 0, sortW = 0, nonSortW = 0, mixW = 0;
@@ -4441,7 +4349,7 @@ function renderDashboard(data){
     }
 
     // ---- 6 core metric cards ----
-    const metrics = ['portalAdh','portalPlanVsActualAdh','gateInToOpenAdh','openToSealAdh','arrivalAdh','vehicleAdh'];
+    const metrics = ['portalAdh','portalPlanVsActualAdh','gateInToOpenAdh','openToSealAdh','arrivalAdh'];
     metrics.forEach(key => {
         const pass = data.filter(x => isPass(x[key])).length;
         const fail = total - pass;
@@ -4460,7 +4368,6 @@ function renderDashboard(data){
     renderMetricViz(data, 'gateInToOpenAdh', 'viz-gateInToOpenAdh', '#06b6d4');
     renderMetricViz(data, 'openToSealAdh', 'viz-openToSealAdh', '#10b981');
     renderMetricViz(data, 'arrivalAdh', 'viz-arrivalAdh', '#f59e0b');
-    renderMetricViz(data, 'vehicleAdh', 'viz-vehicleAdh', '#ef4444');
 
     renderDashboardCharts(data);
     renderTripDetailsTable(data);
@@ -6125,7 +6032,7 @@ function renderInsights(data){
     // Focus on the 6 key metrics
     const targetMetrics = METRICS; // All 6 metrics
 
-    // 1) Biggest SLA leak - from the 6 metrics
+    // 1) Biggest SLA leak - from the 5 core metrics
     const leak = targetMetrics.map(m => ({ m, f: data.filter(t=>!isPass(t[m.key])).length })).sort((a,b)=>b.f-a.f)[0];
     if (leak.f > 0) cards.push({ tone:'danger', title:'🔴 Biggest SLA Leak', main: esc(leak.m.label),
         act: 'metric:' + leak.m.key,
@@ -6163,18 +6070,6 @@ function renderInsights(data){
         act: 'gap',
         sub: `${Math.round(wl.adh)}% adherence over ${wl.trips} trips` });
 
-    // 6) Flag Hubs impact
-    const flagged = data.filter(t => String(t.flagHubs||'').trim() !== '');
-    if (flagged.length) {
-        const flaggedComp = composite(flagged);
-        const unflagged = data.filter(t => !String(t.flagHubs||'').trim());
-        const unflaggedComp = composite(unflagged);
-        const gap = unflaggedComp - flaggedComp;
-        cards.push({ tone: gap>5?'warning':'info', title:'🚩 Flag Hubs Impact',
-            act: 'gap',
-            main: `${fmt(flagged.length)} flagged trips (${Math.round(flaggedComp)}% adherence)`,
-            sub: `Unflagged: ${Math.round(unflaggedComp)}% • Gap: ${Math.round(gap)} pts` });
-    }
 
     // 7) Perfect Flag analysis
     const perfectFlagged = data.filter(t => isPerfectFlag(t.perfectFlag));
@@ -6256,9 +6151,9 @@ function insightAction(act){
     } else if (kind === 'log') {
         gotoLog(arg || 'failed', null);
     } else if (kind === 'report') {
-        showTab('#page-gap');
+        showTab('#page-dashboard');
     } else if (kind === 'gap') {
-        showTab('#page-gap');
+        showTab('#page-dashboard');
     } else if (kind === 'live') {
         showTab('#page-live');
     }
@@ -6474,7 +6369,6 @@ function renderGapMetricViz(data){
     renderMetricViz(data, 'gateInToOpenAdh', 'gap-viz-gateInToOpenAdh', '#06b6d4');
     renderMetricViz(data, 'openToSealAdh', 'gap-viz-openToSealAdh', '#10b981');
     renderMetricViz(data, 'arrivalAdh', 'gap-viz-arrivalAdh', '#f59e0b');
-    renderMetricViz(data, 'vehicleAdh', 'gap-viz-vehicleAdh', '#ef4444');
 }
 
 function renderPending(data){
@@ -6533,12 +6427,10 @@ function renderTripDetailsTable(data){
             <td>${isPass(t.portalPlanVsActualAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
             <td>${isPass(t.gateInToOpenAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
             <td>${isPass(t.openToSealAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
-            <td>${isPass(t.arrivalAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
-            <td>${isPass(t.vehicleAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
+            <td>${isPass(t.arrivalAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>             <td></td>
             <td data-order="${t.shipments||0}">${fmt(t.shipments)}</td>
             <td>${t.utilPct!==null&&t.utilPct!==undefined?`${Math.round(t.utilPct)}%`:''}</td>
             <td>${t.perfectFlag?`<span class="badge bg-success-subtle text-success">${esc(t.perfectFlag)}</span>`:''}</td>
-            <td>${esc(t.flagHubs||'')}</td>
             <td>${missingRcaFor(t).length?`<span class="text-danger">${missingRcaFor(t).length}</span>`:`<span class="text-success">✓</span>`}</td>
         </tr>`;
     }).join('');
@@ -6569,15 +6461,15 @@ function exportTripTable(){
     if (!data.length) { showToast('Nothing to export', 'danger'); return; }
 
     const headers = ['Date','Trip ID','Trip Code','Route','Src Hub','Dst Hub','Vendor','Plate','Status','Facility SRC','Facility DST',
-        'Portal Adh','Act/Plan Adh','Gate-Open Adh','Open-Seal Adh','Arrival Adh','Vendor Adh',
-        'Shipments','Sorted %','Non-Sort %','Util %','Perfect Flag','Flag Hubs',
+        'Portal Adh','Act/Plan Adh','Gate-Open Adh','Open-Seal Adh','Arrival Adh',
+        'Shipments','Sorted %','Non-Sort %','Util %','Perfect Flag',
         'Dispatch Variance (min)','Gate-in to Open (min)','Open to Seal (min)','Arrival Variance (min)'];
     const lines = [headers.map(csvCell).join(',')];
     data.forEach(t => lines.push([
         t.date, t.tripId, t.tripCode, t.routeCode, t.srcHub, t.dstHub, t.vendor, t.plateNr, t.tripStatus,
-        t.facilitySrc || t.facility, t.facilityDst,
-        t.portalAdh, t.portalPlanVsActualAdh, t.gateInToOpenAdh, t.openToSealAdh, t.arrivalAdh, t.vehicleAdh,
-        t.shipments, t.percentageOfSort, t.percentageOfNonSort, t.utilPct, t.perfectFlag, t.flagHubs,
+        t.facilitySrc || t.facility, t.facilityDst,         t.portalAdh, t.portalPlanVsActualAdh, t.gateInToOpenAdh, t.openToSealAdh, t.arrivalAdh,
+
+        t.shipments, t.percentageOfSort, t.percentageOfNonSort, t.utilPct, t.perfectFlag,
         t.varMinutes, t.gateInToOpenMin, t.openToSealMin, t.arrivalDeltaMin
     ].map(csvCell).join(',')));
 
@@ -6627,7 +6519,6 @@ function reportScopeText(){
     parts.push(dashFacilitySrcSelection.length ? `Facility SRC: ${dashFacilitySrcSelection.join(', ')}` : 'Facility SRC: All');
     parts.push(dashFacilityDstSelection.length ? `Facility DST: ${dashFacilityDstSelection.join(', ')}` : 'Facility DST: All');
     parts.push(dashStatusSelection.length ? `Status: ${dashStatusSelection.join(', ')}` : 'Status: All');
-    parts.push(dashFlagSelection.length ? `Flag Hubs: ${dashFlagSelection.join(', ')}` : 'Flag Hubs: All');
     if (dashPerfectSelection.length) parts.push('Perfect Flag: YES');
     return parts.join('  •  ');
 }
@@ -6966,7 +6857,7 @@ function exportReportCsv(){
     const data = getFilteredDashboardData();
     if (!data.length) { showToast('Nothing to export', 'danger'); return; }
     const headers = ['Date','Trip ID','Trip Code','Source Hub','Destination Hub','Vendor','Plate',
-        'Facility SRC','Facility DST','Flag Hubs','Trip Flag',
+        'Facility SRC','Facility DST','Trip Flag',
         ...METRICS.map(m => m.label + ' (Adhered?)'),
         ...METRICS.map(m => m.label + ' (measured)'),
         'Failed Checkpoints','Failed Checkpoint List','RCA Pending'];
@@ -6975,7 +6866,7 @@ function exportReportCsv(){
         const fails = METRICS.filter(m => !isPass(t[m.key]));
         lines.push([
             t.dateKey || t.date, t.tripId, t.tripCode, t.srcHub, t.dstHub, t.vendor, t.plateNr,
-            t.facilitySrc || t.facility, t.facilityDst, t.flagHubs, t.tripStatus,
+            t.facilitySrc || t.facility, t.facilityDst, t.tripStatus,
             ...METRICS.map(m => isPass(t[m.key]) ? 'Adhered' : 'Not adhered'),
             ...METRICS.map(m => { const v = metricVariance(t, m.key); return v ? v.text : ''; }),
             fails.length,
@@ -7116,7 +7007,7 @@ function openRcaModal(rowIdx) {
         createRcaSection("1. Portal Plan Vs Actual Adherence", t.portalPlanVsActualAdh, "portalRca", "portalRemark", t.portalRca, t.portalRemark) +
         createRcaSection("2. Open to Seal (Hub Operations)", t.openToSealAdh, "openSealRca", "openSealRemark", t.openSealRca, t.openSealRemark) +
         createRcaSection("3. Line Haul Arrival Adherence", t.arrivalAdh, "arrivalRca", "arrivalRemark", t.arrivalRca, t.arrivalRemark) +
-        createRcaSection("4. Vehicle Compliance & Type", t.vehicleAdh, "vehicleRca", "vehicleRemark", t.vehicleRca, t.vehicleRemark) +
+
         `<div class="rca-box-${isPass(t.gateInToOpenAdh)?'pass':'fail'}">
             <div class="d-flex justify-content-between align-items-center">
                 <strong>5. Gate-in to Open (informational)</strong>
@@ -7164,7 +7055,6 @@ function saveRcas() {
         portalRca: getVal("portalRca"),       portalRemark: getVal("portalRemark"),
         openSealRca: getVal("openSealRca"),   openSealRemark: getVal("openSealRemark"),
         arrivalRca: getVal("arrivalRca"),     arrivalRemark: getVal("arrivalRemark"),
-        vehicleRca: getVal("vehicleRca"),     vehicleRemark: getVal("vehicleRemark")
     };
 
     btn.disabled = true;
@@ -7173,8 +7063,8 @@ function saveRcas() {
     // Because we are using CSV, we save to the browser's memory for the session
     setTimeout(() => {
         const t = rawTrips.find(x => x.rowIdx === rowIdx);
-        if(t){
-            ['portalRca','portalRemark','openSealRca','openSealRemark','arrivalRca','arrivalRemark','vehicleRca','vehicleRemark']
+        if(t){             ['portalRca','portalRemark','openSealRca','openSealRemark','arrivalRca','arrivalRemark']
+
               .forEach(k => { if(payload[k] !== undefined) t[k] = payload[k]; });
         }
         rcaModalObj.hide();
@@ -7197,9 +7087,8 @@ function exportCsv(){
     const lines = [headers.map(csvCell).join(',')];
     data.forEach(t => lines.push([
         t.date, t.slot, t.tripId, t.tripCode, t.srcHub, t.dstHub, t.vendor, t.vendorType, t.vehicleType, t.plateNr, t.driver,
-        isYes(t.isAdhoc)?'Yes':'No', t.shipments, t.utilPct, t.varMinutes, t.gateInToOpenMin, t.openToSealMin, t.arrivedTatMin,
-        t.portalAdh, t.portalPlanVsActualAdh, t.gateInToOpenAdh, t.openToSealAdh, t.arrivalAdh, t.vehicleAdh,
-        t.portalRca, t.openSealRca, t.arrivalRca, t.vehicleRca
+        isYes(t.isAdhoc)?'Yes':'No', t.shipments, t.utilPct, t.varMinutes, t.gateInToOpenMin, t.openToSealMin, t.arrivedTatMin,         t.portalAdh, t.portalPlanVsActualAdh, t.gateInToOpenAdh, t.openToSealAdh, t.arrivalAdh,         t.portalRca, t.openSealRca, t.arrivalRca
+
     ].map(csvCell).join(',')));
 
     const blob = new Blob(["\ufeff" + lines.join('\n')], { type:'text/csv;charset=utf-8;' });
