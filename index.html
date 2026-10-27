@@ -509,9 +509,26 @@ body.rail-collapsed { padding-left: 84px !important; }
     .card.p-3.mb-4.border-0.shadow-sm { border-top: 3px solid var(--ink); }
 
     /* ===== Inner tabs: Dashboard view vs Data view inside every page ===== */
+    /* Sticky so the view switch stays reachable on long pages; the page strip
+       scrolls away above it and the tab bar parks under the top edge. */
     .inner-tabs { display: inline-flex; gap: 4px; flex-wrap: wrap; margin: 0 0 18px; padding: 5px 6px;
         background: #FFFDF2; border: 1px solid var(--warm-line); border-radius: 999px;
         box-shadow: var(--shadow-card); }
+    /* Right-hand scope chip living in the same bar */
+    .inner-tabs-row { display: flex; align-items: center; justify-content: space-between;
+        gap: 10px; flex-wrap: wrap; margin-bottom: 18px; position: sticky; top: 6px; z-index: 940; }
+    .inner-tabs-row .inner-tabs { margin-bottom: 0; }
+    .inner-tabs-row .it-meta { font-family: var(--font-num); font-size: .68rem; font-weight: 700;
+        color: #6b6353; background: #FFFDF2; border: 1px solid var(--warm-line); border-radius: 999px;
+        padding: 6px 13px; box-shadow: var(--shadow-card); white-space: nowrap; }
+    /* Numbered section headings used inside the pages */
+    .sec-head { display: flex; align-items: center; gap: 8px; font-family: var(--font-head);
+        font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .6px;
+        color: #8a7a5a; margin: 0 0 12px; }
+    .sec-head .n { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
+        border-radius: 7px; background: var(--ink); color: var(--noon); font-size: .66rem; }
+    .sec-head .hint { font-family: var(--font-body); font-weight: 600; text-transform: none;
+        letter-spacing: 0; color: var(--warm-sub); font-size: .72rem; }
     .inner-tabs .it-btn { border: 0; background: transparent; border-radius: 999px; padding: 7px 18px;
         font-family: var(--font-head); font-weight: 800; font-size: .74rem; text-transform: uppercase;
         letter-spacing: .5px; color: #8A7A5A; cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
@@ -714,9 +731,12 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
                 <span class="m">MIDDLE-MILE · LH ADH</span>
             </div>
-            <div class="inner-tabs">
-                <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-speedometer2"></i>Dashboard</button>
-                <button type="button" class="it-btn" data-iview="data" onclick="innerTab(this)"><i class="bi bi-table"></i>Trips Data</button>
+            <div class="inner-tabs-row">
+                <div class="inner-tabs">
+                    <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-speedometer2"></i>Dashboard</button>
+                    <button type="button" class="it-btn" data-iview="data" onclick="innerTab(this)"><i class="bi bi-table"></i>Trips Data</button>
+                </div>
+                <span class="it-meta" id="dashTabMeta">—</span>
             </div>
 
             <!-- BUSINESS KPI STRIP (hero band) -->
@@ -1048,9 +1068,12 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
                 <span class="m">WORKFORCE · PLANNING</span>
             </div>
-            <div class="inner-tabs">
-                <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-grid-1x2"></i>Overview</button>
-                <button type="button" class="it-btn" data-iview="data" onclick="innerTab(this)"><i class="bi bi-table"></i>Data &amp; Reports</button>
+            <div class="inner-tabs-row">
+                <div class="inner-tabs">
+                    <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-grid-1x2"></i>Overview</button>
+                    <button type="button" class="it-btn" data-iview="data" onclick="innerTab(this)"><i class="bi bi-table"></i>Data &amp; Reports</button>
+                </div>
+                <span class="it-meta" id="mpTabMeta">—</span>
             </div>
             <div class="card p-3 mb-4 border-0 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -1195,19 +1218,22 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                 </div>
 
-                <!-- VENDOR AGING -->
+                <!-- AGING — same pivot at vendor level and at hub level -->
                 <div class="card p-3 mb-4 border-0 shadow-sm" data-view="data">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                        <h6 class="fw-bold m-0"><i class="bi bi-hourglass-split me-2 text-primary"></i>Vendor aging
-                            <span class="text-muted fw-normal" style="font-size:.75rem">— headcount per vendor by aging (days worked in the 9 months before this month)</span></h6>
-                        <span class="small text-muted" id="mpVaNote"></span>
+                        <h6 class="fw-bold m-0"><i class="bi bi-hourglass-split me-2 text-primary"></i>Aging
+                            <span class="text-muted fw-normal" style="font-size:.75rem" id="mpAgingSub">— headcount per vendor by aging (days worked in the 9 months before this month)</span></h6>
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Aging level">
+                            <button type="button" class="btn btn-outline-primary active" id="aging-mode-vendor" onclick="mpSetAgingMode('vendor')" title="Headcount per vendor by aging band"><i class="bi bi-truck me-1"></i>By vendor</button>
+                            <button type="button" class="btn btn-outline-primary" id="aging-mode-hub" onclick="mpSetAgingMode('hub')" title="Headcount per hub by aging band"><i class="bi bi-building me-1"></i>By hub</button>
+                        </div>
                     </div>
                     <div class="row g-3">
                         <div class="col-lg-8">
                             <div style="max-height:380px;overflow-y:auto">
-                                <table class="table table-sm align-middle fs-7 mb-0">
+                                <table class="table table-sm align-middle fs-7 mb-0" id="mpAgingTable">
                                     <thead class="table-light"><tr>
-                                        <th>Vendor</th>
+                                        <th id="mpAgingNameHead">Vendor</th>
                                         <th class="text-center">0 – 1</th>
                                         <th class="text-center">2 – 4</th>
                                         <th class="text-center">5 – 7</th>
@@ -1217,13 +1243,17 @@ body.rail-collapsed { padding-left: 84px !important; }
                                         <th class="text-center">31 – 60</th>
                                         <th class="text-center">&gt; 60</th>
                                         <th class="text-center">Grand Total</th>
+                                        <th class="text-center" id="mpAgingExtraHead" title="Vendors working at this hub">Vendors</th>
                                     </tr></thead>
                                     <tbody id="mpVaBody"></tbody>
                                 </table>
                             </div>
+                            <div class="small text-muted mt-2" id="mpVaNote"></div>
                         </div>
                         <div class="col-lg-4">
+                            <h6 class="small fw-bold text-muted mb-1" id="mpAgingChartTitle">Average aging by vendor</h6>
                             <div style="height:300px;position:relative;"><canvas id="chartMpVendorAging"></canvas></div>
+                            <div class="small text-muted mt-2" id="mpAgingChartNote">Bars in amber are the youngest cohorts (30 days or less).</div>
                         </div>
                     </div>
                 </div>
@@ -1261,8 +1291,9 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                 </div>
 
-                <!-- EMPLOYEE GRID — always visible in both views -->
-                <div class="card p-3 mb-3 border-0 shadow-sm">
+                <!-- EMPLOYEE GRID — lives in Data & Reports with the other tables,
+                     so Overview stays KPIs + charts + Plan vs Actual -->
+                <div class="card p-3 mb-3 border-0 shadow-sm" data-view="data">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Employee roster <span class="text-muted fw-normal" style="font-size:.75rem" id="mpGridNote"></span></h6>
                         <div class="d-flex gap-2 flex-wrap">
@@ -1291,6 +1322,13 @@ body.rail-collapsed { padding-left: 84px !important; }
                     <div class="d">Who is filling now — live occupancy across hubs, destinations, and the current wave.</div>
                 </div>
                 <span class="m">MIDDLE-MILE · LIVE OPS</span>
+            </div>
+            <div class="inner-tabs-row">
+                <div class="inner-tabs">
+                    <button type="button" class="it-btn active" data-iview="board" onclick="innerTab(this)"><i class="bi bi-grid-3x3-gap"></i>Live Board</button>
+                    <button type="button" class="it-btn" data-iview="report" onclick="innerTab(this)"><i class="bi bi-clipboard-data"></i>Adherence &amp; Summary</button>
+                </div>
+                <span class="it-meta" id="liveTabMeta">—</span>
             </div>
             <div class="card p-3 mb-4 border-0 shadow-sm">
                 <div class="row g-2 align-items-end">
@@ -1336,10 +1374,10 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
             </div>
                     <div id="liveBoard" style="background:#fff;">
-                <div id="liveTables"></div>
+                <div id="liveTables" data-view="board"></div>
 
                 <!-- FULL ADHERENCE REPORT -->
-                <div class="table-container mt-4" id="liveReportBox">
+                <div class="table-container mt-4" id="liveReportBox" data-view="report">
                     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                         <h5 class="fw-bold m-0"><i class="bi bi-clipboard-data me-2 text-primary"></i>Live Adherence Report <span class="text-muted fs-6 fw-normal">— every occurrence, dispatched & arrival</span></h5>
                         <div class="btn-group btn-group-sm" id="reportChips">
@@ -1392,9 +1430,12 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
                 <span class="m">MIDDLE-MILE · DIAGNOSE</span>
             </div>
-            <div class="inner-tabs">
-                <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-graph-up-arrow"></i>Insights &amp; Charts</button>
-                <button type="button" class="it-btn" data-iview="data" onclick="innerTab(this)"><i class="bi bi-table"></i>Data Tables</button>
+            <div class="inner-tabs-row">
+                <div class="inner-tabs">
+                    <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-graph-up-arrow"></i>Insights &amp; Charts</button>
+                    <button type="button" class="it-btn" data-iview="data" onclick="innerTab(this)"><i class="bi bi-table"></i>Data Tables</button>
+                </div>
+                <span class="it-meta" id="gapTabMeta">—</span>
             </div>
 
             <!-- PAGE HEADER -->
@@ -2433,6 +2474,7 @@ function applyDashboardFilters(){
 
     renderDashboard(data);
     renderDashFilterChips(data.length);   // chips + live "trips in scope" badge
+    setViewMeta('gapTabMeta', fmt(data.length) + ' trips in scope');   // Final Report shares this scope
 
     // Keep the Gap Analysis (and any other aux page) in step with the filters.
     reportState = 'pending';
@@ -2934,6 +2976,13 @@ function innerTab(btn){
     pane.querySelectorAll('[data-view]').forEach(sec => {
         sec.classList.toggle('iview-hidden', sec.getAttribute('data-view') !== view);
     });
+    /* A chart built while its section was hidden keeps a 0x0 canvas, so every
+       switch re-measures whatever is now on screen. */
+    setTimeout(function(){
+        Object.keys(charts).forEach(function(k){
+            try { charts[k].resize(); } catch(e){ /* chart not on this view */ }
+        });
+    }, 60);
     /* remember this page's view for next visit */
     try {
         const saved = JSON.parse(localStorage.getItem(IT_VIEW_KEY) || '{}');
@@ -2956,6 +3005,13 @@ function innerTabInit(){
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', innerTabInit);
 else innerTabInit();
+
+/* Scope chip that sits on the right of the inner-tab bar, so the operator
+   always knows what the visible page is counting without scrolling back. */
+function setViewMeta(id, text){
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+}
 
 /* ===== Welcome gate ======================================================
    Shows a branded opening screen (time-based greeting + page choice)
@@ -3708,6 +3764,7 @@ function renderLiveTracking(){
     const venSel  = selValues('#live-vendor');
     const flagSel = selValues('#live-flag');
     const rows = getLiveScopeRows();
+    setViewMeta('liveTabMeta', fmt(rows.length) + ' occurrences · ' + rangeLabel);
 
     // Summary KPIs (Extra rows have no plan → excluded from adherence)
     const planned  = rows.filter(t => String(t.outAdhRaw).trim() !== '' && String(t.outAdhRaw).trim().toLowerCase() !== 'extra');
@@ -4339,6 +4396,7 @@ function renderDashboard(data){
     const completedTrips = data.filter(t => t.tripStatus === 'completed').length;
     const inProgressTrips = data.filter(t => t.tripStatus === 'in_progress' || t.tripStatus === 'started').length;
 
+    setViewMeta('dashTabMeta', fmt(total) + ' trips · ' + fmt(totalShip) + ' shipments');
     document.getElementById('k-trips').innerText = fmt(total);
     document.getElementById('k-ship').innerText = fmt(totalShip);
     document.getElementById('k-comp').innerText = Math.round(comp) + '%';
@@ -5131,15 +5189,31 @@ function renderMpGridDebounced(){
     }, 280);
 }
 
-/* Vendor aging pivot — headcount per vendor by aging band (days worked in
-   the 9 months before this month), with grand totals and column shares.
-   Exit-flagged people (Resigned / Terminate / Suspended) stay in the counts
-   and are reported on their own underneath the table. */
-function mpVendorAging(rows, dayCols){
+/* Aging pivot — headcount per vendor (or per hub) by aging band (days worked
+   in the 9 months before this month), with grand totals, column shares and how
+   many of the other side each row covers. Exit-flagged people (Resigned /
+   Terminate / Suspended) stay in the counts and are reported on their own.
+   mode = 'vendor' | 'hub' — the same maths, a different row key. */
+let mpAgingMode = 'vendor';
+let mpAgingScope = null;          // last rendered scope, so the level switch is instant
+function mpSetAgingMode(mode){
+    mpAgingMode = (mode === 'hub') ? 'hub' : 'vendor';
+    ['vendor', 'hub'].forEach(m => {
+        const b = document.getElementById('aging-mode-' + m);
+        if (b) b.classList.toggle('active', m === mpAgingMode);
+    });
+    /* Redraw just the aging card from the scope already on screen — a full
+       renderManpower() pass would re-count every facet for no reason. */
+    if (mpAgingScope) renderMpAging(mpAgingScope.rows, mpAgingScope.dayCols);
+    else if (mpLoaded) renderManpower();
+}
+function mpAgingPivot(rows, dayCols, mode){
+    const keyField   = mode === 'hub' ? 'hub' : 'vendor';
+    const otherField = mode === 'hub' ? 'vendor' : 'hub';
     const m = new Map();
     rows.forEach(t => {
-        const key = t.vendor || '—';
-        if (!m.has(key)) m.set(key, { key: key, bands: {}, total: 0, agingSum: 0, agingN: 0, exits: 0 });
+        const key = t[keyField] || '—';
+        if (!m.has(key)) m.set(key, { key: key, bands: {}, total: 0, agingSum: 0, agingN: 0, exits: 0, others: new Set() });
         const g = m.get(key);
         if (t.band !== null){
             g.bands[t.band] = (g.bands[t.band] || 0) + 1;
@@ -5147,18 +5221,21 @@ function mpVendorAging(rows, dayCols){
             g.agingSum += t.aging;
             g.agingN++;
         }
+        const o = t[otherField];
+        if (o) g.others.add(o);
         if (mpExitFlagged(t, dayCols)) g.exits++;
     });
     return Array.from(m.values()).map(g => ({
-        key: g.key, bands: g.bands, total: g.total, exits: g.exits,
+        key: g.key, bands: g.bands, total: g.total, exits: g.exits, others: g.others.size,
         avg: g.agingN ? Math.round(g.agingSum / g.agingN) : null
     })).sort((a, b) => b.total - a.total || String(a.key).localeCompare(String(b.key)));
 }
 
-function renderMpVendorAging(rows, dayCols){
+function renderMpAging(rows, dayCols){
     const body = document.getElementById('mpVaBody');
     if (!body) return;
-    const va = mpVendorAging(rows, dayCols);
+    const isHub = mpAgingMode === 'hub';
+    const va = mpAgingPivot(rows, dayCols, mpAgingMode);
     const bandKeys = MP_BANDS.map(b => b.k);
     const colTotals = {};
     bandKeys.forEach(k => { colTotals[k] = 0; });
@@ -5168,31 +5245,53 @@ function renderMpVendorAging(rows, dayCols){
         grand += v.total;
         exitsAll += v.exits;
     });
+    /* Headings follow the chosen level so the same table reads correctly. */
+    const nameHead = document.getElementById('mpAgingNameHead');
+    if (nameHead) nameHead.textContent = isHub ? 'Hub' : 'Vendor';
+    const extraHead = document.getElementById('mpAgingExtraHead');
+    if (extraHead) {
+        extraHead.textContent = isHub ? 'Vendors' : 'Hubs';
+        extraHead.title = isHub ? 'How many vendors work at this hub' : 'How many hubs this vendor works at';
+    }
+    const sub = document.getElementById('mpAgingSub');
+    if (sub) sub.textContent = isHub
+        ? '— headcount per hub by aging (days worked in the 9 months before this month)'
+        : '— headcount per vendor by aging (days worked in the 9 months before this month)';
+    const chartTitle = document.getElementById('mpAgingChartTitle');
+    if (chartTitle) chartTitle.textContent = 'Average aging by ' + (isHub ? 'hub' : 'vendor');
+    const chartNote = document.getElementById('mpAgingChartNote');
+    if (chartNote) chartNote.textContent = isHub
+        ? 'One bar per hub, worst-first. Amber bars are the youngest cohorts (30 days or less).'
+        : 'Bars in amber are the youngest cohorts (30 days or less).';
+
     const cell = n => '<td class="text-center">' + (n ? fmt(n) : '') + '</td>';
     body.innerHTML = va.length ? (
         va.map(v => '<tr>' +
             '<td class="fw-bold">' + esc(v.key) + '</td>' +
             bandKeys.map(k => cell(v.bands[k] || 0)).join('') +
             '<td class="text-center fw-bold">' + fmt(v.total) + '</td>' +
+            '<td class="text-center text-muted">' + (v.others || '') + '</td>' +
             '</tr>').join('') +
         '<tr class="table-light fw-bold">' +
             '<td>Grand Total</td>' +
             bandKeys.map(k => cell(colTotals[k])).join('') +
-            '<td class="text-center">' + fmt(grand) + '</td></tr>' +
+            '<td class="text-center">' + fmt(grand) + '</td>' +
+            '<td class="text-center text-muted">' + va.length + '</td></tr>' +
         '<tr class="table-light">' +
             '<td class="text-muted small">%</td>' +
             bandKeys.map(k => '<td class="text-center text-muted small">' + (grand ? (colTotals[k] / grand * 100).toFixed(2) + '%' : '—') + '</td>').join('') +
-            '<td class="text-center text-muted small">100%</td></tr>'
-    ) : '<tr><td colspan="10" class="text-center text-muted py-3">No employees in this scope</td></tr>';
+            '<td class="text-center text-muted small">100%</td><td></td></tr>'
+    ) : '<tr><td colspan="11" class="text-center text-muted py-3">No employees in this scope</td></tr>';
     const note = document.getElementById('mpVaNote');
     if (note) note.textContent = !va.length ? '' : (
         (mpState.cat.length
             ? 'Counting only ' + mpState.cat.map(k => MP_BUCKETS[k].label.toLowerCase()).join(' / ') +
               ' people on ' + mpRangeLabel() + ' — '
             : 'Counting everyone on the roster for ' + mpRangeLabel() + ' (present, week off, leave, no show) — tick Category = Present for working people only. ') +
-        'Exit flags (Resigned / Terminate / Suspended) are included in the counts — ' + fmt(exitsAll) + ' across all vendors.'
+        'Exit flags (Resigned / Terminate / Suspended) are included in the counts — ' + fmt(exitsAll) +
+        (isHub ? ' across all hubs.' : ' across all vendors.')
     );
-    const shown = va.filter(v => v.avg !== null).slice(0, 12);
+    const shown = va.filter(v => v.avg !== null).slice(0, isHub ? 14 : 12);
     const canvas = document.getElementById('chartMpVendorAging');
     if (!canvas) return;
     if (charts.mpVendorAging) charts.mpVendorAging.destroy();
@@ -5254,6 +5353,7 @@ function renderManpower(){
     }
     const scopeBadge = document.getElementById('mpScopeBadge');
     if (scopeBadge) scopeBadge.textContent = fmt(gridded.length) + (isMonth ? ' employees in scope' : ' employees on roster in scope');
+    setViewMeta('mpTabMeta', fmt(gridded.length) + ' employees · ' + mpRangeLabel());
 
     const sub = isMonth ? 'employee-days' : 'employees';
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
@@ -5281,7 +5381,8 @@ function renderManpower(){
         ? titleRows.map(mpRowHtml).join('')
         : '<tr><td colspan="7" class="text-center text-muted py-3">No marked attendance in this scope</td></tr>';
     renderMpGrid(gridded, dayCols);
-    renderMpVendorAging(gridded, dayCols);
+    mpAgingScope = { rows: gridded, dayCols: dayCols };   // lets the vendor/hub switch redraw without a full re-render
+    renderMpAging(gridded, dayCols);
     renderMpPlanVsActual();
     refreshMpCounts();
 }
@@ -6002,6 +6103,7 @@ function renderMpPlanVsActual(){
 }
 
 function renderGap(data){
+    setViewMeta('gapTabMeta', fmt(data.length) + ' trips in scope');
     renderInsights(data);
     renderGapCharts(data);
     renderVendorScorecard(data);
