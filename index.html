@@ -54,22 +54,53 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
 ::-webkit-scrollbar-thumb { background: #E9DFB8; border-radius: 999px; border: 2px solid #FBF3D8; }
 ::-webkit-scrollbar-thumb:hover { background: var(--noon); }
 
-/* Header — vertical left rail (fixed sidebar): charcoal with a yellow seam,
-   logo chip on top, stacked nav pills below, controls pinned to the bottom. */
+/* Header — vertical left rail: noon command sidebar with a dashed
+   "route line" running through the nav stations */
 .side-navbar {
-    background: linear-gradient(180deg, #0C0C0E 0%, #16171B 55%, #1B1C21 100%);
+    background:
+        radial-gradient(420px 240px at -30% -6%, rgba(254,238,0,.17), rgba(254,238,0,0) 62%),
+        radial-gradient(320px 220px at 130% 108%, rgba(254,238,0,.07), rgba(254,238,0,0) 60%),
+        linear-gradient(185deg, #0A0A0C 0%, #16171B 55%, #1F2027 100%);
     color: var(--brand-white);
-    position: fixed; top: 0; left: 0; bottom: 0; width: 228px; z-index: 1040;
-    padding: 20px 14px 16px; display: flex; flex-direction: column; gap: 14px;
+    position: fixed; top: 0; left: 0; bottom: 0; width: 244px; z-index: 1040;
+    padding: 22px 16px 16px; display: flex; flex-direction: column; gap: 14px;
     overflow-y: auto; overflow-x: hidden;
-    border-right: 1px solid rgba(254,238,0,.28);
-    box-shadow: 6px 0 24px rgba(0,0,0,.30);
+    border-right: 1px solid rgba(254,238,0,.30);
+    box-shadow: 10px 0 30px rgba(0,0,0,.35);
 }
-.side-brand { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; padding: 0 4px; }
-.side-navbar h4 { color: var(--brand-white); font-weight: 800; font-size: 1.22rem; letter-spacing: -.3px; line-height: 1.15; }
-.side-navbar .brand-slogan { font-family: var(--font-head); font-size: .58rem; font-weight: 700; color: var(--brand-yellow3); letter-spacing: 1.2px; text-transform: uppercase; }
+.side-brand { padding: 0 2px; }
+.side-brand .logo-chip { width: 54px; height: 54px; flex: 0 0 54px; border-radius: 16px; font-size: 1.2rem;
+    animation: chipGlow 3.5s ease-in-out infinite; }
+@keyframes chipGlow {
+    0%, 100% { box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 3px rgba(254,238,0,.18); }
+    50%      { box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 8px rgba(254,238,0,.05), 0 0 26px rgba(254,238,0,.38); }
+}
+.rail-kicker { display: block; margin-top: 3px; font-family: var(--font-num); font-size: .56rem;
+    font-weight: 700; letter-spacing: 2.6px; color: #B7AE8F; text-transform: uppercase; }
+.side-navbar h4 { font-size: 1.3rem; line-height: 1.15; }
+.side-navbar .brand-slogan { font-family: var(--font-head); font-size: .58rem; font-weight: 700;
+    color: #D9D2BE; letter-spacing: 1.2px; text-transform: uppercase; }
 .side-navbar .brand-slogan b { color: var(--noon); }
-.side-meta { padding: 0 4px; display: flex; flex-direction: column; gap: 6px; }
+
+/* Live sync status card */
+.rail-status { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.10);
+    border-radius: 14px; padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; }
+.rail-status .rail-dot { width: 9px; height: 9px; flex: 0 0 9px; margin-top: 4px; border-radius: 99px;
+    background: #2BD576; animation: railPulse 2.2s ease-out infinite; }
+@keyframes railPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(43,213,118,.50); }
+    70%  { box-shadow: 0 0 0 8px rgba(43,213,118,0); }
+    100% { box-shadow: 0 0 0 0 rgba(43,213,118,0); }
+}
+.rail-status .rail-cap { font-family: var(--font-head); font-size: .58rem; font-weight: 800;
+    letter-spacing: 1.8px; text-transform: uppercase; color: #E9E3D2; }
+.rail-status .meta-line { font-size: .62rem; line-height: 1.55; color: #CFC9B8; word-break: break-word; }
+.rail-status .build-tag { margin-top: 6px; }
+
+/* Section micro-labels */
+.rail-label { font-family: var(--font-head); font-size: .58rem; font-weight: 800; letter-spacing: 2.4px;
+    text-transform: uppercase; color: #8B8574; padding: 0 4px; margin-top: 2px; }
+
 .logo-chip { display:inline-flex; align-items:center; justify-content:center; width:46px; height:46px; flex:0 0 46px;
     border-radius: 13px; background: var(--noon); color:#16171B; font-family: var(--font-head); font-weight:900;
     font-size: 1.05rem; letter-spacing:-.5px; box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 3px rgba(254,238,0,.18); }
@@ -81,26 +112,51 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
         background:#f59e0b; color:#1b1b1b; border-radius:999px; padding:1px 8px; }
 
 /* Content shifts right to clear the fixed rail */
-body { padding-left: 228px !important; }
+body { padding-left: 244px !important; }
 
-/* Pill navigation: stacked in the rail — quiet on black, glowing yellow when active */
-#pageTabs { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+/* Route-line nav: stations on a dashed yellow road */
+#pageTabs { position: relative; display: flex; flex-direction: column; gap: 2px; width: 100%; padding-left: 4px; }
+#pageTabs::before { content: ''; position: absolute; left: 28px; top: 18px; bottom: 18px;
+    border-left: 2px dashed rgba(254,238,0,.22); }
 #pageTabs .nav-item { width: 100%; }
-#pageTabs .nav-link { display: flex; align-items: center; text-align: left; width: 100%;
-    border-radius: 12px; font-family: var(--font-head); font-weight: 800; font-size: .8rem;
-    color: #D8D2C0; padding: .6rem .85rem; transition: background .15s ease, color .15s ease, transform .12s ease; }
-#pageTabs .nav-link:hover:not(.active) { color: #fff; background: rgba(255,255,255,.08); transform: translateX(2px); }
-#pageTabs .nav-link.active { background: var(--noon); color: #16171B; box-shadow: 0 3px 0 rgba(0,0,0,.4); transform: none; }
-#pageTabs .nav-link i { margin-right: 8px; font-size: .95rem; }
-.side-controls { margin-top: auto; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,.14);
+#pageTabs .nav-link { position: relative; display: flex; align-items: center; text-align: left; width: 100%;
+    background: transparent; border: 1px solid transparent; border-radius: 14px;
+    font-family: var(--font-head); font-weight: 800; font-size: .8rem; color: #C9C3B2;
+    padding: .55rem .7rem; margin-bottom: 3px; z-index: 1;
+    transition: background .15s ease, color .15s ease; }
+#pageTabs .nav-link i { width: 30px; height: 30px; flex: 0 0 30px; display: inline-flex; align-items: center;
+    justify-content: center; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.10);
+    border-radius: 10px; margin-right: 10px; font-size: .95rem; color: #E9DFB8;
+    transition: background .15s ease, border-color .15s ease, color .15s ease; }
+#pageTabs .nav-link:hover:not(.active) { color: #fff; background: rgba(255,255,255,.06); }
+#pageTabs .nav-link:hover:not(.active) i { background: rgba(254,238,0,.14); border-color: rgba(254,238,0,.4); color: var(--noon); }
+#pageTabs .nav-link.active { background: linear-gradient(120deg, var(--noon) 0%, #FFE81A 100%); color: #16171B;
+    border-color: rgba(0,0,0,.2); box-shadow: 0 6px 16px rgba(254,238,0,.28); }
+#pageTabs .nav-link.active i { background: #16171B; border-color: #16171B; color: var(--noon); }
+#pageTabs .nav-link.active::after { content: ''; position: absolute; right: -12px; top: 50%;
+    transform: translateY(-50%); border: 7px solid transparent; border-left-color: var(--noon); }
+
+.side-controls { margin-top: auto; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,.12);
     display: flex; flex-direction: column; gap: 8px; }
 .side-controls .btn { width: 100%; justify-content: center; display: inline-flex; align-items: center; }
+#btnRefresh { background: linear-gradient(120deg, var(--noon), #FFEA1F); color: #16171B; border: none;
+    font-weight: 800; box-shadow: 0 3px 0 rgba(0,0,0,.4); }
+#btnRefresh:hover { background: linear-gradient(120deg, #FFE81A, var(--noon-sunk)); color: #16171B;
+    box-shadow: 0 5px 14px rgba(254,238,0,.30); }
+#btnRefresh:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,.4); }
+#autoRefreshBtn { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);
+    color: #E9E3D2; font-size: .74rem; }
+#autoRefreshBtn:hover { background: rgba(255,255,255,.12); color: #fff; }
+.rail-foot { text-align: center; font-family: var(--font-num); font-size: .56rem; letter-spacing: 1.8px;
+    color: #7A745F; text-transform: uppercase; }
 @media (max-width: 900px) {
     body { padding-left: 0 !important; }
     .side-navbar { position: static; width: auto; flex-direction: column; }
-    #pageTabs { flex-direction: row; flex-wrap: wrap; }
+    #pageTabs { flex-direction: row; flex-wrap: wrap; padding-left: 0; }
+    #pageTabs::before { display: none; }
     #pageTabs .nav-item { width: auto; }
     #pageTabs .nav-link { width: auto; display: inline-flex; border-radius: 999px; }
+    #pageTabs .nav-link.active::after { display: none; }
 }
 
 /* Numbers / metrics always Roboto Mono */
@@ -471,19 +527,25 @@ body { padding-left: 228px !important; }
 </head>
 <body>
 
-<!-- Header Navigation — fixed left rail -->
+<!-- Header Navigation — noon command rail (fixed left) -->
 <nav class="side-navbar">
     <div class="side-brand">
         <span class="logo-chip" title="Control Tower">CT</span>
         <div>
+            <span class="rail-kicker">Middle-Mile Ops</span>
             <h4 class="m-0 fw-bold">Control Tower</h4>
             <div class="brand-slogan">We <b>Build</b>, Guide, Excel &amp; Control.</div>
         </div>
     </div>
-    <div class="side-meta">
-        <div class="meta-line" id="sheetMeta">Connecting to sheet…</div>
-        <div class="build-tag" id="buildTag">script not running — this is an older copy of the file</div>
+    <div class="rail-status">
+        <span class="rail-dot"></span>
+        <div>
+            <div class="rail-cap">Sheet Sync — Live</div>
+            <div class="meta-line" id="sheetMeta">Connecting to sheet…</div>
+            <div class="build-tag" id="buildTag">script not running — this is an older copy of the file</div>
+        </div>
     </div>
+    <div class="rail-label">Navigate</div>
     <ul class="nav nav-pills" id="pageTabs">
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard"><i class="bi bi-speedometer2"></i> Executive Dashboard</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-gap"><i class="bi bi-search-heart"></i> Gap Analysis</button></li>
@@ -491,6 +553,7 @@ body { padding-left: 228px !important; }
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live"><i class="bi bi-broadcast"></i> Live Tracking</button></li>
     </ul>
     <div class="side-controls">
+        <div class="rail-label">Controls</div>
         <button class="btn btn-sm btn-primary" id="btnRefresh" title="Reload data from sheet" onclick="refreshData()"><i class="bi bi-arrow-repeat"></i> Refresh</button>
         <div class="dropdown d-grid">
             <button class="btn btn-sm btn-outline-light dropdown-toggle rounded-pill" id="autoRefreshBtn" data-bs-toggle="dropdown" title="Auto-reload from the sheet so edits appear here automatically"><i class="bi bi-clock-history me-1"></i><span id="autoRefreshLabel">Auto</span></button>
@@ -501,6 +564,7 @@ body { padding-left: 228px !important; }
                 <li><a class="dropdown-item" href="javascript:void(0)" onclick="setAutoRefresh(15)">Every 15 minutes</a></li>
             </ul>
         </div>
+        <div class="rail-foot">We Build · Guide · Excel · Control</div>
     </div>
 </nav>
 
