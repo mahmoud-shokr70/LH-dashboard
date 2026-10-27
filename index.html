@@ -1125,11 +1125,11 @@ body.rail-collapsed { padding-left: 84px !important; }
                         <select id="mp-vendor" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted mb-1" title="Insource = Core Colleague · Outsource = Associate / Senior Associate">Workforce Type</label>
-                        <div class="btn-group btn-group-sm w-100" id="mpTypeBtns" role="group" title="Insource = Core Colleague · Outsource = Associate / Senior Associate">
+                        <label class="form-label fw-bold small text-muted mb-1" title="Insource = Senior Associate / Associate · Outsource = Core Colleague">Workforce Type</label>
+                        <div class="btn-group btn-group-sm w-100" id="mpTypeBtns" role="group" title="Insource = Senior Associate / Associate · Outsource = Core Colleague">
                             <button type="button" class="btn btn-outline-primary active" data-mptype="all">All</button>
-                            <button type="button" class="btn btn-outline-primary" data-mptype="in" title="Core Colleague">Insource</button>
-                            <button type="button" class="btn btn-outline-primary" data-mptype="out" title="Associate / Senior Associate">Outsource</button>
+                            <button type="button" class="btn btn-outline-primary" data-mptype="in" title="Senior Associate / Associate">Insource</button>
+                            <button type="button" class="btn btn-outline-primary" data-mptype="out" title="Core Colleague">Outsource</button>
                         </div>
                     </div>
                     <div class="col-6 col-md-2">
@@ -1263,8 +1263,8 @@ body.rail-collapsed { padding-left: 84px !important; }
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-clipboard2-check me-2 text-primary"></i>Plan vs Actual <span id="mpPvaLeftNote" class="text-muted fw-normal" style="font-size:.75rem"></span></h6>
                         <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-outline-primary active" id="pva-sec-out" onclick="pvaSetSection('out')">Insource · Core</button>
-                            <button type="button" class="btn btn-outline-primary" id="pva-sec-in" onclick="pvaSetSection('in')">Outsource · Assoc (LM)</button>
+                            <button type="button" class="btn btn-outline-primary active" id="pva-sec-out" onclick="pvaSetSection('out')">Outsource · Core</button>
+                            <button type="button" class="btn btn-outline-primary" id="pva-sec-in" onclick="pvaSetSection('in')">Insource · Assoc (LM)</button>
                             <button type="button" class="btn btn-outline-primary" id="pva-sec-none" onclick="pvaSetSection('none')">Unplanned</button>
                         </div>
                     </div>
@@ -1736,7 +1736,7 @@ body.rail-collapsed { padding-left: 84px !important; }
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'V1';
+const BUILD = 'V2';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -4831,16 +4831,18 @@ const MP_META = [
 let mpAll = [], mpCols = [], mpLoaded = false, mpLoading = false, mpSearchTimer = null;
 const MP_ALL = '__all';
 let mpState = { dayFrom: MP_ALL, dayTo: MP_ALL, cat: [], band: [], hub: [], leg: [], title: [], shift: [], vendor: [], search: '' };
-/* Workforce type: 'all' | 'in' (Insource = Core Colleague) | 'out'
-   (Outsource = Associate / Senior Associate). Titles that name neither
-   bucket stay visible only under All. */
+/* Workforce type: 'all' | 'in' (Insource = Senior Associate / Associate) |
+   'out' (Outsource = Core Colleague). The roster shows Associate &
+   Senior Associate on the Noon vendor (own staff = insource), while the
+   "Core Colleague" title is the agency-supplied headcount (outsource).
+   Titles that name neither bucket stay visible only under All. */
 let mpTypeFilter = 'all';
 function mpTypeOk(t){
     if (mpTypeFilter === 'all') return true;
-    const s = String(t.title || '').toLowerCase();
-    const isOut = s.indexOf('associate') !== -1;
-    const isIn  = s.indexOf('core') !== -1;
-    return mpTypeFilter === 'out' ? isOut : isIn;
+    const s = String(t.title || '').toLowerCase().trim();
+    const isIn  = s.indexOf('associate') !== -1;   // Senior Associate, Associate
+    const isOut = s.indexOf('core') !== -1;        // Core Colleague
+    return mpTypeFilter === 'in' ? isIn : isOut;
 }
 
 /* Multi-select facets wired through the shared mcs component, exactly like
@@ -5162,8 +5164,8 @@ function resetMpFilters(){
     renderManpower();
 }
 
-/* Workforce-type segmented filter: All / Insource (Core Colleague) /
-   Outsource (Associate & Senior Associate). */
+/* Workforce-type segmented filter: All / Insource (Senior Associate &
+   Associate) / Outsource (Core Colleague). */
 function mpSetType(type, rerender){
     mpTypeFilter = (type === 'in' || type === 'out') ? type : 'all';
     document.querySelectorAll('#mpTypeBtns [data-mptype]').forEach(b => {
@@ -5343,7 +5345,7 @@ function renderManpower(){
     if (scope){
         const isWhole = dayCols.length === mpCols.length;
         const bits = [isWhole ? 'Scope: whole month' : 'Scope: ' + mpRangeLabel()];
-        if (mpTypeFilter !== 'all') bits.push('Type ' + (mpTypeFilter === 'in' ? 'Insource (Core Colleague)' : 'Outsource (Associate / Senior Associate)'));
+        if (mpTypeFilter !== 'all') bits.push('Type ' + (mpTypeFilter === 'in' ? 'Insource (Senior Associate / Associate)' : 'Outsource (Core Colleague)'));
         const lbl = { hub: 'Hub', leg: 'Facility leg', title: 'Title', shift: 'Shift', vendor: 'Vendor' };
         Object.keys(lbl).forEach(k => { if (!mpAny(mpState[k])) bits.push(lbl[k] + ' ' + mpState[k].join(', ')); });
         if (!mpAny(mpState.band)) bits.push('Aging ' + mpState.band.map(k => (MP_BANDS.find(b => b.k === k) || { label: k }).label).join(', '));
@@ -5872,8 +5874,8 @@ function renderPvaV2(hubBody, facBody, note){
         note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
             'Planned CC = one YF\'26 headcount from the plan sheet (not per-day) · Attend = present bucket on the DOD (Present + WPH + Work on Week Off), all filters apply · ' +
             'Max/Avg = the 3 most recent days with data ending today (' + pvWinLbl + '), independent of the day filter · Peak Deficit = ROUNDUP(Planned − Avg) · Fulfill % = Avg / Planned · ' +
-            'Outsource = Associate / Senior Associate (Noon) at LM-function plan rows · ' +
-            '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Core ' + fmt(oSum) + ' + Outsource ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
+            'Insource = Senior Associate / Associate (Noon vendor) at the LM-function plan rows · ' +
+            '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Outsource · Core ' + fmt(oSum) + ' + Insource · Assoc ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
         return;
     }
 
@@ -5926,8 +5928,8 @@ function renderPvaV2(hubBody, facBody, note){
         const nSum = Object.values(rangeT.none).reduce((a, b) => a + b, 0);
         note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
             'Plan = YF\'26 headcount from the plan sheet · Actual = present over the selected day range (all filters) · ' +
-            'Outsource covers Associate / Senior Associate (Noon vendor) at the plan\'s LM-function rows only · ' +
-            '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Core ' + fmt(oSum) + ' + Outsource ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
+            'Insource covers Senior Associate / Associate (Noon vendor) at the plan\'s LM-function rows only · ' +
+            '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Outsource · Core ' + fmt(oSum) + ' + Insource · Assoc ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
         return;
     }
 
@@ -5957,8 +5959,8 @@ function renderPvaV2(hubBody, facBody, note){
     const nSum2 = Object.values(rangeT.none).reduce((a, b) => a + b, 0);
     const iSum2 = Object.values(rangeT.in).reduce((a, b) => a + b, 0);
     note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
-        'People matching the filters whose section is neither Core Colleague (insource) nor the Outsource plan rows — add them to the plan sheet if they should be planned · ' +
-        '<strong>Overall present (range): ' + fmt(oSum2 + nSum2 + iSum2) + ' = Core ' + fmt(oSum2) + ' + Insource ' + fmt(iSum2) + ' + Unplanned ' + fmt(nSum2) + '</strong>';
+        'People matching the filters whose section is neither Core Colleague (outsource) nor the Insource plan rows — add them to the plan sheet if they should be planned · ' +
+        '<strong>Overall present (range): ' + fmt(oSum2 + nSum2 + iSum2) + ' = Outsource · Core ' + fmt(oSum2) + ' + Insource · Assoc ' + fmt(iSum2) + ' + Unplanned ' + fmt(nSum2) + '</strong>';
 }
 
 /* Legacy tables (old per-day plan layout), rebuilt on every manpower
@@ -6057,7 +6059,7 @@ function renderMpPlanVsActual(){
         facMap[fl].plan += p; facMap[fl].act += a;
     });
     const sx = pvaVarCell(sPlan, sAct);
-    const secLabel = sec === 'out' ? 'Insource · Core Colleague' : (sec === 'in' ? 'Outsource · Associate / Senior Associate (LM only)' : 'Unplanned — covered by neither plan block');
+    const secLabel = sec === 'out' ? 'Outsource · Core Colleague' : (sec === 'in' ? 'Insource · Senior Associate / Associate (LM only)' : 'Unplanned — covered by neither plan block');
     hubHtml += '<tr class="table-light fw-bold">' +
         '<td colspan="2">Total — ' + secLabel + '</td>' +
         '<td class="text-center">' + fmt(sPlan) + '</td>' +
@@ -6094,10 +6096,10 @@ function renderMpPlanVsActual(){
         });
     });
     const bits = ['Present = Present + WPH + Work on Week Off (same as Manpower)',
-        'Outsource covers Associate / Senior Associate (Noon vendor) at the LM rows only',
+        'Insource covers Senior Associate / Associate (Noon vendor) at the LM rows only',
         'Scope: ' + (dayCols.length === mpCols.length ? 'whole month' : mpRangeLabel()) +
         ' · filters narrow Actual only — Plan stays the sheet headcount',
-        '<strong>Overall present (all filters): ' + fmt(overall) + ' = Outsource ' + fmt(oAct) + ' + Outsource ' + fmt(iAct) + ' + Unplanned ' + fmt(nAct) + '</strong>',
+        '<strong>Overall present (all filters): ' + fmt(overall) + ' = Outsource · Core ' + fmt(oAct) + ' + Insource · Assoc ' + fmt(iAct) + ' + Unplanned ' + fmt(nAct) + '</strong>',
         'The Unplanned group has no plan row in the sheet — add them to the plan if they should be planned.'];
     note.innerHTML = '<i class="bi bi-funnel me-1"></i>' + bits.join(' · ');
 }
