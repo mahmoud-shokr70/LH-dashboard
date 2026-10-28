@@ -595,9 +595,10 @@ body.rail-collapsed { padding-left: 84px !important; }
     <div class="rail-label">Navigate</div>
     <ul class="nav nav-pills" id="pageTabs">
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard" title="LH Adherence"><i class="bi bi-speedometer2"></i> <span class="nl-txt">LH Adherence</span></button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-gap" title="Final Report"><i class="bi bi-search-heart"></i> <span class="nl-txt">Final Report</span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live" title="LH Live Tracking"><i class="bi bi-broadcast"></i> <span class="nl-txt">LH Live Tracking</span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn" title="Manpower"><i class="bi bi-people"></i> <span class="nl-txt">Manpower</span></button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live" title="Live Tracking LH"><i class="bi bi-broadcast"></i> <span class="nl-txt">Live Tracking LH</span></button></li>
+        <!-- Trip Log & RCA is reached from the report cards / welcome screen, not the rail -->
+        <li class="nav-item d-none"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-rca" id="rcaTabBtn" tabindex="-1" aria-hidden="true"></button></li>
     </ul>
     <div class="side-controls">
         <div class="rail-label">Controls</div>
@@ -643,17 +644,17 @@ body.rail-collapsed { padding-left: 84px !important; }
                     <div class="t"><i class="bi bi-speedometer2"></i>LH Adherence</div>
                     <div class="d">The morning picture — trips &amp; core adherence</div>
                 </button>
-                <button type="button" class="wl-page" data-target="#page-gap">
+                <button type="button" class="wl-page" data-target="#page-dashboard" data-fr="1">
                     <div class="t"><i class="bi bi-search-heart"></i>Final Report</div>
                     <div class="d">Where planning and reality drift apart</div>
+                </button>
+                <button type="button" class="wl-page" data-target="#page-live">
+                    <div class="t"><i class="bi bi-broadcast"></i>LH Live Tracking</div>
+                    <div class="d">Who is filling now — live occupancy</div>
                 </button>
                 <button type="button" class="wl-page" data-target="#page-mp">
                     <div class="t"><i class="bi bi-people"></i>Manpower</div>
                     <div class="d">Roster health &amp; Plan-vs-Actual</div>
-                </button>
-                <button type="button" class="wl-page" data-target="#page-live">
-                    <div class="t"><i class="bi bi-broadcast"></i>Live Tracking LH</div>
-                    <div class="d">Who is filling now — live occupancy</div>
                 </button>
                 <button type="button" class="wl-page" data-target="#page-rca">
                     <div class="t"><i class="bi bi-clipboard2-pulse"></i>Trip Log &amp; RCA</div>
@@ -667,11 +668,11 @@ body.rail-collapsed { padding-left: 84px !important; }
         </div>
     </div>
 
-    <!-- ============ GLOBAL TRIP FILTER BAR (shared by Executive Dashboard & Gap Analysis) ============ -->
+    <!-- ============ GLOBAL TRIP FILTER BAR (shared by LH Adherence & the Final Report) ============ -->
     <div id="globalFilterBar" class="card p-3 mb-4 border-0 shadow-sm" style="display:none;">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
             <h6 class="fw-bold m-0"><i class="bi bi-funnel-fill me-2 text-primary"></i>Filters
-                <span class="text-muted fw-normal" style="font-size:.78rem">— applies to Executive Dashboard &amp; Gap Analysis</span></h6>
+                <span class="text-muted fw-normal" style="font-size:.78rem">— applies to LH Adherence and every Final Report inside it</span></h6>
             <span class="text-muted" style="font-size:.72rem">Options update live; impossible picks clear themselves</span>
         </div>
         <div class="d-flex flex-wrap gap-2 align-items-end">
@@ -734,6 +735,7 @@ body.rail-collapsed { padding-left: 84px !important; }
             <div class="inner-tabs-row">
                 <div class="inner-tabs">
                     <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-speedometer2"></i>Dashboard</button>
+                    <button type="button" class="it-btn" data-iview="report" onclick="innerTab(this)"><i class="bi bi-clipboard2-data"></i>Final Report</button>
                     <button type="button" class="it-btn" data-iview="data" onclick="innerTab(this)"><i class="bi bi-table"></i>Trips Data</button>
                 </div>
                 <span class="it-meta" id="dashTabMeta">—</span>
@@ -766,11 +768,6 @@ body.rail-collapsed { padding-left: 84px !important; }
                     <div class="lbl">Avg Utilization</div>
                     <div class="val" style="color:#0ea5e9" id="k-util">—</div>
                     <div class="sub"><span id="k-util-n">0</span> trips under 70%</div>
-                </div></div>
-                <div class="col-6 col-md-2"><div class="kpi-mini">
-                    <div class="lbl">Flag Hubs</div>
-                    <div class="val" style="color:#f59e0b" id="k-flag">—</div>
-                    <div class="sub"><span id="k-flag-n">0</span> with flags</div>
                 </div></div>
                 </div>
             </div>
@@ -857,16 +854,6 @@ body.rail-collapsed { padding-left: 84px !important; }
                         <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Fail</div><div class="kpi-stat-val text-danger" id="m-arrivalAdh-fail">0</div></div>
                     </div>
                 </div></div>
-                <div class="col-md-2"><div class="kpi-card border-vehicle metric-card" data-metric="vehicleAdh" onclick="selectMetricCard(this, 'vehicleAdh')" title="Click to focus on this metric">
-                    <span class="card-hint">SELECT ▸</span>
-                    <div class="kpi-card-header">Vendor Adh</div>
-                    <div class="kpi-main-pct text-danger" id="m-vehicleAdh-pct">0%</div>
-                    <div class="kpi-stat-row">
-                        <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="m-vehicleAdh-total">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Pass</div><div class="kpi-stat-val text-success" id="m-vehicleAdh-pass">0</div></div>
-                        <div class="kpi-stat-item"><div class="kpi-stat-label text-danger">Fail</div><div class="kpi-stat-val text-danger" id="m-vehicleAdh-fail">0</div></div>
-                    </div>
-                </div></div>
             </div>
 
             <!-- SELECTED METRIC DETAIL PANEL -->
@@ -937,51 +924,42 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
             </div>
 
-            <!-- INDIVIDUAL METRIC VISUALIZATIONS -->
-            <h6 class="fw-bold text-muted text-uppercase mb-3" style="font-size:.75rem" data-view="viz"><i class="bi bi-eye me-1"></i>Individual Metric Visualizations</h6>
-            <div class="row g-3 mb-4" data-view="viz">
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-primary me-1"></i>Portal Adherence <span class="badge bg-primary-subtle text-primary" id="viz-portalAdh-badge">0%</span></h6>
-                        <div style="height:180px;position:relative;"><canvas id="viz-portalAdh"></canvas></div>
-                        <div class="text-muted small mt-1" id="viz-portalAdh-info"></div>
+            <!-- LH PLAN VS ACTUAL — plan sheet lane plan vs actual vendor trips -->
+            <div class="card p-3 mb-4 border-0 shadow-sm" data-view="viz" id="lhPlanCard">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-clipboard2-check me-2 text-primary"></i>LH Plan vs Actual
+                        <span class="text-muted fw-normal" style="font-size:.75rem">— lane plan (Per Trip + Fixed vendor) vs actual trips by any vendor except Noon &amp; Internal Transfer</span></h6>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="badge text-bg-light border" id="lhPlanRange">—</span>
+                        <span class="badge text-bg-primary" id="lhPlanVarBadge">Var —</span>
                     </div>
                 </div>
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-purple" style="color:#8b5cf6" me-1"></i>Port Act vs Plan <span class="badge bg-purple-subtle" style="background:#f3e8ff;color:#7e22ce;" id="viz-portalPlanVsActualAdh-badge">0%</span></h6>
-                        <div style="height:180px;position:relative;"><canvas id="viz-portalPlanVsActualAdh"></canvas></div>
-                        <div class="text-muted small mt-1" id="viz-portalPlanVsActualAdh-info"></div>
-                    </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6 col-md-3"><div class="mini-tile"><div class="l">Plan (vendor trips)</div><div class="v" id="lhPlanTotal">—</div><div class="small text-muted" id="lhPlanDays">—</div></div></div>
+                    <div class="col-6 col-md-3"><div class="mini-tile"><div class="l">Actual</div><div class="v text-primary" id="lhPlanActual">—</div><div class="small text-muted">excl. Noon / Internal Transfer</div></div></div>
+                    <div class="col-6 col-md-3"><div class="mini-tile"><div class="l">Variance</div><div class="v" id="lhPlanVar">—</div><div class="small text-muted">actual − plan</div></div></div>
+                    <div class="col-6 col-md-3"><div class="mini-tile"><div class="l">Lanes short</div><div class="v text-danger" id="lhPlanShort">—</div><div class="small text-muted">lanes below plan</div></div></div>
                 </div>
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-info me-1"></i>Gate→Open Adh <span class="badge bg-info-subtle" style="background:#e0f2fe;color:#0369a1;" id="viz-gateInToOpenAdh-badge">0%</span></h6>
-                        <div style="height:180px;position:relative;"><canvas id="viz-gateInToOpenAdh"></canvas></div>
-                        <div class="text-muted small mt-1" id="viz-gateInToOpenAdh-info"></div>
-                    </div>
+                <div class="d-flex justify-content-between align-items-center px-2 py-1 mb-2" style="background:#FFFDF2;border:1px solid #e8e2cf;border-radius:8px">
+                    <span class="small fw-bold text-uppercase text-muted" style="letter-spacing:.6px">Date</span>
+                    <span class="small fw-bold" id="lhPlanDate">—</span>
                 </div>
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-success me-1"></i>Open→Seal Adh <span class="badge bg-success-subtle" style="background:#dcfce7;color:#15803d;" id="viz-openToSealAdh-badge">0%</span></h6>
-                        <div style="height:180px;position:relative;"><canvas id="viz-openToSealAdh"></canvas></div>
-                        <div class="text-muted small mt-1" id="viz-openToSealAdh-info"></div>
-                    </div>
+                <div style="overflow:auto;max-height:460px">
+                    <table class="table table-sm table-hover align-middle fs-7 mb-0" id="lhPlanTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Source hub</th>
+                                <th>Destination</th>
+                                <th class="text-center">Plan</th>
+                                <th class="text-center">Actual</th>
+                                <th class="text-center">Var</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lhPlanBody"></tbody>
+                        <tfoot id="lhPlanFoot"></tfoot>
+                    </table>
                 </div>
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-warning me-1"></i>Arrival Adh <span class="badge bg-warning-subtle" style="background:#fef3c7;color:#92400e;" id="viz-arrivalAdh-badge">0%</span></h6>
-                        <div style="height:180px;position:relative;"><canvas id="viz-arrivalAdh"></canvas></div>
-                        <div class="text-muted small mt-1" id="viz-arrivalAdh-info"></div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="card p-3 border-0 shadow-sm chart-card">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-danger me-1"></i>Vendor Adh <span class="badge bg-danger-subtle" style="background:#fee2e2;color:#991b1b;" id="viz-vehicleAdh-badge">0%</span></h6>
-                        <div style="height:180px;position:relative;"><canvas id="viz-vehicleAdh"></canvas></div>
-                        <div class="text-muted small mt-1" id="viz-vehicleAdh-info"></div>
-                    </div>
-                </div>
+                <div class="small text-muted mt-2" id="lhPlanNote">Loading the LH plan sheet…</div>
             </div>
 
             <!-- VARIANCE / SLAB / ADHOC / STATUS -->
@@ -1057,6 +1035,9 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </table>
                 </div>
             </div>
+
+            <!-- FINAL REPORT SLOT — the shared report panel is mounted here on demand -->
+            <div class="fr-slot" data-view="report" data-fr-slot="dash"></div>
         </div>
 
         <!-- ============ PAGE: MANPOWER / ATTENDANCE ============ -->
@@ -1070,16 +1051,17 @@ body.rail-collapsed { padding-left: 84px !important; }
             </div>
             <div class="inner-tabs-row">
                 <div class="inner-tabs">
-                    <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-grid-1x2"></i>Overview</button>
-                    <button type="button" class="it-btn" data-iview="data" onclick="innerTab(this)"><i class="bi bi-table"></i>Data &amp; Reports</button>
+                    <button type="button" class="it-btn active" data-iview="main" onclick="innerTab(this)"><i class="bi bi-grid-1x2"></i>Manpower</button>
+                    <button type="button" class="it-btn" data-iview="report" onclick="innerTab(this)"><i class="bi bi-clipboard2-data"></i>Final Report</button>
                 </div>
                 <span class="it-meta" id="mpTabMeta">—</span>
             </div>
-            <div class="card p-3 mb-4 border-0 shadow-sm">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <!-- FILTERS (attendance-local, each option carries its count) -->
+            <div class="card p-3 mb-4 border-0 shadow-sm" id="mpFilterCard" style="display:none;">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2" style="border-bottom:1px solid #ece7d5">
                     <div>
-                        <h5 class="fw-bold m-0"><i class="bi bi-people me-2 text-primary"></i>Manpower &amp; Attendance
-                            <span class="text-muted fw-normal fs-6"> — who is on roster, present, off or absent</span></h5>
+                        <h6 class="fw-bold m-0"><i class="bi bi-sliders me-2 text-primary"></i>Filters
+                            <span class="text-muted fw-normal" style="font-size:.78rem">— narrow the roster, the KPIs and every table below follow</span></h6>
                         <div class="small text-muted mt-1" id="mpScopeLine">—</div>
                     </div>
                     <div class="d-flex align-items-center gap-2">
@@ -1087,10 +1069,6 @@ body.rail-collapsed { padding-left: 84px !important; }
                         <button class="btn btn-sm btn-outline-secondary" onclick="loadManpowerCsv(true)" title="Reload the Manpower sheet"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
                     </div>
                 </div>
-            </div>
-
-            <!-- FILTERS (attendance-local, each option carries its count) -->
-            <div class="card p-3 mb-4 border-0 shadow-sm" id="mpFilterCard" style="display:none;">
                 <div class="row g-2 align-items-end">
                     <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted mb-1">Day From</label>
@@ -1164,62 +1142,56 @@ body.rail-collapsed { padding-left: 84px !important; }
 
             <!-- CONTENT -->
             <div id="mpContent" style="display:none;">
+                <div class="sec-head"><span class="n">1</span>Attendance at a glance <span class="hint">— roster, present rate, leave and no-shows</span></div>
                 <!-- KPI STRIP (manpower) -->
-                <div class="row g-3 mb-4" data-view="viz">
-                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">On roster</div><div class="val" id="mp-k-roster">—</div><div class="sub" id="mp-k-roster-sub">employees</div></div></div>
-                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">Present</div><div class="val text-success" id="mp-k-present">—</div><div class="sub">incl. WPH &amp; WO work</div></div></div>
-                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">Present rate</div><div class="val text-success" id="mp-k-rate">—</div><div class="sub">of on-roster</div></div></div>
-                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">Week off</div><div class="val text-warning" id="mp-k-wo">—</div><div class="sub">planned off</div></div></div>
-                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">On leave</div><div class="val text-primary" id="mp-k-leave">—</div><div class="sub" id="mp-k-leave-sub">all leave types</div></div></div>
-                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">No show</div><div class="val text-danger" id="mp-k-ns">—</div><div class="sub">unplanned gap</div></div></div>
-                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">Avg aging</div><div class="val text-primary" id="mp-k-aging">—</div><div class="sub">days worked in 9 months</div></div></div>
-                    <div class="col-6 col-md-2"><div class="kpi-mini"><div class="lbl">New — 0 days</div><div class="val text-warning" id="mp-k-new">—</div><div class="sub">no work in the 9m window</div></div></div>
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">On roster</div><div class="val" id="mp-k-roster">—</div><div class="sub" id="mp-k-roster-sub">employees</div></div></div>
+                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Present</div><div class="val text-success" id="mp-k-present">—</div><div class="sub">incl. WPH &amp; WO work</div></div></div>
+                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Present rate</div><div class="val text-success" id="mp-k-rate">—</div><div class="sub">of on-roster</div></div></div>
+                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Week off</div><div class="val text-warning" id="mp-k-wo">—</div><div class="sub">planned off</div></div></div>
+                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">On leave</div><div class="val text-primary" id="mp-k-leave">—</div><div class="sub" id="mp-k-leave-sub">all leave types</div></div></div>
+                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">No show</div><div class="val text-danger" id="mp-k-ns">—</div><div class="sub">unplanned gap</div></div></div>
+                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Avg aging</div><div class="val text-primary" id="mp-k-aging">—</div><div class="sub">days worked in 9 months</div></div></div>
+                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">New — 0 days</div><div class="val text-warning" id="mp-k-new">—</div><div class="sub">no work in the 9m window</div></div></div>
                 </div>
 
-                <!-- CHARTS -->
-                <div class="row g-3 mb-4" data-view="viz">
-                    <div class="col-lg-7">
-                        <div class="card p-3 border-0 shadow-sm chart-card">
-                            <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Manpower coverage by day <span class="text-muted fw-normal" style="font-size:.75rem">— headcount stacked</span></h6>
-                            <div style="height:280px;position:relative;"><canvas id="chartMpTrend"></canvas></div>
+                <div class="sec-head"><span class="n">2</span>Plan vs Actual <span class="hint">— present roster against the plan sheet, by hub and facility</span></div>
+                <!-- PLAN VS ACTUAL — always visible in both Overview and Data views (daily workhorse) -->
+                <div class="card p-3 mb-4 border-0 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-clipboard2-check me-2 text-primary"></i>Plan vs Actual <span id="mpPvaLeftNote" class="text-muted fw-normal" style="font-size:.75rem"></span></h6>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-primary active" id="pva-sec-out" onclick="pvaSetSection('out')">Outsource · Core</button>
+                            <button type="button" class="btn btn-outline-primary" id="pva-sec-in" onclick="pvaSetSection('in')">Insource · Assoc (LM)</button>
+                            <button type="button" class="btn btn-outline-primary" id="pva-sec-none" onclick="pvaSetSection('none')">Unplanned</button>
                         </div>
                     </div>
-                    <div class="col-lg-5">
-                        <div class="card p-3 border-0 shadow-sm chart-card">
-                            <h6 class="fw-bold mb-3"><i class="bi bi-building-gear me-2 text-primary"></i>Coverage by hub <span class="text-muted fw-normal" style="font-size:.75rem" id="chartMpHubSub">—</span></h6>
-                            <div style="height:280px;position:relative;"><canvas id="chartMpHub"></canvas></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- BREAKDOWN TABLES -->
-                <div class="row g-3 mb-4" data-view="data">
-                    <div class="col-lg-6">
-                        <div class="card p-3 border-0 shadow-sm">
-                            <h6 class="fw-bold mb-2"><i class="bi bi-building me-2 text-primary"></i>By hub</h6>
-                            <div style="max-height:320px;overflow-y:auto">
+                    <div class="row g-3">
+                        <div class="col-lg-7">
+                            <h6 class="small fw-bold text-muted mb-1" id="mpPvaLeftTitle">Core Colleague by hub</h6>
+                            <div style="max-height:520px;overflow-y:auto">
                                 <table class="table table-sm align-middle fs-7 mb-0">
-                                    <thead class="table-light"><tr><th>Hub</th><th>Roster</th><th>Present</th><th>Rate</th><th>Week off</th><th>Leave</th><th>No show</th></tr></thead>
-                                    <tbody id="mpHubBody"></tbody>
+                                    <thead class="table-light" id="mpPvaHubHead"></thead>
+                                    <tbody id="mpPvaHubBody"></tbody>
                                 </table>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-lg-6">
-                        <div class="card p-3 border-0 shadow-sm">
-                            <h6 class="fw-bold mb-2"><i class="bi bi-mortarboard me-2 text-primary"></i>By title</h6>
-                            <div style="max-height:320px;overflow-y:auto">
+                        <div class="col-lg-5">
+                            <h6 class="small fw-bold text-muted mb-1" id="mpPvaRightTitle">Detail</h6>
+                            <div style="max-height:520px;overflow-y:auto">
                                 <table class="table table-sm align-middle fs-7 mb-0">
-                                    <thead class="table-light"><tr><th>Title</th><th>Roster</th><th>Present</th><th>Rate</th><th>Week off</th><th>Leave</th><th>No show</th></tr></thead>
-                                    <tbody id="mpTitleBody"></tbody>
+                                    <thead class="table-light" id="mpPvaFacHead"></thead>
+                                    <tbody id="mpPvaFacBody"></tbody>
                                 </table>
                             </div>
+                            <div class="small text-muted mt-2" id="mpPvaNote"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- AGING — same pivot at vendor level and at hub level -->
-                <div class="card p-3 mb-4 border-0 shadow-sm" data-view="data">
+                <div class="sec-head"><span class="n">3</span>Aging <span class="hint">— days worked over the last 9 months, by vendor or by hub</span></div>
+<!-- AGING — same pivot at vendor level and at hub level -->
+                <div class="card p-3 mb-4 border-0 shadow-sm">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-hourglass-split me-2 text-primary"></i>Aging
                             <span class="text-muted fw-normal" style="font-size:.75rem" id="mpAgingSub">— headcount per vendor by aging (days worked in the 9 months before this month)</span></h6>
@@ -1258,42 +1230,37 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                 </div>
 
-                <!-- PLAN VS ACTUAL — always visible in both Overview and Data views (daily workhorse) -->
-                <div class="card p-3 mb-4 border-0 shadow-sm">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                        <h6 class="fw-bold m-0"><i class="bi bi-clipboard2-check me-2 text-primary"></i>Plan vs Actual <span id="mpPvaLeftNote" class="text-muted fw-normal" style="font-size:.75rem"></span></h6>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-outline-primary active" id="pva-sec-out" onclick="pvaSetSection('out')">Outsource · Core</button>
-                            <button type="button" class="btn btn-outline-primary" id="pva-sec-in" onclick="pvaSetSection('in')">Insource · Assoc (LM)</button>
-                            <button type="button" class="btn btn-outline-primary" id="pva-sec-none" onclick="pvaSetSection('none')">Unplanned</button>
+                <div class="sec-head"><span class="n">4</span>Breakdown by hub and title <span class="hint">— where the attendance comes from</span></div>
+<!-- BREAKDOWN TABLES -->
+                <div class="row g-3 mb-4">
+                    <div class="col-lg-6">
+                        <div class="card p-3 border-0 shadow-sm">
+                            <h6 class="fw-bold mb-2"><i class="bi bi-building me-2 text-primary"></i>By hub</h6>
+                            <div style="max-height:320px;overflow-y:auto">
+                                <table class="table table-sm align-middle fs-7 mb-0">
+                                    <thead class="table-light"><tr><th>Hub</th><th>Roster</th><th>Present</th><th>Rate</th><th>Week off</th><th>Leave</th><th>No show</th></tr></thead>
+                                    <tbody id="mpHubBody"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                    <div class="row g-3">
-                        <div class="col-lg-7">
-                            <h6 class="small fw-bold text-muted mb-1" id="mpPvaLeftTitle">Core Colleague by hub</h6>
-                            <div style="max-height:520px;overflow-y:auto">
+                    <div class="col-lg-6">
+                        <div class="card p-3 border-0 shadow-sm">
+                            <h6 class="fw-bold mb-2"><i class="bi bi-mortarboard me-2 text-primary"></i>By title</h6>
+                            <div style="max-height:320px;overflow-y:auto">
                                 <table class="table table-sm align-middle fs-7 mb-0">
-                                    <thead class="table-light" id="mpPvaHubHead"></thead>
-                                    <tbody id="mpPvaHubBody"></tbody>
+                                    <thead class="table-light"><tr><th>Title</th><th>Roster</th><th>Present</th><th>Rate</th><th>Week off</th><th>Leave</th><th>No show</th></tr></thead>
+                                    <tbody id="mpTitleBody"></tbody>
                                 </table>
                             </div>
-                        </div>
-                        <div class="col-lg-5">
-                            <h6 class="small fw-bold text-muted mb-1" id="mpPvaRightTitle">Detail</h6>
-                            <div style="max-height:520px;overflow-y:auto">
-                                <table class="table table-sm align-middle fs-7 mb-0">
-                                    <thead class="table-light" id="mpPvaFacHead"></thead>
-                                    <tbody id="mpPvaFacBody"></tbody>
-                                </table>
-                            </div>
-                            <div class="small text-muted mt-2" id="mpPvaNote"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- EMPLOYEE GRID — lives in Data & Reports with the other tables,
+                <div class="sec-head"><span class="n">5</span>Employee roster <span class="hint">— one row per person, one column per day</span></div>
+<!-- EMPLOYEE GRID — lives in Data & Reports with the other tables,
                      so Overview stays KPIs + charts + Plan vs Actual -->
-                <div class="card p-3 mb-3 border-0 shadow-sm" data-view="data">
+                <div class="card p-3 mb-3 border-0 shadow-sm">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Employee roster <span class="text-muted fw-normal" style="font-size:.75rem" id="mpGridNote"></span></h6>
                         <div class="d-flex gap-2 flex-wrap">
@@ -1312,13 +1279,16 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                 </div>
             </div>
+
+            <!-- FINAL REPORT SLOT — shared report panel mounts here on demand -->
+            <div class="fr-slot" data-view="report" data-fr-slot="mp"></div>
         </div>
 
         <!-- ============ PAGE 2: LIVE TRACKING ============ -->
         <div class="tab-pane fade" id="page-live">
             <div class="page-strip">
                 <div>
-                    <div class="k"><i class="bi bi-broadcast"></i>Live Tracking LH</div>
+                    <div class="k"><i class="bi bi-broadcast"></i>LH Live Tracking</div>
                     <div class="d">Who is filling now — live occupancy across hubs, destinations, and the current wave.</div>
                 </div>
                 <span class="m">MIDDLE-MILE · LIVE OPS</span>
@@ -1326,7 +1296,7 @@ body.rail-collapsed { padding-left: 84px !important; }
             <div class="inner-tabs-row">
                 <div class="inner-tabs">
                     <button type="button" class="it-btn active" data-iview="board" onclick="innerTab(this)"><i class="bi bi-grid-3x3-gap"></i>Live Board</button>
-                    <button type="button" class="it-btn" data-iview="report" onclick="innerTab(this)"><i class="bi bi-clipboard-data"></i>Adherence &amp; Summary</button>
+                    <button type="button" class="it-btn" data-iview="report" onclick="innerTab(this)"><i class="bi bi-clipboard2-data"></i>Final Report</button>
                 </div>
                 <span class="it-meta" id="liveTabMeta">—</span>
             </div>
@@ -1386,6 +1356,29 @@ body.rail-collapsed { padding-left: 84px !important; }
                         </div>
                     </div>
                     <div id="liveReportSummary" class="mb-2"></div>
+                    <div class="table-container mb-3" id="liveWeakVendorBox">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <h6 class="fw-bold m-0"><i class="bi bi-exclamation-triangle me-1 text-danger"></i>Weakest Vendors
+                                <span class="text-muted fw-normal" style="font-size:.75rem">— lowest adherence first</span></h6>
+                            <span class="small text-muted" id="liveWeakVendorNote">—</span>
+                        </div>
+                        <div style="overflow-x:auto">
+                            <table class="table table-sm align-middle fs-7 mb-0" id="liveWeakVendorTable">
+                                <thead class="table-light"><tr>
+                                    <th>#</th><th>Vendor</th>
+                                    <th class="text-center">Occurrences</th>
+                                    <th class="text-center">Dispatch on time</th>
+                                    <th class="text-center">Arrival on time</th>
+                                    <th class="text-center">Not adhered (late)</th>
+                                    <th class="text-center">Late out / arr</th>
+                                    <th class="text-center">Adherence</th>
+                                    <th style="min-width:120px">Trend</th>
+                                    <th class="text-center">Avg late</th>
+                                </tr></thead>
+                                <tbody id="liveWeakVendorBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
                             <h6 class="fw-bold m-0" style="font-size:.9rem"><i class="bi bi-chat-left-text me-1 text-success"></i>Text Summary <span class="text-muted fw-normal" style="font-size:.78rem">(send it with the Snap Board image)</span></h6>
@@ -1421,22 +1414,8 @@ body.rail-collapsed { padding-left: 84px !important; }
             </div>
         </div>
 
-        <!-- ============ PAGE 3: GAP ANALYSIS ============ -->
-        <div class="tab-pane fade" id="page-gap">
-            <div class="page-strip">
-                <div>
-                    <div class="k"><i class="bi bi-search-heart"></i>Final Report</div>
-                    <div class="d">Where planning and reality drift apart — attribute the misses, read the insights, pick the focus.</div>
-                </div>
-                <span class="m">MIDDLE-MILE · DIAGNOSE</span>
-            </div>
-            <div class="inner-tabs-row">
-                <div class="inner-tabs">
-                    <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-graph-up-arrow"></i>Insights &amp; Charts</button>
-                    <button type="button" class="it-btn" data-iview="data" onclick="innerTab(this)"><i class="bi bi-table"></i>Data Tables</button>
-                </div>
-                <span class="it-meta" id="gapTabMeta">—</span>
-            </div>
+        <!-- ============ THE FINAL REPORT PANEL (shared by every page) ============ -->
+        <div id="finalReportPanel" class="fr-body" style="display:none;">
 
             <!-- PAGE HEADER -->
             <div class="card p-3 mb-4 border-0 shadow-sm">
@@ -1451,62 +1430,18 @@ body.rail-collapsed { padding-left: 84px !important; }
             </div>
 
             <!-- 1 · BIGGEST GAPS -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="viz">
+            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
                 <span class="badge text-bg-primary me-2">1</span><span class="text-muted">Biggest Gaps at a Glance</span>
                 <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— click any card to drill in</span>
             </h6>
-            <div class="row g-2 mb-4" id="insightCards" data-view="viz"></div>
+            <div class="row g-2 mb-4" id="insightCards"></div>
 
-            <!-- 2 · CHECKPOINT BREAKDOWN -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="viz">
-                <span class="badge text-bg-primary me-2">2</span><span class="text-muted">Checkpoint Breakdown</span>
-                <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— adhered vs not adhered, per checkpoint</span>
-            </h6>
-            <div class="row g-3 mb-4" data-view="viz">
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm h-100">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-primary me-1"></i>Portal Adherence</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-portalAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm h-100">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle me-1" style="color:#8b5cf6"></i>Port Act vs Plan</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-portalPlanVsActualAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm h-100">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-info me-1"></i>Gate → Open Adh</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-gateInToOpenAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm h-100">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-success me-1"></i>Open → Seal Adh</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-openToSealAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm h-100">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-warning me-1"></i>Arrival Adherence</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-arrivalAdh"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card p-3 border-0 shadow-sm h-100">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-check-circle text-danger me-1"></i>Vendor Compliance</h6>
-                        <div style="height:160px;position:relative;"><canvas id="gap-viz-vehicleAdh"></canvas></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3 · VENDOR & LANE PERFORMANCE -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="viz">
-                <span class="badge text-bg-primary me-2">3</span><span class="text-muted">Vendor &amp; Lane Performance</span>
+            <!-- 2 · VENDOR & LANE PERFORMANCE -->
+            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
+                <span class="badge text-bg-primary me-2">2</span><span class="text-muted">Vendor &amp; Lane Performance</span>
                 <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— who and where the gaps come from</span>
             </h6>
-            <div class="row g-3 mb-3" data-view="viz">
+            <div class="row g-3 mb-3">
                 <div class="col-lg-6">
                     <div class="card p-3 border-0 shadow-sm chart-card h-100">
                         <h6 class="fw-bold mb-3"><i class="bi bi-stack text-primary me-2"></i>Composite Adherence by Vendor <span class="text-muted fw-normal" style="font-size:.72rem">(top 10 by volume)</span></h6>
@@ -1521,7 +1456,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
             </div>
 
-            <div class="table-container mb-3" data-view="data">
+            <div class="table-container mb-3">
                 <h5 class="fw-bold mb-3"><i class="bi bi-award me-2"></i>Vendor Scorecard</h5>
                 <table id="vendorTable" class="table table-hover align-middle w-100 fs-7 table-sm">
                     <thead class="table-light"><tr>
@@ -1531,7 +1466,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </table>
             </div>
 
-            <div class="row g-3 mb-3" data-view="data">
+            <div class="row g-3 mb-3">
                 <div class="col-lg-7">
                     <div class="table-container h-100">
                         <h5 class="fw-bold mb-3"><i class="bi bi-signpost-split me-2"></i>Lane Performance</h5>
@@ -1554,7 +1489,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
             </div>
 
-            <div class="table-container mb-4" data-view="data">
+            <div class="table-container mb-4">
                 <h5 class="fw-bold mb-1"><i class="bi bi-truck me-2"></i>Vendors — Distinct Trips</h5>
                 <p class="text-muted small mb-3">Number of <strong>unique trips</strong> run by each vendor. “Rows” counts sheet rows; when it is higher than Distinct Trips the sheet has duplicate rows for the same trip.</p>
                 <table id="vendorTripTable" class="table table-hover align-middle w-100 fs-7 table-sm">
@@ -1566,11 +1501,11 @@ body.rail-collapsed { padding-left: 84px !important; }
             </div>
 
             <!-- 4 · LIVE OPERATIONS -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="viz">
-                <span class="badge text-bg-primary me-2">4</span><span class="text-muted">Live Operations</span>
+            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
+                <span class="badge text-bg-primary me-2">3</span><span class="text-muted">Live Operations</span>
                 <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— dispatch vs arrival, from the occurrence sheet</span>
             </h6>
-            <div class="table-container mb-4" id="liveGapBox" data-view="viz">
+            <div class="table-container mb-4" id="liveGapBox">
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <h5 class="fw-bold m-0"><i class="bi bi-broadcast me-2 text-primary"></i>Live Tracking — Gap Analysis</h5>
                     <span class="badge text-bg-light border" id="liveGapBadge">—</span>
@@ -1594,11 +1529,11 @@ body.rail-collapsed { padding-left: 84px !important; }
             </div>
 
             <!-- 5 · ACCOUNTABILITY -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px" data-view="data">
-                <span class="badge text-bg-primary me-2">5</span><span class="text-muted">Accountability</span>
+            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
+                <span class="badge text-bg-primary me-2">4</span><span class="text-muted">Accountability</span>
                 <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— failed trips missing a root cause</span>
             </h6>
-            <div class="table-container mb-2" data-view="data">
+            <div class="table-container mb-2">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold m-0"><i class="bi bi-clipboard2-x me-2 text-danger"></i>Failed Trips Missing RCA <span class="text-muted fs-6 fw-normal">(fill these first)</span></h5>
                     <span class="badge bg-danger-subtle text-danger fw-bold" id="pendingCountBadge">0 pending</span>
@@ -2494,8 +2429,8 @@ function applyDashboardFilters(){
 
 /* Re-render whichever secondary page the operator is currently looking at,
    so filters changed elsewhere are reflected without a manual tab switch. */
-/* The trip filter bar is shared by the Executive Dashboard and Gap Analysis,
-   so it is shown on those tabs and hidden everywhere else. */
+/* The trip filter bar drives the LH Adherence page and the shared Final
+   Report, so it is shown on those views and hidden everywhere else. */
 function syncFilterBarVisibility(target){
     const bar = document.getElementById('globalFilterBar');
     if (!bar) return;
@@ -2503,13 +2438,20 @@ function syncFilterBarVisibility(target){
         const activeBtn = document.querySelector('#pageTabs .nav-link.active');
         target = activeBtn ? activeBtn.getAttribute('data-bs-target') : '#page-dashboard';
     }
-    bar.style.display = (target === '#page-dashboard' || target === '#page-gap') ? '' : 'none';
+    bar.style.display = (target === '#page-dashboard') ? '' : 'none';
+}
+
+/* Is the shared Final Report panel currently on screen? */
+function frIsVisible(){
+    const panel = document.getElementById('finalReportPanel');
+    if (!panel || !panel.parentElement) return false;
+    const slot = panel.parentElement;
+    return !slot.classList.contains('iview-hidden') && panel.offsetParent !== null;
 }
 
 function renderActiveAuxPages(){
     if (!rawTrips.length) return;
-    const gap = document.getElementById('page-gap');
-    if (gap && gap.classList.contains('active')) {
+    if (frIsVisible()) {
         renderGap(getFilteredDashboardData());
         gapState = 'live';
     }
@@ -2925,9 +2867,6 @@ function bootApp() {
     if (missing.length) { showBootDiagnostics(missing); return; }
 
     rcaModalObj = new bootstrap.Modal(document.getElementById('rcaModal'));
-    document.querySelector('[data-bs-target="#page-gap"]').addEventListener('shown.bs.tab', () => {
-        if (gapState !== 'live' && rawTrips.length) { renderGap(getFilteredDashboardData()); gapState = 'live'; }
-    });
     // Chart.js measures its container when it draws. A tab that was hidden when a
     // chart was built keeps a 0x0 canvas until something resizes it, so every tab
     // switch re-measures all charts of the newly shown page.
@@ -2950,6 +2889,7 @@ function bootApp() {
 
     loadDataFromCSV();
     loadLiveCsv();
+    if (typeof loadLhPlan === 'function') loadLhPlan(false);
     // Wire the filter dropdowns immediately, even before the sheets answer —
     // otherwise they render as empty, unusable boxes ("options not found").
     // populateDashFilters re-runs once the trips land, keeping current values.
@@ -2989,6 +2929,36 @@ function innerTab(btn){
         saved[pane.id] = view;
         localStorage.setItem(IT_VIEW_KEY, JSON.stringify(saved));
     } catch (e) { /* storage unavailable — tabs still work, just without memory */ }
+    /* The Final Report is one shared panel. It is re-parented into the
+       page whose Final Report tab was just opened, so every tab really
+       shows the same report (no duplicated DOM, no duplicated ids). */
+    if (view === 'report') mountFinalReport(pane);
+    if (view === 'report' && pane.id !== 'page-live') syncFilterBarVisibility('#page-dashboard');
+    else syncFilterBarVisibility('#' + pane.id);
+}
+
+/* Move the single Final Report panel into the active page's slot and
+   render it against the current filters. */
+function mountFinalReport(pane){
+    const panel = document.getElementById('finalReportPanel');
+    if (!panel || !pane) return;
+    const slot = pane.querySelector('[data-fr-slot]');
+    if (!slot) return;
+    if (panel.parentElement !== slot) {
+        slot.appendChild(panel);
+        panel.style.display = '';
+    }
+    if (rawTrips.length) {
+        try {
+            renderGap(getFilteredDashboardData());
+            gapState = 'live';
+        } catch (e) { console.warn('[mountFinalReport]', e); }
+    }
+    setTimeout(function(){
+        Object.keys(charts).forEach(function(k){
+            try { charts[k].resize(); } catch (e) { /* not on this view */ }
+        });
+    }, 80);
 }
 function innerTabInit(){
     let saved = {};
@@ -3043,6 +3013,11 @@ function wlInit(){
     gate.querySelectorAll('.wl-page').forEach(b => b.addEventListener('click', () => {
         const pill = document.querySelector(`[data-bs-target="${b.dataset.target}"]`);
         if (pill) pill.click();
+        if (b.dataset.fr) {
+            const pane = document.getElementById('page-dashboard');
+            const frBtn = pane && pane.querySelector('.inner-tabs .it-btn[data-iview="report"]');
+            if (frBtn) setTimeout(() => innerTab(frBtn), 80);
+        }
         wlClose();
     }));
     const skip = document.getElementById('wlSkipBtn');
@@ -3461,6 +3436,7 @@ function refreshData(silent){
 
     try{ loadDataFromCSV && loadDataFromCSV(); }catch(e){ console.error('[refreshData] loadDataFromCSV threw:', e); }
     try{ loadLiveCsv && loadLiveCsv(); }catch(e){ console.error('[refreshData] loadLiveCsv threw:', e); }
+    try{ if (typeof loadLhPlan === 'function') loadLhPlan(true); }catch(e){ console.error('[refreshData] loadLhPlan threw:', e); }
 
     if(btn){
         setTimeout(function(){ btn.disabled = false; }, 2000);
@@ -3573,14 +3549,26 @@ function resetFilters(){}
    Source, Destination, DOD, Vendor, trip_code, Trip_Sequence, Out_Time, plan time,
    Dispatch_adherence, Arriv_Time, arrival time, Arrival_adherence, FLAG_HUBS
 ================================================================ */
-function liveAdhChip(raw){
+/* Business rule for Live Tracking: arriving / dispatching EARLY is still
+   on time, so it counts as ADHERED. Only "not adhered late" is a breach.
+   Every live KPI, chip, filter and text summary reads this one classifier. */
+function liveAdhClass(raw){
     const s = String(raw || '').trim().toLowerCase();
-    if (!s)                  return `<span class="score-pill adh-na">no data</span>`;
-    if (s === 'adhered')     return `<span class="score-pill adh-good">adhered</span>`;
-    if (s === 'extra')       return `<span class="score-pill adh-na">extra</span>`;
-    if (s.includes('early')) return `<span class="score-pill adh-mid">not adhered early</span>`;
-    if (s.includes('late'))  return `<span class="score-pill adh-bad">not adhered late</span>`;
-    return `<span class="score-pill adh-na">${esc(raw)}</span>`;
+    if (!s)                    return 'na';
+    if (s === 'extra')         return 'extra';
+    if (s.includes('late'))    return 'late';
+    if (s === 'adhered' || s.includes('early')) return 'ok';
+    return 'na';
+}
+function liveAdhChip(raw){
+    const cls = liveAdhClass(raw);
+    const s = String(raw || '').trim().toLowerCase();
+    if (cls === 'na')    return `<span class="score-pill adh-na">no data</span>`;
+    if (cls === 'extra') return `<span class="score-pill adh-na">extra</span>`;
+    if (cls === 'ok')    return s === 'adhered'
+        ? `<span class="score-pill adh-good">adhered</span>`
+        : `<span class="score-pill adh-good">early — adhered</span>`;
+    return `<span class="score-pill adh-bad">not adhered late</span>`;
 }
 
 function toggleAutoRefresh(){
@@ -3768,9 +3756,9 @@ function renderLiveTracking(){
 
     // Summary KPIs (Extra rows have no plan → excluded from adherence)
     const planned  = rows.filter(t => String(t.outAdhRaw).trim() !== '' && String(t.outAdhRaw).trim().toLowerCase() !== 'extra');
-    const dOk = planned.filter(t => String(t.outAdhRaw).trim().toLowerCase() === 'adhered').length;
+    const dOk = planned.filter(t => liveAdhClass(t.outAdhRaw) === 'ok').length;
     const plannedArr = rows.filter(t => String(t.arrAdhRaw).trim() !== '' && String(t.arrAdhRaw).trim().toLowerCase() !== 'extra');
-    const aOk = plannedArr.filter(t => String(t.arrAdhRaw).trim().toLowerCase() === 'adhered').length;
+    const aOk = plannedArr.filter(t => liveAdhClass(t.arrAdhRaw) === 'ok').length;
 
     document.getElementById('liveSummary').innerHTML = rows.length ? `
         <span class="live-kpi"><div class="l">Occurrences</div><div class="v">${fmt(rows.length)}</div></span>
@@ -3854,13 +3842,11 @@ function renderLiveTracking(){
 let liveReportMode = 'all';   // 'all' | 'fail'
 
 function liveAdhState(raw){
-    const s = String(raw||'').trim().toLowerCase();
-    if (!s)          return { cls:'adh-na',  label:'no data' };
-    if (s==='adhered') return { cls:'adh-good', label:'adhered' };
-    if (s==='extra')   return { cls:'adh-na',  label:'extra' };
-    if (s.includes('early')) return { cls:'adh-mid', label:'not adhered early' };
-    if (s.includes('late'))  return { cls:'adh-bad', label:'not adhered late' };
-    return { cls:'adh-na', label: s };
+    const cls = liveAdhClass(raw);
+    if (cls === 'na')    return { cls:'adh-na', label:'no data' };
+    if (cls === 'extra') return { cls:'adh-na', label:'extra' };
+    if (cls === 'ok')    return { cls:'adh-good', label: String(raw||'').trim().toLowerCase() === 'adhered' ? 'adhered' : 'early (adhered)' };
+    return { cls:'adh-bad', label:'not adhered late' };
 }
 
 function setLiveReportMode(m){
@@ -3880,16 +3866,16 @@ function renderLiveReport(scopeRows){
     // Re-derive the current filter scope if not handed in
     const rows = scopeRows || getLiveScopeRows();
     const show = rows.filter(t => {
-        const so = liveAdhState(t.outAdhRaw), sa = liveAdhState(t.arrAdhRaw);
-        if (liveReportMode === 'fail') return so.label.startsWith('not adhered') || sa.label.startsWith('not adhered');
-        return true;
+        if (liveReportMode !== 'fail') return true;
+        // Not Adhered = LATE only. Early dispatch / arrival counts as adhered.
+        return liveAdhClass(t.outAdhRaw) === 'late' || liveAdhClass(t.arrAdhRaw) === 'late';
     });
-    const nAdh  = rows.filter(t => liveAdhState(t.outAdhRaw).label==='adhered' && liveAdhState(t.arrAdhRaw).label==='adhered').length;
-    const nFail = rows.filter(t => liveAdhState(t.outAdhRaw).label.startsWith('not adhered') || liveAdhState(t.arrAdhRaw).label.startsWith('not adhered')).length;
-    const nPart = rows.filter(t => { const a=liveAdhState(t.outAdhRaw).label, b=liveAdhState(t.arrAdhRaw).label; return !(a==='adhered'&&b==='adhered') && !(a.startsWith('not adhered')||b.startsWith('not adhered')); }).length;
+    const nAdh  = rows.filter(t => liveAdhClass(t.outAdhRaw)==='ok' && liveAdhClass(t.arrAdhRaw)==='ok').length;
+    const nFail = rows.filter(t => liveAdhClass(t.outAdhRaw)==='late' || liveAdhClass(t.arrAdhRaw)==='late').length;
+    const nPart = rows.length - nAdh - nFail;
     summary.innerHTML = `<span class="live-kpi"><div class="l">Total</div><div class="v">${fmt(rows.length)}</div></span>
-        <span class="live-kpi"><div class="l">Fully Adhered</div><div class="v" style="color:#16a34a">${fmt(nAdh)}</div></span>
-        <span class="live-kpi"><div class="l">Not Adhered</div><div class="v" style="color:#dc2626">${fmt(nFail)}</div></span>
+        <span class="live-kpi"><div class="l">Adhered (incl. early)</div><div class="v" style="color:#16a34a">${fmt(nAdh)}</div></span>
+        <span class="live-kpi"><div class="l">Not Adhered (late)</div><div class="v" style="color:#dc2626">${fmt(nFail)}</div></span>
         <span class="live-kpi"><div class="l">Other (extra/no data)</div><div class="v">${fmt(nPart)}</div></span>`;
     body.innerHTML = show.length ? show.map(t => {
         const so = liveAdhState(t.outAdhRaw), sa = liveAdhState(t.arrAdhRaw);
@@ -3908,6 +3894,61 @@ function renderLiveReport(scopeRows){
             <td><span class="score-pill ${sa.cls}">${esc(sa.label)}</span></td>
         </tr>`;
     }).join('') : `<tr><td colspan="12" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>No occurrences match this report mode</td></tr>`;
+    renderLiveWeakVendors(rows);
+}
+
+/* Weakest vendor table — vendors ranked by how often they miss the plan.
+   Adherence here = occurrences with NO late dispatch and NO late arrival
+   (early counts as adhered, same rule as the report above). */
+function renderLiveWeakVendors(rows){
+    const body = document.getElementById('liveWeakVendorBody');
+    const note = document.getElementById('liveWeakVendorNote');
+    if (!body) return;
+    const by = {};
+    rows.forEach(t => {
+        const v = String(t.vendor || '').trim() || '(blank)';
+        const g = by[v] || (by[v] = { vendor:v, occ:0, outOk:0, arrOk:0, late:0, lateOut:0, lateArr:0, mins:0, minsN:0 });
+        const oc = liveAdhClass(t.outAdhRaw), ac = liveAdhClass(t.arrAdhRaw);
+        const plannedOut = oc !== 'na' && oc !== 'extra';
+        const plannedArr = ac !== 'na' && ac !== 'extra';
+        g.occ++;
+        if (plannedOut) { g.outOk += oc === 'ok' ? 1 : 0; }
+        if (plannedArr) { g.arrOk += ac === 'ok' ? 1 : 0; }
+        const isLate = oc === 'late' || ac === 'late';
+        if (isLate) { g.late++; if (oc === 'late') g.lateOut++; if (ac === 'late') g.lateArr++; }
+        const m = Math.max(
+            oc === 'late' && typeof t.outVarMin === 'number' ? t.outVarMin : 0,
+            ac === 'late' && typeof t.arrVarMin === 'number' ? t.arrVarMin : 0
+        );
+        if (m > 0) { g.mins += m; g.minsN++; }
+    });
+    let list = Object.values(by).sort((a,b) => b.occ - a.occ);
+    const big = list.filter(r => r.occ >= 5);
+    list = (big.length ? big : list).map(r => ({
+        ...r,
+        adh: r.occ ? ((r.occ - r.late) / r.occ * 100) : 0,
+        avgLate: r.minsN ? Math.round(r.mins / r.minsN) : null
+    })).sort((a,b) => (a.adh - b.adh) || (b.late - a.late) || (b.occ - a.occ));
+    if (note) note.textContent = (big.length ? 'Vendors with 5+ occurrences' : 'All vendors (low volume)') +
+        ' · adherence = no late dispatch and no late arrival · early counts as adhered';
+    body.innerHTML = list.length ? list.slice(0, 15).map((r, i) => {
+        const tone = r.adh >= 90 ? 'text-success' : r.adh >= 75 ? 'text-warning' : 'text-danger';
+        const bar  = r.adh >= 90 ? 'bg-success' : r.adh >= 75 ? 'bg-warning' : 'bg-danger';
+        return `<tr>
+            <td class="text-muted">${i + 1}</td>
+            <td class="fw-semibold">${esc(r.vendor)}</td>
+            <td class="text-center">${fmt(r.occ)}</td>
+            <td class="text-center text-success">${fmt(r.outOk)}</td>
+            <td class="text-center text-success">${fmt(r.arrOk)}</td>
+            <td class="text-center text-danger fw-bold">${fmt(r.late)}</td>
+            <td class="text-center"><span class="small text-muted">${r.lateOut} / ${r.lateArr}</span></td>
+            <td class="text-center ${tone} fw-bold">${Math.round(r.adh)}%</td>
+            <td style="min-width:120px">
+                <div class="progress" style="height:6px"><div class="progress-bar ${bar}" style="width:${Math.max(0, Math.min(100, r.adh))}%"></div></div>
+            </td>
+            <td class="text-center">${r.avgLate === null ? '—' : '+' + r.avgLate + 'm'}</td>
+        </tr>`;
+    }).join('') : `<tr><td colspan="10" class="text-center text-muted py-3">No vendor occurrences in the current scope</td></tr>`;
 }
 
 /* ===== Text summary — short, plain headline of the live board =====
@@ -3917,7 +3958,7 @@ function renderLiveReport(scopeRows){
    not breaches — they were never planned). Each breach is pinned to the hub that
    owns it: the destination when the arrival slipped, otherwise the source hub. */
 function liveBreachAnalysis(rows){
-    const isBad  = raw => liveAdhState(raw).label.startsWith('not adhered');
+    const isBad  = raw => liveAdhClass(raw) === 'late';   // early = adhered, late = breach
     const isLate = raw => String(raw || '').toLowerCase().includes('late');
     const hubMap = {}, venMap = {}, laneMap = {};
     const lateOutHub = {}, lateArrHub = {};   // hub -> { n, sum } for LATE-only drift
@@ -3976,8 +4017,8 @@ function liveAdherenceTotals(rows){
     const hasPlan = raw => { const s = String(raw || '').trim().toLowerCase(); return s !== '' && s !== 'extra'; };
     const outP = rows.filter(t => hasPlan(t.outAdhRaw));
     const arrP = rows.filter(t => hasPlan(t.arrAdhRaw));
-    const outOk = outP.filter(t => String(t.outAdhRaw).trim().toLowerCase() === 'adhered').length;
-    const arrOk = arrP.filter(t => String(t.arrAdhRaw).trim().toLowerCase() === 'adhered').length;
+    const outOk = outP.filter(t => liveAdhClass(t.outAdhRaw) === 'ok').length;
+    const arrOk = arrP.filter(t => liveAdhClass(t.arrAdhRaw) === 'ok').length;
     return {
         outP: outP.length, outOk, arrP: arrP.length, arrOk,
         outPct: outP.length ? Math.round(outOk / outP.length * 100) : 0,
@@ -4376,6 +4417,155 @@ function showDashboardReportPopup(){
 /* ================================================================
    PAGE 3 — DASHBOARD
 ================================================================ */
+/* ================================================================
+   LH PLAN vs ACTUAL — lane plan vs the vendor trips actually moved
+   Plan sheet gid 859487271 is a DAILY lane plan:
+     From, To, Max Vol, New Vol/Trip, Required Count, Per Trip Vendor,
+     Noon Count, Fixed Vendor, Dist
+   Vendor plan per lane = Per Trip Vendor + Fixed Vendor (the Noon
+   count is the Noon fleet and is NOT part of the vendor plan).
+   Actual = trips in the current dashboard scope on that lane by any
+   vendor EXCEPT Noon and Internal Transfer.
+   Var = Actual − Plan (negative = shortfall, shown in red).
+   ================================================================ */
+const LH_PLAN_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=859487271&single=true&output=csv';
+let lhPlan = [], lhPlanLoaded = false, lhPlanLoading = false, lhPlanLastData = [];
+
+const lhPlanNum = v => {
+    const n = parseFloat(String(v === null || v === undefined ? '' : v).replace(/,/g, '').trim());
+    return isFinite(n) ? n : 0;
+};
+const LH_NON_VENDOR = ['noon', 'internal transfer'];
+
+async function loadLhPlan(force){
+    if (lhPlanLoading) return;
+    if (lhPlanLoaded && !force) { renderLhPlanVsActual(lhPlanLastData); return; }
+    lhPlanLoading = true;
+    const note = document.getElementById('lhPlanNote');
+    if (note) note.textContent = 'Loading the LH plan sheet…';
+    try {
+        const text = await fetchCsvText(cacheBusted(LH_PLAN_CSV_URL, Date.now()), null);
+        const res = Papa.parse(text, { header: true, skipEmptyLines: true });
+        lhPlan = (res.data || []).map(r => {
+            const from = String(r['From'] || '').trim();
+            const to   = String(r['To'] || '').trim();
+            if (!from || !to || /^total$/i.test(from) || /^total$/i.test(to)) return null;
+            return {
+                from, to,
+                dist:    String(r['Dist'] || '').trim(),
+                maxVol:  lhPlanNum(r['Max Vol']),
+                perTrip: lhPlanNum(r['Per Trip Vendor']),
+                fixed:   lhPlanNum(r['Fixed Vendor']),
+                noon:    lhPlanNum(r['Noon Count']),
+                plan:    lhPlanNum(r['Per Trip Vendor']) + lhPlanNum(r['Fixed Vendor'])
+            };
+        }).filter(Boolean);
+        lhPlanLoaded = lhPlan.length > 0;
+        if (!lhPlanLoaded) console.warn('[loadLhPlan] no lane rows found');
+    } catch(e){
+        console.warn('[loadLhPlan] failed:', e);
+    }
+    lhPlanLoading = false;
+    renderLhPlanVsActual(lhPlanLastData);
+}
+
+function renderLhPlanVsActual(data){
+    const body = document.getElementById('lhPlanBody');
+    const foot = document.getElementById('lhPlanFoot');
+    if (!body || !foot) return;
+    lhPlanLastData = Array.isArray(data) ? data : [];
+
+    const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+    if (!lhPlanLoaded){
+        const msg = lhPlanLoading ? 'Loading the LH plan sheet…' : 'LH plan sheet unavailable — the lane plan could not be loaded.';
+        body.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">' + msg + '</td></tr>';
+        foot.innerHTML = '';
+        set('lhPlanNote', msg);
+        ['lhPlanTotal','lhPlanActual','lhPlanVar','lhPlanShort','lhPlanDate'].forEach(id => set(id, '—'));
+        set('lhPlanVarBadge', 'Var —');
+        return;
+    }
+
+    /* Distinct days in the selected scope — the plan sheet is a per-day plan. */
+    const dayKeys = {};
+    lhPlanLastData.forEach(t => {
+        const k = t.dateKey || normDateKey(t.date) || normDateKey(t.dod);
+        if (k) dayKeys[k] = 1;
+    });
+    const days = Math.max(1, Object.keys(dayKeys).length);
+
+    /* Actual vendor trips per lane (Noon + Internal Transfer excluded). */
+    const actual = {};
+    lhPlanLastData.forEach(t => {
+        const v = String(t.vendor || '').trim().toLowerCase();
+        if (LH_NON_VENDOR.indexOf(v) !== -1) return;
+        const k = String(t.srcHub || '').trim() + '|' + String(t.dstHub || '').trim();
+        actual[k] = (actual[k] || 0) + 1;
+    });
+
+    let sPlan = 0, sAct = 0, short = 0;
+    const planKeys = {};
+    body.innerHTML = lhPlan.map(p => {
+        const key  = p.from + '|' + p.to;
+        const plan = p.plan * days;
+        const act  = actual[key] || 0;
+        planKeys[key] = 1;
+        sPlan += plan; sAct += act;
+        const v = act - plan;
+        if (v < 0) short++;
+        const vTxt = (v === 0 && plan === 0) ? '<span class="text-muted">—</span>'
+            : `<span class="${v < 0 ? 'text-danger fw-bold' : (v > 0 ? 'text-success fw-bold' : 'text-muted')}">${v > 0 ? '+' : ''}${fmt(v)}</span>`;
+        return `<tr>
+            <td class="fw-semibold">${esc(p.from)}</td>
+            <td class="fw-semibold">${esc(p.to)}</td>
+            <td class="text-center">${plan ? fmt(plan) : '<span class="text-muted">0</span>'}</td>
+            <td class="text-center fw-bold">${act ? fmt(act) : '<span class="text-muted">—</span>'}</td>
+            <td class="text-center">${vTxt}</td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="5" class="text-center text-muted py-3">No plan lanes loaded</td></tr>';
+
+    /* Trips on lanes the plan does not mention — reported, never mixed into
+       the plan totals, so the variance stays a like-for-like comparison. */
+    let xAct = 0, xLanes = 0;
+    Object.keys(actual).forEach(k => {
+        if (planKeys[k]) return;
+        xAct += actual[k];
+        xLanes++;
+    });
+
+    const sV = sAct - sPlan;
+    const vCls = sV < 0 ? 'text-danger' : (sV > 0 ? 'text-success' : 'text-muted');
+    foot.innerHTML = `<tr class="table-light fw-bold">
+        <td colspan="2">Total — ${lhPlan.length} planned lanes</td>
+        <td class="text-center">${fmt(sPlan)}</td>
+        <td class="text-center">${fmt(sAct)}</td>
+        <td class="text-center ${vCls}">${sV > 0 ? '+' : ''}${fmt(sV)}</td>
+    </tr>`;
+
+    set('lhPlanTotal', fmt(sPlan));
+    set('lhPlanActual', fmt(sAct));
+    set('lhPlanVar', (sV > 0 ? '+' : '') + fmt(sV));
+    set('lhPlanShort', fmt(short));
+    const varEl = document.getElementById('lhPlanVar');
+    if (varEl) varEl.className = 'v ' + vCls;
+    set('lhPlanVarBadge', 'Var ' + (sV > 0 ? '+' : '') + fmt(sV));
+    const badge = document.getElementById('lhPlanVarBadge');
+    if (badge) badge.className = 'badge ' + (sV < 0 ? 'text-bg-danger' : 'text-bg-success');
+    set('lhPlanDays', days + (days === 1 ? ' day in scope' : ' days in scope'));
+    const rangeTxt = lhPlanRangeLabel(days);
+    set('lhPlanRange', rangeTxt);
+    set('lhPlanDate', rangeTxt);
+    set('lhPlanNote', 'Plan = (Per Trip Vendor + Fixed Vendor) × ' + days + (days === 1 ? ' day' : ' days') +
+        ' in scope · Actual = every vendor except Noon and Internal Transfer · Var = Actual − Plan' +
+        (short ? ' · ' + fmt(short) + ' lane' + (short === 1 ? '' : 's') + ' below plan' : '') +
+        (xLanes ? ' · ' + fmt(xAct) + ' more trips on ' + fmt(xLanes) + ' lane' + (xLanes === 1 ? '' : 's') + ' with no plan row' : ''));
+}
+
+function lhPlanRangeLabel(days){
+    const d = lhPlanLastData.map(t => t.dateKey || normDateKey(t.date) || normDateKey(t.dod)).filter(Boolean).sort();
+    if (!d.length) return 'no date in scope';
+    return d.length === 1 ? d[0] : d[0] + ' → ' + d[d.length - 1] + ' (' + (days || d.length) + ' days)';
+}
 function renderDashboard(data){
     const total = data.length;
     const countEl = document.getElementById('tripDetailsCount');
@@ -4407,8 +4597,6 @@ function renderDashboard(data){
     document.getElementById('k-o2s-sub').innerText = avgO2S===null ? 'no timing data' : (avgO2S<=BIZ.O2S_TARGET? `within ${BIZ.O2S_TARGET}m target` : `above ${BIZ.O2S_TARGET}m target`);
     document.getElementById('k-util').innerText = avgUtil===null ? '—' : Math.round(avgUtil) + '%';
     document.getElementById('k-util-n').innerText = fmt(lowUtil);
-    document.getElementById('k-flag').innerText = total ? Math.round(flagHubsCount/total*100) + '%' : '—';
-    document.getElementById('k-flag-n').innerText = fmt(flagHubsCount);
 
     // ---- Shipments card: count_of_shipment + sort / non-sort split ----
     let shipTotal = 0, targetTotal = 0, sortW = 0, nonSortW = 0, mixW = 0;
@@ -4440,8 +4628,8 @@ function renderDashboard(data){
         setTxt('ship-nonsort-n', 'no sort split');
     }
 
-    // ---- 6 core metric cards ----
-    const metrics = ['portalAdh','portalPlanVsActualAdh','gateInToOpenAdh','openToSealAdh','arrivalAdh','vehicleAdh'];
+    // ---- core metric cards (vehicle compliance retired) ----
+    const metrics = ['portalAdh','portalPlanVsActualAdh','gateInToOpenAdh','openToSealAdh','arrivalAdh'];
     metrics.forEach(key => {
         const pass = data.filter(x => isPass(x[key])).length;
         const fail = total - pass;
@@ -4454,13 +4642,8 @@ function renderDashboard(data){
         document.getElementById(`m-${suffix}-fail`).innerText = fmt(fail);
     });
 
-    // Individual metric visualizations
-    renderMetricViz(data, 'portalAdh', 'viz-portalAdh', '#3b82f6');
-    renderMetricViz(data, 'portalPlanVsActualAdh', 'viz-portalPlanVsActualAdh', '#8b5cf6');
-    renderMetricViz(data, 'gateInToOpenAdh', 'viz-gateInToOpenAdh', '#06b6d4');
-    renderMetricViz(data, 'openToSealAdh', 'viz-openToSealAdh', '#10b981');
-    renderMetricViz(data, 'arrivalAdh', 'viz-arrivalAdh', '#f59e0b');
-    renderMetricViz(data, 'vehicleAdh', 'viz-vehicleAdh', '#ef4444');
+    // LH Plan vs Actual — lane plan from the plan sheet against real vendor trips
+    renderLhPlanVsActual(data);
 
     renderDashboardCharts(data);
     renderTripDetailsTable(data);
@@ -5371,9 +5554,6 @@ function renderManpower(){
     set('mp-k-aging', avgAging === null ? '—' : avgAging + 'd');
     set('mp-k-new', fmt(scoped.filter(t => t.aging === 0).length));
 
-    document.getElementById('chartMpHubSub').textContent = mpRangeLabel();
-    renderMpTrend(scoped, dayCols);
-    renderMpHubChart(active, dayCols);
     const hubRows = mpBreakRows(active, t => t.hub, dayCols);
     document.getElementById('mpHubBody').innerHTML = hubRows.length
         ? hubRows.map(mpRowHtml).join('')
@@ -5387,74 +5567,6 @@ function renderManpower(){
     renderMpAging(gridded, dayCols);
     renderMpPlanVsActual();
     refreshMpCounts();
-}
-
-/* --- charts --------------------------------------------------- */
-function renderMpTrend(rows, dayCols){
-    const base = rows || mpAll;
-    const cols = (dayCols && dayCols.length) ? dayCols : mpCols;
-    const labels = cols.map(mpPrettyDay);
-    const keys = ['present', 'weekoff', 'leave', 'noshow', 'other'];
-    const series = {};
-    keys.forEach(b => series[b] = cols.map(cD => base.reduce((s, t) => s + ((t.days[cD] && t.days[cD].bucket === b) ? 1 : 0), 0)));
-    const cfg = {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: keys.map(b => ({
-                label: MP_BUCKETS[b].label, data: series[b],
-                backgroundColor: MP_BUCKETS[b].color, borderWidth: 0, maxBarThickness: 22
-            }))
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            scales: {
-                x: { stacked: true, grid: { display: false }, ticks: { font: { size: 9 }, autoSkip: true, maxRotation: 0 } },
-                y:  { stacked: true, beginAtZero: true, grid: { color: 'rgba(148,163,184,.18)' } }
-            },
-            plugins: {
-                legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
-                tooltip: { mode: 'index', intersect: false }
-            }
-        }
-    };
-    const canvas = document.getElementById('chartMpTrend');
-    if (!canvas) return;
-    if (charts.mpTrend) charts.mpTrend.destroy();
-    charts.mpTrend = new Chart(canvas.getContext('2d'), cfg);
-}
-
-function renderMpHubChart(rows, dayCols){
-    const rowsData = mpBreakRows(rows, t => t.hub, dayCols).slice(0, 14);
-    const labels = rowsData.map(r => r.key);
-    const keys = ['present', 'weekoff', 'leave', 'noshow', 'other'];
-    const cfg = {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: keys.map(b => ({
-                label: MP_BUCKETS[b].label,
-                data: rowsData.map(r => r.g[b]),
-                backgroundColor: MP_BUCKETS[b].color, borderWidth: 0, maxBarThickness: 16
-            }))
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true, maintainAspectRatio: false,
-            scales: {
-                x: { stacked: true, beginAtZero: true, grid: { color: 'rgba(148,163,184,.18)' } },
-                y: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }
-            },
-            plugins: {
-                legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
-                tooltip: { mode: 'index', intersect: false }
-            }
-        }
-    };
-    const canvas = document.getElementById('chartMpHub');
-    if (!canvas) return;
-    if (charts.mpHub) charts.mpHub.destroy();
-    charts.mpHub = new Chart(canvas.getContext('2d'), cfg);
 }
 
 /* --- employee grid ------------------------------------------- */
@@ -5725,6 +5837,7 @@ function renderPvaV2(hubBody, facBody, note){
        selected columns. */
     const fullDayCols = mpCols.filter(c => /\s*\d{1,2}\s*-/.test(String(c)));
     const pvHasData = {};                          // column name -> day actually loaded
+    const pvDayN    = {};                          // column name -> how many were present
     // a day counts as "loaded" when at least one employee (unfiltered)
     // was PRESENT that day — Week Off / leave pre-entries on future days
     // do not make a day real
@@ -5732,6 +5845,7 @@ function renderPvaV2(hubBody, facBody, note){
         fullDayCols.forEach(c => {
             const x = t.days[c];
             if (!pvHasData[c] && x && x.bucket === 'present') pvHasData[c] = true;
+            if (x && x.bucket === 'present') pvDayN[c] = (pvDayN[c] || 0) + 1;
         });
     });
     const dayT   = { out: {}, in: {}, none: {} };   // hubLow -> {colName: count}
@@ -5762,7 +5876,16 @@ function renderPvaV2(hubBody, facBody, note){
 
     const selDods = dayCols.map((c, i) => ({ c: c, i: i, d: planIx[c] })).filter(o => o.d > 0);
     const wholeMonth = dayCols.length === mpCols.length;
-    const dods = wholeMonth ? (selDods.length ? [selDods[selDods.length - 1]] : []) : selDods;
+    /* A day is "real" when it carries at least half the busiest day's present
+       count. A month still in progress has trailing columns that hold only
+       week-offs or a handful of marks — those must not become the DOD the
+       report describes, nor drag the Max/Avg window to near zero. */
+    const pvMaxDayN = Math.max.apply(null, fullDayCols.map(c => pvDayN[c] || 0).concat([0]));
+    const pvReal = c => pvHasData[c] && (pvDayN[c] || 0) >= Math.max(1, pvMaxDayN * 0.5);
+    const liveDods = selDods.filter(o => pvReal(o.c));
+    const dods = wholeMonth ? (liveDods.length ? [liveDods[liveDods.length - 1]]
+                                              : (selDods.length ? [selDods[selDods.length - 1]] : []))
+                            : selDods;
 
     /* ---------- OUT: the DOD health report --------------------------- */
     if (pvaSection === 'out'){
@@ -5777,7 +5900,7 @@ function renderPvaV2(hubBody, facBody, note){
                 const m = String(c).match(/\s*(\d{1,2})\s*-\s*/);
                 return { c: c, i: i, d: m ? parseInt(m[1], 10) : 0 };
             })
-            .filter(o => o.d > 0 && pvHasData[o.c]);
+            .filter(o => o.d > 0 && pvReal(o.c));
         let pvWin = dayMeta.filter(o => o.d <= todayD).slice(-3);
         if (!pvWin.length) pvWin = dayMeta.slice(-3);
         const pvWinLbl = pvWin.length ? (pvWin.length > 1 ? (pvWin[0].d + '–' + pvWin[pvWin.length - 1].d) : String(pvWin[0].d)) : '—';
@@ -6113,7 +6236,6 @@ function renderGap(data){
     renderLanes(data);
     renderOffenders(data);
     renderPending(data);
-    renderGapMetricViz(data);
     renderLiveGap();
 }
 
@@ -6237,6 +6359,26 @@ function renderInsights(data){
         </div></div>`).join('');
 }
 
+/* Opens the shared Final Report inside whatever page the operator is on,
+   then scrolls to the table that explains the clicked card. */
+function openFinalReport(anchorId){
+    let pane = document.querySelector('.tab-pane.active');
+    let btn = pane && pane.querySelector('.inner-tabs .it-btn[data-iview="report"]');
+    if (!btn) {
+        const nav = document.querySelector('[data-bs-target="#page-dashboard"]');
+        if (nav) bootstrap.Tab.getOrCreateInstance(nav).show();
+        pane = document.getElementById('page-dashboard');
+        btn = pane && pane.querySelector('.inner-tabs .it-btn[data-iview="report"]');
+    }
+    if (btn) innerTab(btn);
+    if (anchorId) {
+        setTimeout(function(){
+            const el = document.getElementById(anchorId);
+            if (el) el.scrollIntoView({ behavior:'smooth', block:'center' });
+        }, 300);
+    }
+}
+
 /* Turns an insight card into a link: every card opens the view that explains it. */
 function insightAction(act){
     if (!act) return;
@@ -6248,17 +6390,20 @@ function insightAction(act){
     };
     if (kind === 'metric') {
         showTab('#page-dashboard');
+        const pane = document.getElementById('page-dashboard');
+        const vizBtn = pane && pane.querySelector('.inner-tabs .it-btn[data-iview="viz"]');
+        if (vizBtn) innerTab(vizBtn);            // metric cards live on the dashboard view
         const card = document.querySelector('.metric-card[data-metric="' + arg + '"]');
         if (card) {
             selectMetricCard(card, arg);
-            setTimeout(function(){ card.scrollIntoView({ behavior:'smooth', block:'center' }); }, 150);
+            setTimeout(function(){ card.scrollIntoView({ behavior:'smooth', block:'center' }); }, 200);
         }
     } else if (kind === 'log') {
         gotoLog(arg || 'failed', null);
     } else if (kind === 'report') {
-        showTab('#page-gap');
+        openFinalReport('vendorTable');
     } else if (kind === 'gap') {
-        showTab('#page-gap');
+        openFinalReport('laneTable');
     } else if (kind === 'live') {
         showTab('#page-live');
     }
@@ -6465,16 +6610,6 @@ function renderOffenders(data){
             <td><span class="score-pill ${o.failPct>=50?'adh-bad':o.failPct>=25?'adh-mid':'adh-good'}">${Math.round(o.failPct)}%</span></td>
         </tr>`).join('')
       : `<tr><td colspan="5" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>No repeat offenders in scope</td></tr>`;
-}
-
-function renderGapMetricViz(data){
-    // All 6 metrics doughnut visualizations
-    renderMetricViz(data, 'portalAdh', 'gap-viz-portalAdh', '#3b82f6');
-    renderMetricViz(data, 'portalPlanVsActualAdh', 'gap-viz-portalPlanVsActualAdh', '#8b5cf6');
-    renderMetricViz(data, 'gateInToOpenAdh', 'gap-viz-gateInToOpenAdh', '#06b6d4');
-    renderMetricViz(data, 'openToSealAdh', 'gap-viz-openToSealAdh', '#10b981');
-    renderMetricViz(data, 'arrivalAdh', 'gap-viz-arrivalAdh', '#f59e0b');
-    renderMetricViz(data, 'vehicleAdh', 'gap-viz-vehicleAdh', '#ef4444');
 }
 
 function renderPending(data){
