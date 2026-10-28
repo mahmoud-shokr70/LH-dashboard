@@ -222,6 +222,30 @@ body.rail-collapsed { padding-left: 84px !important; }
 .mp-band-p3160 { background: #bbf7d0; color: #14532d; }
 .mp-band-p60  { background: #a7f3d0; color: #064e3b; }
 
+/* ---- Plan vs Actual scope picker: three clickable cards ---- */
+.pva-modes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:14px 0 6px; }
+@media (max-width: 767px){ .pva-modes { grid-template-columns:1fr; } }
+.pva-mode { display:flex; align-items:center; gap:11px; text-align:left; width:100%;
+    background:var(--brand-white); border:1px solid var(--warm-line); border-radius:14px;
+    padding:10px 12px 10px 16px; cursor:pointer; position:relative; overflow:hidden;
+    transition:transform .14s ease, box-shadow .14s ease, border-color .14s ease; }
+.pva-mode::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--pva-tone,#94a3b8); }
+.pva-mode .ic { width:34px; height:34px; flex:0 0 34px; border-radius:11px; display:grid; place-items:center;
+    background:var(--pva-soft,#f1f5f9); color:var(--pva-tone,#64748b); font-size:1.02rem; }
+.pva-mode .tx { display:flex; flex-direction:column; line-height:1.2; min-width:0; }
+.pva-mode .ttl { font-family:var(--font-head); font-weight:800; font-size:.86rem; color:#111; letter-spacing:.2px; }
+.pva-mode .sml { font-size:.7rem; color:var(--warm-sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pva-mode .tick { margin-left:auto; color:var(--pva-tone,#64748b); font-size:1rem; opacity:0; transition:opacity .14s ease; }
+.pva-mode:hover { transform:translateY(-2px); box-shadow:var(--shadow-lift); border-color:var(--pva-tone,#94a3b8); }
+.pva-mode.active { border-color:var(--pva-tone,#2563eb); background:var(--pva-soft,#eef2ff);
+    box-shadow:0 8px 20px -14px var(--pva-tone,#2563eb); }
+.pva-mode.active .tick { opacity:1; }
+.pva-mode.m-out  { --pva-tone:#2563eb; --pva-soft:#eaf1fe; }
+.pva-mode.m-in   { --pva-tone:#7c3aed; --pva-soft:#f3ecfe; }
+.pva-mode.m-none { --pva-tone:#dc2626; --pva-soft:#fdeced; }
+.pva-hint { font-size:.72rem; color:var(--warm-sub); margin:2px 0 14px; }
+.pva-hint strong { color:#334155; }
+
 /* Core metric cards */
 .kpi-card { background: var(--brand-white); border-radius: var(--radius-xl); border: 1px solid var(--warm-line); padding: 20px; box-shadow: var(--shadow-card); position: relative; overflow: hidden; cursor: pointer; transition: transform .14s ease, box-shadow .14s ease; height:100%; }
 .kpi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
@@ -566,6 +590,11 @@ body.rail-collapsed { padding-left: 84px !important; }
         display: flex; align-items: center; gap: 8px; }
     .wl-page .t i { color: #8A6D1A; background: var(--noon-soft); border-radius: 8px; padding: 4px 6px; font-size: .8rem; }
     .wl-page .d { font-size: .7rem; color: var(--warm-sub); margin-top: 6px; font-family: var(--font-body); }
+    .wl-views { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+    .wl-view { font-size: .62rem; font-weight: 700; letter-spacing: .2px; color: #6b6353; background: #faf7ee;
+        border: 1px solid var(--warm-line); border-radius: 999px; padding: 2px 7px; }
+    .wl-note { margin: 12px 0 0; font-size: .68rem; color: var(--warm-sub); }
+    .wl-note strong { color: #4f4736; }
     .wl-foot { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
         margin-top: 20px; padding-top: 14px; border-top: 1px dashed var(--warm-line); }
     .wl-skip { font-size: .74rem; color: var(--warm-sub); display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; }
@@ -639,28 +668,8 @@ body.rail-collapsed { padding-left: 84px !important; }
             <div class="wl-meta" id="wlDate">—</div>
             <p class="wl-desc">Your middle-mile command center — trips, adherence, manpower planning, and live hub occupancy, all in one place. Data flows from the sheet automatically; pick your starting point below.</p>
             <div class="wl-q"><i class="bi bi-signpost-2"></i>Where do you want to start?</div>
-            <div class="wl-pages">
-                <button type="button" class="wl-page" data-target="#page-dashboard">
-                    <div class="t"><i class="bi bi-speedometer2"></i>LH Adherence</div>
-                    <div class="d">The morning picture — trips &amp; core adherence</div>
-                </button>
-                <button type="button" class="wl-page" data-target="#page-dashboard" data-fr="1">
-                    <div class="t"><i class="bi bi-search-heart"></i>Final Report</div>
-                    <div class="d">Where planning and reality drift apart</div>
-                </button>
-                <button type="button" class="wl-page" data-target="#page-live">
-                    <div class="t"><i class="bi bi-broadcast"></i>LH Live Tracking</div>
-                    <div class="d">Who is filling now — live occupancy</div>
-                </button>
-                <button type="button" class="wl-page" data-target="#page-mp">
-                    <div class="t"><i class="bi bi-people"></i>Manpower</div>
-                    <div class="d">Roster health &amp; Plan-vs-Actual</div>
-                </button>
-                <button type="button" class="wl-page" data-target="#page-rca">
-                    <div class="t"><i class="bi bi-clipboard2-pulse"></i>Trip Log &amp; RCA</div>
-                    <div class="d">The master trip ledger</div>
-                </button>
-            </div>
+            <div class="wl-pages" id="wlPages"><!-- filled from the real rail tabs by wlRenderPages() --></div>
+            <p class="wl-note" id="wlNote"></p>
             <div class="wl-foot">
                 <label class="wl-skip"><input type="checkbox" id="wlDontShow"> Don't show this welcome again</label>
                 <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" id="wlSkipBtn"><i class="bi bi-arrow-right me-1"></i>Just continue</button>
@@ -734,7 +743,7 @@ body.rail-collapsed { padding-left: 84px !important; }
             </div>
             <div class="inner-tabs-row">
                 <div class="inner-tabs">
-                    <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-speedometer2"></i>Dashboard</button>
+                    <button type="button" class="it-btn active" data-iview="viz" onclick="innerTab(this)"><i class="bi bi-speedometer2"></i>Overview</button>
                     <button type="button" class="it-btn" data-iview="report" onclick="innerTab(this)"><i class="bi bi-clipboard2-data"></i>Final Report</button>
                     <button type="button" class="it-btn" data-iview="data" onclick="innerTab(this)"><i class="bi bi-table"></i>Trips Data</button>
                 </div>
@@ -994,6 +1003,23 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
             </div>
 
+            <!-- VENDORS — DISTINCT TRIPS (moved here from the Final Report) -->
+            <div class="table-container mb-4" data-view="viz">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-1">
+                    <div>
+                        <h5 class="fw-bold mb-1"><i class="bi bi-truck me-2"></i>Vendors — Distinct Trips</h5>
+                        <p class="text-muted small mb-3">Number of <strong>unique trips</strong> run by each vendor. “Rows” counts sheet rows; when it is higher than Distinct Trips the sheet has duplicate rows for the same trip.</p>
+                    </div>
+                    <span class="badge text-bg-light border" id="vendorTripBadge">—</span>
+                </div>
+                <table id="vendorTripTable" class="table table-hover align-middle w-100 fs-7 table-sm">
+                    <thead class="table-light"><tr>
+                        <th>Vendor</th><th>Distinct Trips</th><th>Rows</th><th>Share of Trips</th>
+                    </tr></thead>
+                    <tbody id="vendorTripTableBody"></tbody>
+                </table>
+            </div>
+
             <!-- TRIP DETAILS TABLE - All trips with full metrics -->
             <div class="card p-3 mb-4 border-0 shadow-sm" data-view="data">
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -1052,7 +1078,6 @@ body.rail-collapsed { padding-left: 84px !important; }
             <div class="inner-tabs-row">
                 <div class="inner-tabs">
                     <button type="button" class="it-btn active" data-iview="main" onclick="innerTab(this)"><i class="bi bi-grid-1x2"></i>Manpower</button>
-                    <button type="button" class="it-btn" data-iview="report" onclick="innerTab(this)"><i class="bi bi-clipboard2-data"></i>Final Report</button>
                 </div>
                 <span class="it-meta" id="mpTabMeta">—</span>
             </div>
@@ -1160,11 +1185,27 @@ body.rail-collapsed { padding-left: 84px !important; }
                 <div class="card p-3 mb-4 border-0 shadow-sm">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-clipboard2-check me-2 text-primary"></i>Plan vs Actual <span id="mpPvaLeftNote" class="text-muted fw-normal" style="font-size:.75rem"></span></h6>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-outline-primary active" id="pva-sec-out" onclick="pvaSetSection('out')">Outsource · Core</button>
-                            <button type="button" class="btn btn-outline-primary" id="pva-sec-in" onclick="pvaSetSection('in')">Insource · Assoc (LM)</button>
-                            <button type="button" class="btn btn-outline-primary" id="pva-sec-none" onclick="pvaSetSection('none')">Unplanned</button>
-                        </div>
+                        <span class="badge text-bg-light border" id="mpPvaScopeBadge">—</span>
+                    </div>
+                    <div class="pva-modes" role="group" aria-label="Plan vs Actual scope">
+                        <button type="button" class="pva-mode m-out active" id="pva-sec-out" onclick="pvaSetSection('out')" title="Core Colleague from the outsource plan">
+                            <span class="ic"><i class="bi bi-box-seam"></i></span>
+                            <span class="tx"><span class="ttl">Outsource</span><span class="sml" id="pva-cnt-out">Core colleague</span></span>
+                            <span class="tick"><i class="bi bi-check2-circle"></i></span>
+                        </button>
+                        <button type="button" class="pva-mode m-in" id="pva-sec-in" onclick="pvaSetSection('in')" title="Every Associate / Senior Associate plan row — all functions, not only LM">
+                            <span class="ic"><i class="bi bi-people"></i></span>
+                            <span class="tx"><span class="ttl">Insource</span><span class="sml" id="pva-cnt-in">All associate plan rows</span></span>
+                            <span class="tick"><i class="bi bi-check2-circle"></i></span>
+                        </button>
+                        <button type="button" class="pva-mode m-none" id="pva-sec-none" onclick="pvaSetSection('none')" title="Present people with no plan row at all">
+                            <span class="ic"><i class="bi bi-person-dash"></i></span>
+                            <span class="tx"><span class="ttl">Unplanned</span><span class="sml" id="pva-cnt-none">no plan row</span></span>
+                            <span class="tick"><i class="bi bi-check2-circle"></i></span>
+                        </button>
+                    </div>
+                    <div class="pva-hint" id="pvaModeHint">
+                        <strong>Outsource</strong> = Core Colleague · <strong>Insource</strong> = every Associate / Senior Associate plan row (all functions) · <strong>Unplanned</strong> = present with no plan row. Filters narrow Actual only.
                     </div>
                     <div class="row g-3">
                         <div class="col-lg-7">
@@ -1279,9 +1320,6 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                 </div>
             </div>
-
-            <!-- FINAL REPORT SLOT — shared report panel mounts here on demand -->
-            <div class="fr-slot" data-view="report" data-fr-slot="mp"></div>
         </div>
 
         <!-- ============ PAGE 2: LIVE TRACKING ============ -->
@@ -1410,6 +1448,31 @@ body.rail-collapsed { padding-left: 84px !important; }
                             <tbody id="liveReportBody"></tbody>
                         </table>
                     </div>
+
+                    <!-- LIVE OPERATIONS — dispatch vs arrival, from the occurrence sheet -->
+                    <div class="table-container mt-4" id="liveGapBox">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <h5 class="fw-bold m-0"><i class="bi bi-broadcast me-2 text-primary"></i>Live Operations — Gap Analysis
+                                <span class="text-muted fw-normal fs-6">— dispatch vs arrival, from the occurrence sheet</span></h5>
+                            <span class="badge text-bg-light border" id="liveGapBadge">—</span>
+                        </div>
+                        <div class="row g-2 mb-3" id="liveInsightCards"></div>
+                        <div class="row g-3">
+                            <div class="col-lg-7">
+                                <div class="card p-3 border-0 shadow-sm chart-card h-100">
+                                    <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line text-warning me-2"></i>Average Variance by Lane <span class="text-muted fw-normal" style="font-size:.72rem">(minutes · − early / + late)</span></h6>
+                                    <div class="chart-box"><canvas id="chartLiveVar"></canvas></div>
+                                </div>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="card p-3 border-0 shadow-sm chart-card h-100">
+                                    <h6 class="fw-bold mb-3"><i class="bi bi-diagram-3 text-danger me-2"></i>Why The Arrival Was Late</h6>
+                                    <div class="chart-box"><canvas id="chartLiveCause"></canvas></div>
+                                    <div class="text-muted mt-2" style="font-size:.72rem">Dispatched on time or early but arrived late → the time was lost after leaving, i.e. <strong>vendor / en-route delay</strong>.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1489,48 +1552,9 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
             </div>
 
-            <div class="table-container mb-4">
-                <h5 class="fw-bold mb-1"><i class="bi bi-truck me-2"></i>Vendors — Distinct Trips</h5>
-                <p class="text-muted small mb-3">Number of <strong>unique trips</strong> run by each vendor. “Rows” counts sheet rows; when it is higher than Distinct Trips the sheet has duplicate rows for the same trip.</p>
-                <table id="vendorTripTable" class="table table-hover align-middle w-100 fs-7 table-sm">
-                    <thead class="table-light"><tr>
-                        <th>Vendor</th><th>Distinct Trips</th><th>Rows</th><th>Share of Trips</th>
-                    </tr></thead>
-                    <tbody id="vendorTripTableBody"></tbody>
-                </table>
-            </div>
-
-            <!-- 4 · LIVE OPERATIONS -->
+            <!-- 3 · ACCOUNTABILITY -->
             <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
-                <span class="badge text-bg-primary me-2">3</span><span class="text-muted">Live Operations</span>
-                <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— dispatch vs arrival, from the occurrence sheet</span>
-            </h6>
-            <div class="table-container mb-4" id="liveGapBox">
-                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                    <h5 class="fw-bold m-0"><i class="bi bi-broadcast me-2 text-primary"></i>Live Tracking — Gap Analysis</h5>
-                    <span class="badge text-bg-light border" id="liveGapBadge">—</span>
-                </div>
-                <div class="row g-2 mb-3" id="liveInsightCards"></div>
-                <div class="row g-3">
-                    <div class="col-lg-7">
-                        <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                            <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-line text-warning me-2"></i>Average Variance by Lane <span class="text-muted fw-normal" style="font-size:.72rem">(minutes · − early / + late)</span></h6>
-                            <div class="chart-box"><canvas id="chartLiveVar"></canvas></div>
-                        </div>
-                    </div>
-                    <div class="col-lg-5">
-                        <div class="card p-3 border-0 shadow-sm chart-card h-100">
-                            <h6 class="fw-bold mb-3"><i class="bi bi-diagram-3 text-danger me-2"></i>Why The Arrival Was Late</h6>
-                            <div class="chart-box"><canvas id="chartLiveCause"></canvas></div>
-                            <div class="text-muted mt-2" style="font-size:.72rem">Dispatched on time or early but arrived late → the time was lost after leaving, i.e. <strong>vendor / en-route delay</strong>.</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 5 · ACCOUNTABILITY -->
-            <h6 class="fw-bold text-uppercase mb-3" style="font-size:.72rem;letter-spacing:.6px">
-                <span class="badge text-bg-primary me-2">4</span><span class="text-muted">Accountability</span>
+                <span class="badge text-bg-primary me-2">3</span><span class="text-muted">Accountability</span>
                 <span class="fw-normal text-muted ms-2" style="text-transform:none;letter-spacing:0">— failed trips missing a root cause</span>
             </h6>
             <div class="table-container mb-2">
@@ -2614,7 +2638,7 @@ const METRIC_DEF = {
     portalPlanVsActualAdh:{ target:'Portal plan vs actual',     how:'Same dispatch variance: how far the actual gate-out moved from the portal plan.', tol:'late > +20 min, early < −15 min', kind:'dispatch' },
     gateInToOpenAdh:      { target:'Target ≤ 5 min',            how:'Minutes from source gate-in to dock open.', tol:'over 5 min = late', kind:'gate' },
     openToSealAdh:        { target:'Target window 6 – 30 min',  how:'Minutes from dock open to seal applied at the source hub.', tol:'over 30 = slow, under 6 = early', kind:'seal' },
-    arrivalAdh:           { target:'Target ±15 min',            how:'Actual destination gate-in vs the planned arrival clock.', tol:'over +15 = late, under −15 = early', kind:'arrival' },
+    arrivalAdh:           { target:'Target ±15 min · late only', how:'Actual destination gate-in vs the planned arrival clock. Early arrival counts as adhered.', tol:'late beyond +15 = not adhered', kind:'arrival' },
     vehicleAdh:           { target:'Vehicle / document compliance', how:'No time variance on this checkpoint — the sheet flags the vehicle itself.', tol:'—', kind:'none' }
 };
 
@@ -2989,6 +3013,38 @@ function setViewMeta(id, text){
    page simulates a click on its real nav pill, so Bootstrap tabs do
    the switching — no duplicate logic. */
 const WL_KEY = 'ctWelcomeHidden';
+/* The "where do you want to start" grid is generated from the REAL rail
+   tabs, so it can never drift from the navigation again: one card per
+   visible nav pill, its description from the pane's own page strip, and
+   the inner views listed as small chips underneath. */
+function wlRenderPages(){
+    const host = document.getElementById('wlPages');
+    if (!host) return;
+    const pills = Array.prototype.slice.call(
+        document.querySelectorAll('#pageTabs .nav-item:not(.d-none) .nav-link'));
+    host.innerHTML = pills.map(function(pill){
+        const target = pill.getAttribute('data-bs-target');
+        const pane = target ? document.querySelector(target) : null;
+        if (!pane) return '';
+        const strip  = pane.querySelector('.page-strip');
+        const descEl = strip ? strip.querySelector('.d') : null;
+        const iconEl = pill.querySelector('i');
+        const nameEl = pill.querySelector('.nl-txt');
+        const name   = (nameEl ? nameEl.textContent : (strip ? strip.querySelector('.k') : '').textContent) || 'Page';
+        const icon   = iconEl ? iconEl.className : 'bi bi-grid';
+        const desc   = descEl ? descEl.textContent.trim() : '';
+        const views  = Array.prototype.slice.call(pane.querySelectorAll('.inner-tabs .it-btn'))
+            .map(function(b){ return '<span class="wl-view">' + esc(b.textContent.trim()) + '</span>'; }).join('');
+        return '<button type="button" class="wl-page" data-target="' + target + '">' +
+            '<div class="t"><i class="' + icon + '"></i>' + esc(name.trim()) + '</div>' +
+            (desc ? '<div class="d">' + esc(desc) + '</div>' : '') +
+            (views ? '<div class="wl-views">' + views + '</div>' : '') +
+            '</button>';
+    }).join('');
+    const note = document.getElementById('wlNote');
+    if (note) note.innerHTML = '<strong>Final Report</strong> lives inside LH Adherence and LH Live Tracking · ' +
+        '<strong>Trip Log &amp; RCA</strong> opens from any report card.';
+}
 function wlClose(){
     const gate = document.getElementById('welcomeGate');
     if (!gate) return;
@@ -3010,6 +3066,7 @@ function wlInit(){
         h < 12 ? 'Good morning' : (h < 17 ? 'Good afternoon' : 'Good evening');
     document.getElementById('wlDate').textContent =
         new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    wlRenderPages();
     gate.querySelectorAll('.wl-page').forEach(b => b.addEventListener('click', () => {
         const pill = document.querySelector(`[data-bs-target="${b.dataset.target}"]`);
         if (pill) pill.click();
@@ -3397,6 +3454,16 @@ function loadDataFromCSV() {
                 // the midnight wrap-around.
                 t.dispatchDeltaMin = wrapDelta(t.srcGateOut && t.ctPlan ? (t.srcGateOut - t.ctPlan) / 60000 : null);
                 t.arrivalDeltaMin  = wrapDelta(t.dstArrival && t.ctArrival ? (t.dstArrival - t.ctArrival) / 60000 : null);
+                // Arrival rule: the clock decides — early or on time is adhered,
+                // ONLY late (> +15 min) is a failure. The sheet's own verdict marks
+                // "Not Adhered, Early Arrival", which is the opposite of the
+                // business rule, so the measured variance wins whenever it exists.
+                t.arrivalAdhRaw = t.arrivalAdh;
+                if (t.arrivalDeltaMin !== null && t.arrivalDeltaMin !== undefined) {
+                    t.arrivalAdh = t.arrivalDeltaMin > BIZ.LATE_MIN ? 'Not Adhered' : 'Adhered';
+                } else if (/early|ealry/i.test(String(t.arrivalAdhRaw || ''))) {
+                    t.arrivalAdh = 'Adhered';
+                }
                 // Utilisation accuracy: 'utilization_percentage' in the sheet is a 0..1
                 // fraction (shipments / target_count) and is the real fill rate, so it
                 // wins over the raw stop estimate. Both are normalised to 0..100 here.
@@ -4645,6 +4712,7 @@ function renderDashboard(data){
     // LH Plan vs Actual — lane plan from the plan sheet against real vendor trips
     renderLhPlanVsActual(data);
 
+    renderVendorTripCounts(data);   // "Vendors — Distinct Trips" lives on this Overview view
     renderDashboardCharts(data);
     renderTripDetailsTable(data);
 }
@@ -4930,6 +4998,11 @@ function renderVendorTripCounts(data){
     const stats = vendorTripStats(data);
     const body = document.getElementById('vendorTripTableBody');
     if (!body) return;
+    const dup = stats.reduce((s, v) => s + (v.rows - v.distinct), 0);
+    const badge = document.getElementById('vendorTripBadge');
+    if (badge) badge.textContent = fmt(stats.length) + ' vendors • ' +
+        fmt(stats.reduce((s, v) => s + v.distinct, 0)) + ' distinct trips' +
+        (dup ? ' • ' + fmt(dup) + ' duplicate rows' : '');
     resetTable('#vendorTripTable');
     body.innerHTML = stats.map(v => `
         <tr>
@@ -5616,15 +5689,13 @@ function renderMpGrid(rows, dayCols){
    per facility/hub/day; filters only change Actual, so
    Var = Plan − Actual moves as filters narrow.
    Plan sheet blocks: "Plan Outsource, Core Colleague" and
-   "Plan Insource, All except core coleague". Per the user, the
-   insource plan is really for Associate / Senior Associate only
-   and applies ONLY to the LM rows (the roster shows those as
-   LM / LM Cairo / LM Giza) — other insource rows are ignored and
-   their people fall into the Unplanned group. One planned
-   headcount per day. Actual = the Manpower present bucket
+   "Plan Insource, All except core coleague". The insource block is
+   applied in FULL: every Associate / Senior Associate plan row,
+   whatever its function (LM, GWH, LPC, First Mile, Bulky), is
+   compared with the Noon-vendor associates present at that hub.
+   Actual = the Manpower present bucket
    (Present + WPH + Work on Week Off) from the filtered roster,
-   joined by hub (the plan says LM; the roster says LM Cairo /
-   LM Giza).
+   joined by hub. People matching no plan row fall into Unplanned.
    To plug in MORE plan sheets later, parsePvaPlan() is generic
    over the facility, hub, day-columns layout — add a source
    selector next to the section buttons when that day comes.
@@ -5632,8 +5703,7 @@ function renderMpGrid(rows, dayCols){
 const PVA_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=943948063&single=true&output=csv';
 const PVA_CORE = 'Core Colleague';
 const PVA_INSOURCE_VENDORS = ['noon', 'noon da'];      // vendor names treated as insource
-const PVA_INSOURCE_TITLES = ['associate', 'senior associate'];  // insource plan covers these titles only
-const PVA_INSOURCE_FAC = 'LM';                         // insource plan applies to the LM rows only (manpower shows LM / LM Cairo / LM Giza)
+const PVA_INSOURCE_TITLES = ['associate', 'senior associate'];  // insource plan covers these titles
 let pvaLoaded = false, pvaLoading = false;
 let pvaPlan = { out: {}, in: {} };                     // key -> planned headcount per day ix
 let pvaDays = [];                                      // [{ix, dayNum}]
@@ -5777,6 +5847,28 @@ function pvaSetSection(sec){
     renderMpPlanVsActual();
 }
 
+/* Live sub-labels for the three scope cards: how many plan rows and how many
+   planned heads each block actually carries, so the picker reads like a
+   summary instead of three anonymous buttons. */
+function pvaUpdateModeCounts(nonePresent){
+    const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+    if (pvaV2) {
+        const hubs = sec => Object.keys(pvaV2Plan[sec] || {}).length;
+        const heads = sec => Object.keys(pvaV2Plan[sec] || {})
+            .reduce((s, h) => s + (pvaV2Plan[sec][h].total || 0), 0);
+        set('pva-cnt-out', fmt(hubs('out')) + ' hubs · ' + fmt(heads('out')) + ' planned');
+        set('pva-cnt-in',  fmt(hubs('in'))  + ' hubs · ' + fmt(heads('in'))  + ' planned');
+    } else {
+        set('pva-cnt-out', fmt(Object.keys(pvaPlan.out || {}).length) + ' plan rows');
+        set('pva-cnt-in',  fmt(Object.keys(pvaPlan.in  || {}).length) + ' plan rows');
+    }
+    set('pva-cnt-none', nonePresent === undefined || nonePresent === null
+        ? 'no plan row' : fmt(nonePresent) + ' present in range');
+    const badge = document.getElementById('mpPvaScopeBadge');
+    if (badge) badge.textContent = 'Plan sheet · ' +
+        (pvaV2 ? 'YF\'26 headcount per hub' : 'per-day headcount');
+}
+
 /* ===== V2 report: per-DOD Core Colleague health table ================
    For each Day-of-Date selected in the day filter:
      Planned CC      = one YF'26 headcount from the plan sheet
@@ -5856,13 +5948,14 @@ function renderPvaV2(hubBody, facBody, note){
         const isCore = tit === PVA_CORE;
         const isNoon = PVA_INSOURCE_VENDORS.indexOf(String(t.vendor || '').trim().toLowerCase()) !== -1;
         const isAsso = PVA_INSOURCE_TITLES.indexOf(tit.toLowerCase()) !== -1;
-        const legLM  = /^lm/i.test(String(t.leg || '').trim());
         const hubRaw = String(t.hub || '').trim();
         const key    = hubRaw.toLowerCase();
         const planIn = pvaV2Plan.in[pvaHubMap[key] || ''];
         let sec2 = 'none';
         if (isCore && !isNoon) sec2 = 'out';
-        else if (legLM && !isCore && isNoon && isAsso && planIn && planIn.func === 'LM') sec2 = 'in';
+        // Insource = EVERY Associate / Senior Associate plan row (LM, GWH,
+        // LPC, First Mile, Bulky …), not the LM rows only.
+        else if (!isCore && isNoon && isAsso && planIn) sec2 = 'in';
         legFac[sec2][key] = String(t.leg || '').trim() || '—';
         fullDayCols.forEach((c) => {
             const x = t.days[c];
@@ -5997,45 +6090,51 @@ function renderPvaV2(hubBody, facBody, note){
         note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
             'Planned CC = one YF\'26 headcount from the plan sheet (not per-day) · Attend = present bucket on the DOD (Present + WPH + Work on Week Off), all filters apply · ' +
             'Max/Avg = the 3 most recent days with data ending today (' + pvWinLbl + '), independent of the day filter · Peak Deficit = ROUNDUP(Planned − Avg) · Fulfill % = Avg / Planned · ' +
-            'Insource = Senior Associate / Associate (Noon vendor) at the LM-function plan rows · ' +
+            'Insource = every Associate / Senior Associate plan row (all functions) · ' +
             '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Outsource · Core ' + fmt(oSum) + ' + Insource · Assoc ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
+        pvaUpdateModeCounts(nSum);
         return;
     }
 
-    /* ---------- IN: plan resource rows (LM function) ------------------ */
+    /* ---------- IN: every insource plan row --------------------------- */
     if (pvaSection === 'in'){
-        document.getElementById('mpPvaLeftTitle').textContent = 'Plan Resource — Senior Associate & Associate (LM plan rows)';
-        document.getElementById('mpPvaLeftNote').textContent = '— Plan = YF\'26 headcount · Actual = present over the selected day range';
-        document.getElementById('mpPvaRightTitle').textContent = 'Full plan sheet (all functions)';
+        // Plan rows carry ONE headcount per hub, so the Actual side has to be a
+        // per-day figure too — average present over the days that actually hold
+        // attendance in the selected range. Comparing one planned head with a
+        // whole-month sum produced meaningless −1500% variances.
+        const activeDays = Math.max(1, dayCols.filter(c => pvReal(c)).length);
+        document.getElementById('mpPvaLeftTitle').textContent = 'Insource plan — Senior Associate & Associate, every plan row';
+        document.getElementById('mpPvaLeftNote').textContent = '— Plan = one YF\'26 headcount per hub · Actual = average present per active day';
+        document.getElementById('mpPvaRightTitle').textContent = 'Full insource plan sheet (all functions)';
         document.getElementById('mpPvaHubHead').innerHTML =
-            '<tr><th>Hub</th><th>Function</th><th class="text-center">Plan</th><th class="text-center">Actual</th>' +
+            '<tr><th>Hub</th><th>Function</th><th class="text-center">Plan</th><th class="text-center">Avg present/day</th>' +
             '<th class="text-center">Var</th><th class="text-center">Var %</th></tr>';
         document.getElementById('mpPvaFacHead').innerHTML =
             '<tr><th>Hub</th><th>Function</th><th class="text-center">Plan</th></tr>';
         let html = '', sP = 0, sA = 0;
-        pvaV2Order.in.filter(h => pvaV2Plan.in[h].func === 'LM').forEach(h => {
+        pvaV2Order.in.forEach(h => {
             const row = pvaV2Plan.in[h];
-            const a = rangeT['in'][h.toLowerCase()] || 0;
+            const a = (rangeT['in'][h.toLowerCase()] || 0) / activeDays;
             const p = row.total, v = p - a;
             const pct = p ? Math.round(v / p * 100) + '%' : '—';
             sP += p; sA += a;
             html += '<tr><td class="fw-bold">' + esc(h) + '</td><td>' + esc(row.func) + '</td>' +
-                '<td class="text-center">' + fmt(p) + '</td><td class="text-center fw-bold">' + fmt(a) + '</td>' +
-                '<td class="text-center ' + (v > 0 ? 'text-danger' : (v < 0 ? 'text-info' : 'text-success')) + '">' + fmt(v) + '</td>' +
+                '<td class="text-center">' + fmt(p) + '</td><td class="text-center fw-bold">' + a.toFixed(1) + '</td>' +
+                '<td class="text-center ' + (v > 0 ? 'text-danger' : (v < 0 ? 'text-info' : 'text-success')) + '">' + v.toFixed(1) + '</td>' +
                 '<td class="text-center small ' + (v > 0 ? 'text-danger' : (v < 0 ? 'text-info' : 'text-success')) + '">' + pct + '</td></tr>';
         });
         Object.keys(rangeT['in']).forEach(k => {
             const hk = pvaHubMap[k] || k;
             if (pvaV2Plan.in[hk]) return;
-            const a = rangeT['in'][k];
+            const a = rangeT['in'][k] / activeDays;
             sA += a;
             html += '<tr class="table-warning"><td class="fw-bold">' + esc(hk) + '</td><td>—</td>' +
-                '<td class="text-center">0</td><td class="text-center fw-bold">' + fmt(a) + '</td>' +
-                '<td class="text-center text-danger">' + a + '</td><td class="text-center small text-muted">no plan row</td></tr>';
+                '<td class="text-center">0</td><td class="text-center fw-bold">' + a.toFixed(1) + '</td>' +
+                '<td class="text-center text-danger">' + a.toFixed(1) + '</td><td class="text-center small text-muted">no plan row</td></tr>';
         });
         html += '<tr class="table-light fw-bold"><td colspan="2">Total</td>' +
-            '<td class="text-center">' + fmt(sP) + '</td><td class="text-center">' + fmt(sA) + '</td>' +
-            '<td class="text-center ' + (sP - sA > 0 ? 'text-danger' : (sP - sA < 0 ? 'text-info' : 'text-success')) + '">' + fmt(sP - sA) + '</td>' +
+            '<td class="text-center">' + fmt(sP) + '</td><td class="text-center">' + sA.toFixed(1) + '</td>' +
+            '<td class="text-center ' + (sP - sA > 0 ? 'text-danger' : (sP - sA < 0 ? 'text-info' : 'text-success')) + '">' + (sP - sA).toFixed(1) + '</td>' +
             '<td class="text-center small">' + (sP ? Math.round((sP - sA) / sP * 100) + '%' : '—') + '</td></tr>';
         hubBody.innerHTML = html;
 
@@ -6050,9 +6149,10 @@ function renderPvaV2(hubBody, facBody, note){
         const iSum = Object.values(rangeT.in).reduce((a, b) => a + b, 0);
         const nSum = Object.values(rangeT.none).reduce((a, b) => a + b, 0);
         note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
-            'Plan = YF\'26 headcount from the plan sheet · Actual = present over the selected day range (all filters) · ' +
-            'Insource covers Senior Associate / Associate (Noon vendor) at the plan\'s LM-function rows only · ' +
+            'Plan = one YF\'26 headcount per hub from the plan sheet · Actual = average present per active day in the selected range (all filters) · ' +
+            'Insource covers every Associate / Senior Associate plan row — all functions, not LM only · ' +
             '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Outsource · Core ' + fmt(oSum) + ' + Insource · Assoc ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
+        pvaUpdateModeCounts(nSum);
         return;
     }
 
@@ -6068,13 +6168,13 @@ function renderPvaV2(hubBody, facBody, note){
     let nHtml = '', nSum = 0;
     keys.forEach(k => {
         nSum += rangeT.none[k];
-        nHtml += '<tr><td class="fw-bold">' + esc(k) + '</td><td class="text-center fw-bold">' + fmt(rangeT.none[k]) + '</td></tr>';
+        nHtml += '<tr><td class="fw-bold">' + esc(pvaHubMap[k] || k) + '</td><td class="text-center fw-bold">' + fmt(rangeT.none[k]) + '</td></tr>';
     });
     if (!keys.length) nHtml = '<tr><td colspan="2" class="text-center text-muted py-3">Nothing unplanned in this range.</td></tr>';
     hubBody.innerHTML = nHtml;
     let lHtml = '';
     keys.forEach(k => {
-        lHtml += '<tr><td class="fw-bold">' + esc(k) + '</td><td>' + esc(legFac.none[k] || '—') + '</td><td class="text-center fw-bold">' + fmt(rangeT.none[k]) + '</td></tr>';
+        lHtml += '<tr><td class="fw-bold">' + esc(pvaHubMap[k] || k) + '</td><td>' + esc(legFac.none[k] || '—') + '</td><td class="text-center fw-bold">' + fmt(rangeT.none[k]) + '</td></tr>';
     });
     if (!keys.length) lHtml = '<tr><td colspan="3" class="text-center text-muted py-3">—</td></tr>';
     facBody.innerHTML = lHtml;
@@ -6084,6 +6184,7 @@ function renderPvaV2(hubBody, facBody, note){
     note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
         'People matching the filters whose section is neither Core Colleague (outsource) nor the Insource plan rows — add them to the plan sheet if they should be planned · ' +
         '<strong>Overall present (range): ' + fmt(oSum2 + nSum2 + iSum2) + ' = Outsource · Core ' + fmt(oSum2) + ' + Insource · Assoc ' + fmt(iSum2) + ' + Unplanned ' + fmt(nSum2) + '</strong>';
+    pvaUpdateModeCounts(nSum2);
 }
 
 /* Legacy tables (old per-day plan layout), rebuilt on every manpower
@@ -6129,10 +6230,8 @@ function renderMpPlanVsActual(){
 
     /* Actual tally: one pass, three groups.
        out  = Core Colleague, vendor not Noon (the outsource plan)
-       in   = Associate / Senior Associate from Noon vendor, joined to
-              an LM plan row (the insource plan covers those titles at
-              the LM facilities only — the roster shows LM Cairo /
-              LM Giza / LM for them)
+       in   = Associate / Senior Associate from the Noon vendor on any hub
+              that has an insource plan row (all functions, not LM only)
        none = everything else present (unplanned) */
     const tally = { out: {}, in: {}, none: {} };
     mpAll.filter(t => mpMatch(t)).forEach(t => {
@@ -6140,20 +6239,17 @@ function renderMpPlanVsActual(){
         const isCore = tit === PVA_CORE;
         const isNoon = PVA_INSOURCE_VENDORS.indexOf(String(t.vendor || '').trim().toLowerCase()) !== -1;
         const isAsso = PVA_INSOURCE_TITLES.indexOf(tit.toLowerCase()) !== -1;
-        // "LM" must be the person's OWN facility leg (LM / LM Cairo / LM Giza) — not just the hub
-        const legLM  = /^lm/i.test(String(t.leg || '').trim());
         const key    = pvaHubMap[String(t.hub || '').trim().toLowerCase()] || pvaKey(t.leg, t.hub);
         let sec = 'none';
         if (isCore && !isNoon) sec = 'out';
-        else if (legLM && !isCore && isNoon && isAsso && String(key.split('|')[0]) === PVA_INSOURCE_FAC) sec = 'in';
+        else if (!isCore && isNoon && isAsso && !!pvaPlan.in[key]) sec = 'in';
         dayCols.forEach(c => { if (pvaIsPresent(t, c)) tally[sec][key] = (tally[sec][key] || 0) + 1; });
     });
 
     const buildRows = sec => {
         const planSec = pvaPlan[sec] || {};
-        // insource table only shows the LM rows — the other insource plan rows are not applied
-        const planKeys = Object.keys(planSec).filter(k => k.split('|')[1])
-            .filter(k => sec !== 'in' || String(k.split('|')[0]) === PVA_INSOURCE_FAC);
+        // every plan row of the block is listed — insource is no longer LM-only
+        const planKeys = Object.keys(planSec).filter(k => k.split('|')[1]);
         const list = planKeys.map(k => ({ key: k, fac: k.split('|')[0], hub: k.split('|')[1], hasPlan: true }));
         Object.keys(tally[sec]).forEach(k => {
             if (!planSec[k] && tally[sec][k] > 0) list.push({ key: k, fac: k.split('|')[0], hub: k.split('|')[1], hasPlan: false });
@@ -6182,7 +6278,7 @@ function renderMpPlanVsActual(){
         facMap[fl].plan += p; facMap[fl].act += a;
     });
     const sx = pvaVarCell(sPlan, sAct);
-    const secLabel = sec === 'out' ? 'Outsource · Core Colleague' : (sec === 'in' ? 'Insource · Senior Associate / Associate (LM only)' : 'Unplanned — covered by neither plan block');
+    const secLabel = sec === 'out' ? 'Outsource · Core Colleague' : (sec === 'in' ? 'Insource · Senior Associate / Associate (all plan rows)' : 'Unplanned — covered by neither plan block');
     hubHtml += '<tr class="table-light fw-bold">' +
         '<td colspan="2">Total — ' + secLabel + '</td>' +
         '<td class="text-center">' + fmt(sPlan) + '</td>' +
@@ -6219,12 +6315,13 @@ function renderMpPlanVsActual(){
         });
     });
     const bits = ['Present = Present + WPH + Work on Week Off (same as Manpower)',
-        'Insource covers Senior Associate / Associate (Noon vendor) at the LM rows only',
+        'Insource covers every Associate / Senior Associate plan row — all functions, not LM only',
         'Scope: ' + (dayCols.length === mpCols.length ? 'whole month' : mpRangeLabel()) +
         ' · filters narrow Actual only — Plan stays the sheet headcount',
         '<strong>Overall present (all filters): ' + fmt(overall) + ' = Outsource · Core ' + fmt(oAct) + ' + Insource · Assoc ' + fmt(iAct) + ' + Unplanned ' + fmt(nAct) + '</strong>',
         'The Unplanned group has no plan row in the sheet — add them to the plan if they should be planned.'];
     note.innerHTML = '<i class="bi bi-funnel me-1"></i>' + bits.join(' · ');
+    pvaUpdateModeCounts(nAct);
 }
 
 function renderGap(data){
@@ -6232,11 +6329,9 @@ function renderGap(data){
     renderInsights(data);
     renderGapCharts(data);
     renderVendorScorecard(data);
-    renderVendorTripCounts(data);
     renderLanes(data);
     renderOffenders(data);
     renderPending(data);
-    renderLiveGap();
 }
 
 function renderInsights(data){
@@ -6244,24 +6339,10 @@ function renderInsights(data){
     const cards = [];
     if (!data.length) { el.innerHTML = '<div class="col-12"><div class="alert alert-light border">No trips match the current filters.</div></div>'; return; }
 
-    // Focus on the 6 key metrics
-    const targetMetrics = METRICS; // All 6 metrics
+    // Focus on the 5 LH checkpoints — vehicle compliance is not part of this scorecard
+    const targetMetrics = METRICS.filter(m => m.key !== 'vehicleAdh');
 
-    // 1) Biggest SLA leak - from the 6 metrics
-    const leak = targetMetrics.map(m => ({ m, f: data.filter(t=>!isPass(t[m.key])).length })).sort((a,b)=>b.f-a.f)[0];
-    if (leak.f > 0) cards.push({ tone:'danger', title:'🔴 Biggest SLA Leak', main: esc(leak.m.label),
-        act: 'metric:' + leak.m.key,
-        sub: `${fmt(leak.f)} trips failed (${Math.round(leak.f/data.length*100)}% of filtered trips)` });
-
-    // 2) RCA accountability
-    const rc = rcaCounts(data);
-    const rcComp = rc.need ? rc.have/rc.need*100 : 100;
-    cards.push({ tone: rcComp>=80?'success':rcComp>=50?'warning':'danger', title:'📋 RCA Accountability',
-        act: 'log:rcaPending',
-        main: Math.round(rcComp) + '% of failures explained',
-        sub: `${rc.need - rc.have} of ${rc.need} failed checkpoints still missing RCA` });
-
-    // 3) Metric-by-metric breakdown
+    // 1) Metric-by-metric breakdown
     targetMetrics.forEach(m => {
         const failCount = data.filter(t=>!isPass(t[m.key])).length;
         const pct = data.length ? Math.round(failCount/data.length*100) : 0;
@@ -6273,32 +6354,19 @@ function renderInsights(data){
         }
     });
 
-    // 4) Weakest vendor by composite
+    // 2) Weakest vendor by composite
     const wv = vendorStats(data).filter(v=>v.trips>=BIZ.VENDOR_MIN_TRIPS).sort((a,b)=>a.composite-b.composite)[0];
     if (wv) cards.push({ tone:'danger', title:`🏢 Weakest Vendor (${BIZ.VENDOR_MIN_TRIPS}+ trips)`, main: esc(wv.name),
-        act: 'gap',
+        act: 'vendor:' + encodeURIComponent(wv.name),
         sub: `${Math.round(wv.composite)}% composite adherence over ${wv.trips} trips` });
 
-    // 5) Weakest lane by adherence
+    // 3) Weakest lane by adherence
     const wl = laneStats(data).filter(l=>l.trips>=BIZ.LANE_MIN_TRIPS).sort((a,b)=>a.adh-b.adh)[0];
     if (wl) cards.push({ tone:'warning', title:`🛣️ Weakest Lane (${BIZ.LANE_MIN_TRIPS}+ trips)`, main: esc(wl.name),
         act: 'gap',
         sub: `${Math.round(wl.adh)}% adherence over ${wl.trips} trips` });
 
-    // 6) Flag Hubs impact
-    const flagged = data.filter(t => String(t.flagHubs||'').trim() !== '');
-    if (flagged.length) {
-        const flaggedComp = composite(flagged);
-        const unflagged = data.filter(t => !String(t.flagHubs||'').trim());
-        const unflaggedComp = composite(unflagged);
-        const gap = unflaggedComp - flaggedComp;
-        cards.push({ tone: gap>5?'warning':'info', title:'🚩 Flag Hubs Impact',
-            act: 'gap',
-            main: `${fmt(flagged.length)} flagged trips (${Math.round(flaggedComp)}% adherence)`,
-            sub: `Unflagged: ${Math.round(unflaggedComp)}% • Gap: ${Math.round(gap)} pts` });
-    }
-
-    // 7) Perfect Flag analysis
+    // 4) Perfect Flag analysis
     const perfectFlagged = data.filter(t => isPerfectFlag(t.perfectFlag));
     if (perfectFlagged.length > 0) {
         cards.push({ tone:'success', title:`⭐ Perfect Flag Trips`,
@@ -6404,8 +6472,29 @@ function insightAction(act){
         openFinalReport('vendorTable');
     } else if (kind === 'gap') {
         openFinalReport('laneTable');
+    } else if (kind === 'vendor') {
+        drillVendor(decodeURIComponent(arg || ''));
     } else if (kind === 'live') {
         showTab('#page-live');
+    }
+}
+
+/* Weakest-vendor drill-down: put that ONE vendor into the global vendor filter,
+   re-run every render with the narrowed scope, then open the report on the
+   scorecard so the operator sees that vendor's own numbers — not the blend. */
+function drillVendor(name){
+    if (!name) return;
+    const sel = '#dash-vendor';
+    const exists = document.querySelector(sel) &&
+        Array.prototype.slice.call(document.querySelector(sel).options).some(o => o.value === name);
+    setSelectValues(sel, exists ? [name] : []);
+    applyDashboardFilters();
+    openFinalReport('vendorTable');
+    if (exists) {
+        setTimeout(function(){
+            const chip = document.querySelector('#dashFilterInfo');
+            if (chip) chip.scrollIntoView({ behavior:'smooth', block:'center' });
+        }, 360);
     }
 }
 
