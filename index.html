@@ -350,6 +350,24 @@ body.rail-collapsed { padding-left: 84px !important; }
     .live-kpi .l { font-family: var(--font-head); font-size:.6rem; font-weight:700; text-transform:uppercase; color:#9a9282; }
     .live-kpi .v { font-size:.95rem; font-weight:800; color:#111111; }
 
+    /* Lane adherence table — src → dst, dispatch vs arrival */
+    .lane-tbl { border-collapse: collapse; width: 100%; font-size: .8rem; }
+    .lane-tbl th, .lane-tbl td { border: 1px solid #e8e2cf; text-align: center; vertical-align: middle; padding: 6px 9px; background: var(--brand-white); }
+    .lane-tbl thead th { background: var(--brand-yellow3); font-family: var(--font-head); font-size: .7rem; text-transform: uppercase; letter-spacing: .3px; color: #111111; }
+    .lane-tbl thead tr:first-child th:not([rowspan]) { border-bottom: 1px solid #d6caa4; font-size: .72rem; }
+    .lane-tbl th.grp-sep, .lane-tbl td.grp-sep { border-left: 2px solid #ddd2b2; }
+    .lane-tbl td.hub { text-align: left; font-weight: 700; white-space: nowrap; background: #fbf8ee; }
+    .lane-tbl td.hub .arr { color: #b9b09a; font-weight: 600; margin-right: 6px; font-size: .74rem; }
+    .lane-tbl .n { font-family: var(--font-num); font-weight: 700; font-variant-numeric: tabular-nums; font-size: .82rem; }
+    .lane-tbl .n.ok { color: #1e7a2e; }
+    .lane-tbl .n.bad { color: var(--brand-red); }
+    .lane-tbl .n.extra { color: #8a6d1a; }
+    .lane-tbl .n.zero { color: #c3bcaa; font-weight: 600; }
+    .lane-tbl tbody tr:hover td { background: #fdf9ec; }
+    .lane-tbl tbody tr:hover td.hub { background: #fbf8ee; }
+    .lane-tbl tbody tr.has-breach td.hub { box-shadow: inset 3px 0 0 var(--brand-red); }
+    .lane-tbl tfoot td { background: #fbf8ee; font-family: var(--font-head); font-weight: 800; font-size: .74rem; text-transform: uppercase; letter-spacing: .3px; }
+
     /* Brand footer */
     .brand-footer { background: var(--brand-black); color: var(--brand-white); padding: 14px 24px; margin-top: 24px; }
     .brand-footer .slogan { font-family: var(--font-head); font-weight: 700; font-size: .95rem; color: var(--brand-yellow3); letter-spacing: .5px; }
@@ -1438,6 +1456,36 @@ body.rail-collapsed { padding-left: 84px !important; }
                             </div>
                         </div>
                     </div>
+
+                    <!-- LANE ADHERENCE — every src → dst lane in scope, dispatch vs arrival -->
+                    <div class="mb-3" id="liveLaneBox">
+                        <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+                            <h6 class="fw-bold m-0" style="font-size:.9rem"><i class="bi bi-signpost-split me-1 text-warning"></i>Lane Adherence
+                                <span class="text-muted fw-normal" style="font-size:.78rem">— every source → destination lane in scope</span></h6>
+                            <span class="badge text-bg-light border" id="liveLaneBadge">—</span>
+                        </div>
+                        <div style="overflow-x:auto">
+                            <table class="lane-tbl" id="liveLaneTable">
+                                <thead>
+                                    <tr>
+                                        <th rowspan="2">Source</th>
+                                        <th rowspan="2">Destination</th>
+                                        <th rowspan="2" class="grp-sep">Trips</th>
+                                        <th colspan="3" class="grp-sep">Dispatch time</th>
+                                        <th colspan="3" class="grp-sep">Arrival time</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="grp-sep">Adhered</th><th>Not adhered</th><th>Extra</th>
+                                        <th class="grp-sep">Adhered</th><th>Not adhered</th><th>Extra</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="liveLaneBody"></tbody>
+                                <tfoot id="liveLaneFoot"></tfoot>
+                            </table>
+                        </div>
+                        <div class="text-muted mt-1" style="font-size:.72rem" id="liveLaneNote">Early counts as adhered · Extra = adhoc, no plan time</div>
+                    </div>
+
                     <div style="overflow-x:auto">
                         <table class="live-table" id="liveReportTable">
                             <thead><tr>
@@ -4198,11 +4246,87 @@ function buildSendSummary(rows){
     return L.join('\n');
 }
 
+/* LANE ADHERENCE TABLE — every source → destination lane in the live scope,
+   split by checkpoint. Early still counts as adhered (same classifier as the
+   rest of the page), Extra is adhoc (never planned) and gets its own column so
+   Adhered + Not adhered + Extra reconciles to Trips. */
+function buildLaneAdherence(rows){
+    const map = new Map();
+    rows.forEach(t => {
+        const src = String(t.srcHub || '—').trim() || '—';
+        const dst = String(t.dstHub || '—').trim() || '—';
+        const key = src + '\u0000' + dst;
+        let g = map.get(key);
+        if (!g){
+            g = { src, dst, trips: 0,
+                  out: { ok: 0, late: 0, extra: 0, na: 0 },
+                  arr: { ok: 0, late: 0, extra: 0, na: 0 } };
+            map.set(key, g);
+        }
+        g.trips++;
+        g.out[liveAdhClass(t.outAdhRaw)]++;
+        g.arr[liveAdhClass(t.arrAdhRaw)]++;
+    });
+    return Array.from(map.values()).map(g => {
+        g.breaches = g.out.late + g.arr.late;
+        g.missing  = g.out.na + g.arr.na;
+        return g;
+    }).sort((a, b) => (b.breaches - a.breaches) || (b.trips - a.trips) ||
+                      a.src.localeCompare(b.src) || a.dst.localeCompare(b.dst));
+}
+
+function renderLaneAdherence(rows){
+    const body = document.getElementById('liveLaneBody');
+    if (!body) return;
+
+    const lanes = buildLaneAdherence(rows || []);
+    const totals = lanes.reduce((a, g) => {
+        a.trips += g.trips;
+        ['ok', 'late', 'extra', 'na'].forEach(k => { a.out[k] += g.out[k]; a.arr[k] += g.arr[k]; });
+        return a;
+    }, { trips: 0, out: { ok: 0, late: 0, extra: 0, na: 0 }, arr: { ok: 0, late: 0, extra: 0, na: 0 } });
+
+    const num = (v, tone, sep) =>
+        '<td' + (sep ? ' class="grp-sep"' : '') + '><span class="n ' + (v ? tone : 'zero') + '">' +
+        (v ? fmt(v) : '–') + '</span></td>';
+
+    body.innerHTML = lanes.length ? lanes.map(g => `
+        <tr class="${g.breaches ? 'has-breach' : ''}">
+            <td class="hub">${esc(g.src)}</td>
+            <td class="hub"><span class="arr"><i class="bi bi-arrow-right"></i></span>${esc(g.dst)}</td>
+            ${num(g.trips, 'extra', true)}
+            ${num(g.out.ok, 'ok', true)}${num(g.out.late, 'bad', false)}${num(g.out.extra, 'extra', false)}
+            ${num(g.arr.ok, 'ok', true)}${num(g.arr.late, 'bad', false)}${num(g.arr.extra, 'extra', false)}
+        </tr>`).join('')
+        : '<tr><td colspan="9" class="text-muted py-3">No lanes in the current filters.</td></tr>';
+
+    const foot = document.getElementById('liveLaneFoot');
+    if (foot) foot.innerHTML = lanes.length ? `
+        <tr>
+            <td colspan="2" class="hub">Total · ${fmt(lanes.length)} lane${lanes.length === 1 ? '' : 's'}</td>
+            ${num(totals.trips, 'extra', true)}
+            ${num(totals.out.ok, 'ok', true)}${num(totals.out.late, 'bad', false)}${num(totals.out.extra, 'extra', false)}
+            ${num(totals.arr.ok, 'ok', true)}${num(totals.arr.late, 'bad', false)}${num(totals.arr.extra, 'extra', false)}
+        </tr>` : '';
+
+    const badge = document.getElementById('liveLaneBadge');
+    if (badge) badge.textContent = fmt(lanes.length) + ' lanes · ' + fmt(totals.trips) + ' trips';
+
+    const note = document.getElementById('liveLaneNote');
+    if (note){
+        const missing = totals.out.na + totals.arr.na;
+        note.textContent = 'Sorted by breaches · early counts as adhered · Extra = adhoc, no plan time' +
+            (missing ? ' · ' + fmt(missing) + ' occurrence' + (missing === 1 ? '' : 's') +
+                       ' without an adherence value counted in Trips only' : '');
+    }
+}
+
 function refreshTextSummary(rows){
     const d = document.getElementById('liveTextSummary');
     if (d) d.textContent = buildTextSummary(rows);
     const s = document.getElementById('liveSendSummary');
     if (s) s.textContent = buildSendSummary(rows);
+    if (typeof renderLaneAdherence === 'function') renderLaneAdherence(rows);
 }
 
 function copyTextSummary(which){
