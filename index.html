@@ -4651,6 +4651,26 @@ async function loadLhPlan(force){
                 plan:    lhPlanNum(r['Per Trip Vendor']) + lhPlanNum(r['Fixed Vendor'])
             };
         }).filter(Boolean);
+
+        /* The sheet sometimes splits one lane into several volume bands — e.g.
+           CAI-Z2 → CAI-A9 once at 1,200 vol/trip (4 trips) and once at 350
+           (1 trip). The table is per lane and the actual trips are counted per
+           lane, so the bands are merged; otherwise the same trips show up in
+           two rows and get counted twice in the Actual total. */
+        const merged = new Map();
+        lhPlan.forEach(p => {
+            const key = p.from + '|' + p.to;
+            const g = merged.get(key);
+            if (g){
+                g.plan   += p.plan;
+                g.maxVol += p.maxVol;
+                g.bands.push(p.plan);
+            } else {
+                merged.set(key, Object.assign({}, p, { bands: [p.plan] }));
+            }
+        });
+        lhPlan = Array.from(merged.values());
+
         lhPlanLoaded = lhPlan.length > 0;
         if (!lhPlanLoaded) console.warn('[loadLhPlan] no lane rows found');
     } catch(e){
@@ -4706,9 +4726,13 @@ function renderLhPlanVsActual(data){
         if (v < 0) short++;
         const vTxt = (v === 0 && plan === 0) ? '<span class="text-muted">—</span>'
             : `<span class="${v < 0 ? 'text-danger fw-bold' : (v > 0 ? 'text-success fw-bold' : 'text-muted')}">${v > 0 ? '+' : ''}${fmt(v)}</span>`;
+        /* lanes the sheet split into volume bands show a small ×n marker */
+        const bandNote = (p.bands && p.bands.length > 1)
+            ? ` <span class="badge text-bg-light border fw-normal" style="font-size:.62rem" title="${p.bands.length} plan rows merged: ${p.bands.join(' + ')} trips per day">×${p.bands.length}</span>`
+            : '';
         return `<tr>
             <td class="fw-semibold">${esc(p.from)}</td>
-            <td class="fw-semibold">${esc(p.to)}</td>
+            <td class="fw-semibold">${esc(p.to)}${bandNote}</td>
             <td class="text-center">${plan ? fmt(plan) : '<span class="text-muted">0</span>'}</td>
             <td class="text-center fw-bold">${act ? fmt(act) : '<span class="text-muted">—</span>'}</td>
             <td class="text-center">${vTxt}</td>
