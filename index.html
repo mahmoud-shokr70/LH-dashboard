@@ -222,8 +222,8 @@ body.rail-collapsed { padding-left: 84px !important; }
 .mp-band-p3160 { background: #bbf7d0; color: #14532d; }
 .mp-band-p60  { background: #a7f3d0; color: #064e3b; }
 
-/* ---- Plan vs Actual scope picker: three clickable cards ---- */
-.pva-modes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:14px 0 6px; }
+/* ---- Plan vs Actual scope picker: Outsource / Present ---- */
+.pva-modes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:14px 0 6px; }
 @media (max-width: 767px){ .pva-modes { grid-template-columns:1fr; } }
 .pva-mode { display:flex; align-items:center; gap:11px; text-align:left; width:100%;
     background:var(--brand-white); border:1px solid var(--warm-line); border-radius:14px;
@@ -1146,9 +1146,9 @@ body.rail-collapsed { padding-left: 84px !important; }
                         <select id="mp-vendor" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted mb-1" title="Insource = Senior Associate / Associate · Outsource = Core Colleague">Workforce Type</label>
-                        <div class="btn-group btn-group-sm w-100" id="mpTypeBtns" role="group" title="Insource = Senior Associate / Associate · Outsource = Core Colleague">
-                            <button type="button" class="btn btn-outline-primary active" data-mptype="all">All</button>
+                        <label class="form-label fw-bold small text-muted mb-1" title="Backend = Insource + Outsource together · click the active option again to clear this filter">Workforce Type</label>
+                        <div class="btn-group btn-group-sm w-100" id="mpTypeBtns" role="group" title="Backend = Insource + Outsource together · click the active option again to clear">
+                            <button type="button" class="btn btn-outline-primary active" data-mptype="backend" title="Insource + Outsource together">Backend</button>
                             <button type="button" class="btn btn-outline-primary" data-mptype="in" title="Senior Associate / Associate">Insource</button>
                             <button type="button" class="btn btn-outline-primary" data-mptype="out" title="Core Colleague">Outsource</button>
                         </div>
@@ -1211,19 +1211,14 @@ body.rail-collapsed { padding-left: 84px !important; }
                             <span class="tx"><span class="ttl">Outsource</span><span class="sml" id="pva-cnt-out">Core colleague</span></span>
                             <span class="tick"><i class="bi bi-check2-circle"></i></span>
                         </button>
-                        <button type="button" class="pva-mode m-in" id="pva-sec-in" onclick="pvaSetSection('in')" title="Every Associate / Senior Associate plan row — all functions, not only LM">
+                        <button type="button" class="pva-mode m-in" id="pva-sec-present" onclick="pvaSetSection('present')" title="Everyone present in the range (insource + outsource) against the combined plan">
                             <span class="ic"><i class="bi bi-people"></i></span>
-                            <span class="tx"><span class="ttl">Insource</span><span class="sml" id="pva-cnt-in">All associate plan rows</span></span>
-                            <span class="tick"><i class="bi bi-check2-circle"></i></span>
-                        </button>
-                        <button type="button" class="pva-mode m-none" id="pva-sec-none" onclick="pvaSetSection('none')" title="Present people with no plan row at all">
-                            <span class="ic"><i class="bi bi-person-dash"></i></span>
-                            <span class="tx"><span class="ttl">Unplanned</span><span class="sml" id="pva-cnt-none">no plan row</span></span>
+                            <span class="tx"><span class="ttl">Present</span><span class="sml" id="pva-cnt-present">insource + outsource</span></span>
                             <span class="tick"><i class="bi bi-check2-circle"></i></span>
                         </button>
                     </div>
                     <div class="pva-hint" id="pvaModeHint">
-                        <strong>Outsource</strong> = Core Colleague · <strong>Insource</strong> = every Associate / Senior Associate plan row (all functions) · <strong>Unplanned</strong> = present with no plan row. Filters narrow Actual only.
+                        <strong>Outsource</strong> = Core Colleague from the outsource plan · <strong>Present</strong> = everyone present in the range (insource + outsource) against the combined plan. <strong>Var = Plan − Actual</strong> (positive = fewer people than planned). Filters narrow Actual only.
                     </div>
                     <div class="row g-3">
                         <div class="col-lg-7">
@@ -1280,6 +1275,27 @@ body.rail-collapsed { padding-left: 84px !important; }
                                 </table>
                             </div>
                             <div class="small text-muted mt-2" id="mpVaNote"></div>
+
+                            <h6 class="small fw-bold text-muted mt-3 mb-1">Aging share
+                                <span class="fw-normal" style="font-size:.72rem">— same table as % of each row's grand total</span></h6>
+                            <div style="max-height:320px;overflow-y:auto">
+                                <table class="table table-sm align-middle fs-7 mb-0" id="mpAgingPctTable">
+                                    <thead class="table-light"><tr>
+                                        <th id="mpAgingPctNameHead">Vendor</th>
+                                        <th class="text-center">0 – 1</th>
+                                        <th class="text-center">2 – 4</th>
+                                        <th class="text-center">5 – 7</th>
+                                        <th class="text-center">8 – 10</th>
+                                        <th class="text-center">11 – 15</th>
+                                        <th class="text-center">16 – 30</th>
+                                        <th class="text-center">31 – 60</th>
+                                        <th class="text-center">&gt; 60</th>
+                                        <th class="text-center">Grand Total</th>
+                                        <th class="text-center" id="mpAgingPctExtraHead" title="Vendors working at this hub">Vendors</th>
+                                    </tr></thead>
+                                    <tbody id="mpVaPctBody"></tbody>
+                                </table>
+                            </div>
                         </div>
                         <div class="col-lg-4">
                             <h6 class="small fw-bold text-muted mb-1" id="mpAgingChartTitle">Average aging by vendor</h6>
@@ -3573,6 +3589,16 @@ function initApp(res, preserve){
     }
     rawTrips = trips;
 
+    // The Live Tracking hub list is built from the Line Haul sheet too, so refresh
+    // it (and the board) as soon as these trips land — the live CSV may have
+    // arrived first, in which case the hub list would only know the live hubs.
+    if (typeof populateLiveFilters === 'function') {
+        try { populateLiveFilters(); } catch(e){ console.warn('[initApp] populateLiveFilters failed:', e); }
+    }
+    if (typeof renderLiveTracking === 'function') {
+        try { renderLiveTracking(); } catch(e){ console.warn('[initApp] renderLiveTracking failed:', e); }
+    }
+
     console.log('[initApp] trips loaded:', rawTrips.length);
     if(rawTrips[0]) console.log('[initApp] sample trip:', rawTrips[0]);
 
@@ -3614,19 +3640,31 @@ function initApp(res, preserve){
 /* ================================================================
    FILTERS
 ================================================================ */
+/* Source hubs the Live Tracking board is allowed to show — the operator asked
+   for exactly these four. Add a code here to surface another hub, remove one to
+   hide it. A hub stays on the page even on a day when the live feed has no rows
+   for it (it renders a compact "no occurrences" card instead of vanishing). */
+const LIVE_SOURCE_HUBS = ['CAI-G1', 'CAI-G5', 'CAI-G6', 'CAI-Z2'];
+
+function liveSourceHubUniverse(){
+    return LIVE_SOURCE_HUBS.slice().sort();
+}
+
 function populateLiveFilters(){
     const curSrc = selValues('#live-src');
     const curDst = selValues('#live-dst');
     const curVen = selValues('#live-vendor');
     const curFlag = selValues('#live-flag');
     const uniq = (fn) => [...new Set(liveRows.map(fn).filter(x => x !== null && x !== undefined && String(x).trim() !== ''))].sort();
-    fillLiveSelect('#live-src', uniq(t => t.srcHub), curSrc);
+    // Source hubs come from the fixed LIVE_SOURCE_HUBS list (G1 / G5 / G6 / Z2),
+    // so a hub is still selectable on a day when the live feed has no rows for it.
+    fillLiveSelect('#live-src', liveSourceHubUniverse(), curSrc, true);
     fillLiveSelect('#live-dst', uniq(t => t.dstHub), curDst);
     fillLiveSelect('#live-vendor', uniq(t => t.vendor), curVen);
     fillLiveSelect('#live-flag', uniq(t => t.flagHubs), curFlag);
 }
 
-function fillLiveSelect(sel, values, keepVals){
+function fillLiveSelect(sel, values, keepVals, showZero){
     const el = document.querySelector(sel);
     if (!el) return;
     const list = (values || []).map(String);
@@ -3640,7 +3678,9 @@ function fillLiveSelect(sel, values, keepVals){
         el.__mcs.emptyText = list.length
             ? 'No values in this sheet yet.'
             : 'Live Tracking sheet not loaded — retry the live feed to fill this filter.';
-        el.__mcs.hideZero = true;   // drop values that cannot return a row
+        // Hubs keep their zero-count rows visible (that is the point of the full
+        // hub list); the other live filters still drop values with no rows.
+        el.__mcs.hideZero = !showZero;
     }
     mcsSync(el);
 }
@@ -3744,6 +3784,11 @@ function getLiveScopeRows(except){
     const flagSel = selValues('#live-flag');
 
     let rows = liveRows;
+    // Live Tracking is limited to the allowed hub list (see LIVE_SOURCE_HUBS):
+    // rows from any other source hub are dropped before the filters run, so the
+    // hub tables, adherence report, text summary and gap view all agree.
+    const hubs = liveSourceHubUniverse();
+    if (hubs.length) rows = rows.filter(t => hubs.indexOf(String(t.srcHub || '').trim()) !== -1);
     if (from || to) rows = rows.filter(t => inDateRange(normDateKey(t.dod), from, to));
     if (except !== 'src'    && srcSel.length)  rows = rows.filter(t => srcSel.includes(t.srcHub));
     if (except !== 'dst'    && dstSel.length)  rows = rows.filter(t => dstSel.includes(t.dstHub));
@@ -3835,6 +3880,10 @@ function seqRank(s){
 /* Live equivalent of pruneDashSelections: a value ticked in one live filter
    that no longer matches the others is unticked so the board never goes blank. */
 function pruneLiveSelections(){
+    // A source hub is never auto-unticked: the board renders a hub even when the
+    // live feed has no rows for it, so picking "CAI-A1" must stick and show that
+    // hub's empty state instead of silently reverting to every hub.
+    const hubUniverse = liveSourceHubUniverse();
     let dropped = 0;
     for (let pass = 0; pass < 4; pass++){
         bumpFacets();
@@ -3843,8 +3892,10 @@ function pruneLiveSelections(){
             const el = document.querySelector(sel);
             if (!el) return;
             const counts = facetCounts(LIVE_FACETS[sel], 'live');
+            const keepZero = sel === '#live-src';
             Array.prototype.slice.call(el.options).forEach(function(o){
-                if (o.selected && o.value !== '' && !counts[String(o.value).trim()]){
+                const keep = keepZero && hubUniverse.indexOf(o.value) !== -1;
+                if (o.selected && o.value !== '' && !counts[String(o.value).trim()] && !keep){
                     o.selected = false; changed = true; dropped++;
                 }
             });
@@ -3883,22 +3934,37 @@ function renderLiveTracking(){
         <span class="live-kpi"><div class="l">Extra (no plan)</div><div class="v">${fmt(rows.length - planned.length)}</div></span>`
         : '';
 
-    if (!rows.length) {
-        const dodKeys = liveRows.map(t => normDateKey(t.dod)).filter(Boolean).sort();
-        wrap.innerHTML = `<div class="alert alert-light border text-center">
-            <i class="bi bi-calendar-x me-1"></i> No occurrences found for <strong>${esc(rangeLabel)}</strong>${(srcSel.length||dstSel.length||venSel.length)?` with the selected hubs/vendors`:''}.
-            Pick another date range (sheet data range: ${esc(dodKeys.length? dodKeys[0] : '')} → ${esc(dodKeys.length? dodKeys[dodKeys.length-1] : '')}).</div>`;
-        renderLiveReport([]);
-        refreshFacetCounts();
-        if (typeof renderLiveGap === 'function') { try { renderLiveGap(); } catch(e){ console.warn('[renderLiveGap]', e); } }
-        return;
-    }
-
     // Group: source hub -> destination hub, occurrences ordered by Trip_Sequence
     const bySrc = groupBy(rows, t => t.srcHub || '—');
+    // One section per allowed hub: hubs with data first, then the allowed hubs the
+    // live feed has no rows for in this scope (compact "no occurrences" card).
+    const allHubs = liveSourceHubUniverse();
+    const hubsWithRows = Object.keys(bySrc).filter(h => allHubs.indexOf(h) !== -1).sort();
+    const hubsEmpty = allHubs.filter(h => !bySrc[h] && (!srcSel.length || srcSel.includes(h)));
+
+    // LH trips per hub in the same date window: shown next to an empty hub so
+    // "0 occurrences" reads as "not in the live feed", not "no trips at all".
+    const scopeFromEl = document.getElementById('live-date-from');
+    const scopeToEl   = document.getElementById('live-date-to');
+    const scopeFrom = scopeFromEl ? scopeFromEl.value : '';
+    const scopeTo   = scopeToEl ? scopeToEl.value : '';
+    const lhCountByHub = {};
+    rawTrips.forEach(t => {
+        if (!t || !t.srcHub) return;
+        if ((scopeFrom || scopeTo) && !inDateRange(normDateKey(t.date), scopeFrom, scopeTo)) return;
+        lhCountByHub[t.srcHub] = (lhCountByHub[t.srcHub] || 0) + 1;
+    });
+
     const html = [];
 
-    Object.keys(bySrc).sort().forEach(src => {
+    if (!rows.length) {
+        const dodKeys = liveRows.map(t => normDateKey(t.dod)).filter(Boolean).sort();
+        html.push(`<div class="alert alert-light border text-center">
+            <i class="bi bi-calendar-x me-1"></i> No occurrences found for <strong>${esc(rangeLabel)}</strong>${(srcSel.length||dstSel.length||venSel.length)?` with the selected hubs/vendors`:''}.
+            Pick another date range (sheet data range: ${esc(dodKeys.length? dodKeys[0] : '')} → ${esc(dodKeys.length? dodKeys[dodKeys.length-1] : '')}).</div>`);
+    }
+
+    hubsWithRows.forEach(src => {
         const srcTrips = bySrc[src];
         const byDst = groupBy(srcTrips, t => t.dstHub || '—');
 
@@ -3941,6 +4007,23 @@ function renderLiveTracking(){
                         <thead>${head1}${head2}</thead>
                         <tbody>${body}</tbody>
                     </table>
+                </div>
+            </div>`);
+    });
+
+    // Hubs on the allowed list that the live feed has no rows for in this scope:
+    // one compact card each, so the hub is still visible instead of vanishing.
+    hubsEmpty.forEach(h => {
+        const lh = lhCountByHub[h] || 0;
+        const tip = lh
+            ? lh + ' trips for this hub in the Line Haul sheet for this range — none in the live occurrence feed yet'
+            : 'No trips for this hub in the Line Haul sheet for this range either';
+        html.push(`
+            <div class="table-container mb-3" title="${esc(tip)}">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div><span class="live-hub-title"><i class="bi bi-geo-alt text-secondary me-1"></i>${esc(h)}</span>
+                        <span class="text-muted fs-7 ms-2">no occurrences in ${esc(rangeLabel)}</span></div>
+                    <span class="badge text-bg-light border">0 occurrences${lh ? ' • ' + fmt(lh) + ' LH trips' : ''}</span>
                 </div>
             </div>`);
     });
@@ -5235,14 +5318,15 @@ const MP_META = [
 let mpAll = [], mpCols = [], mpLoaded = false, mpLoading = false, mpSearchTimer = null;
 const MP_ALL = '__all';
 let mpState = { dayFrom: MP_ALL, dayTo: MP_ALL, cat: [], band: [], hub: [], leg: [], title: [], shift: [], vendor: [], search: '' };
-/* Workforce type: 'all' | 'in' (Insource = Senior Associate / Associate) |
-   'out' (Outsource = Core Colleague). The roster shows Associate &
-   Senior Associate on the Noon vendor (own staff = insource), while the
-   "Core Colleague" title is the agency-supplied headcount (outsource).
-   Titles that name neither bucket stay visible only under All. */
-let mpTypeFilter = 'all';
+/* Workforce type: 'backend' (Insource + Outsource together — the default) |
+   'in' (Insource = Senior Associate / Associate) | 'out' (Outsource = Core
+   Colleague). null = filter cleared (clicking the active option again), which
+   shows every title on the roster. The roster shows Associate & Senior
+   Associate on the Noon vendor (own staff = insource), while the
+   "Core Colleague" title is the agency-supplied headcount (outsource). */
+let mpTypeFilter = 'backend';
 function mpTypeOk(t){
-    if (mpTypeFilter === 'all') return true;
+    if (!mpTypeFilter || mpTypeFilter === 'backend') return true;
     const s = String(t.title || '').toLowerCase().trim();
     const isIn  = s.indexOf('associate') !== -1;   // Senior Associate, Associate
     const isOut = s.indexOf('core') !== -1;        // Core Colleague
@@ -5421,8 +5505,14 @@ async function loadManpowerCsv(force){
                     t.days[c] = { raw: raw, bucket: b };
                     t.counts[b]++; t.counts.marked++;
                 });
+                // The sheet keeps writing "Resigned …" / "Terminate …" into every
+                // remaining day after somebody leaves. One such cell means the
+                // person is no longer on the roster, so they are dropped from
+                // every Manpower view (roster KPI, tables, aging, plan vs actual).
+                t.exited = Object.keys(t.days).some(c => /resign|terminat/i.test(String(t.days[c].raw || '')));
                 return t;
-            });
+            })
+            .filter(t => !t.exited);
         mpLoaded = true;
         buildMpStaticOptions();
         renderManpower();
@@ -5564,14 +5654,16 @@ function resetMpFilters(){
     const df = document.getElementById('mp-day-from'); if (df) df.value = MP_ALL;
     const dt = document.getElementById('mp-day-to');   if (dt) dt.value = MP_ALL;
     const s = document.getElementById('mp-search'); if (s) s.value = '';
-    mpSetType('all', false);
+    mpSetType('backend', false, true);
     renderManpower();
 }
 
-/* Workforce-type segmented filter: All / Insource (Senior Associate &
-   Associate) / Outsource (Core Colleague). */
-function mpSetType(type, rerender){
-    mpTypeFilter = (type === 'in' || type === 'out') ? type : 'all';
+/* Workforce-type segmented filter: Backend (Insource + Outsource — default) /
+   Insource (Senior Associate & Associate) / Outsource (Core Colleague).
+   Clicking the active option again clears the filter entirely. */
+function mpSetType(type, rerender, force){
+    const next = (type === 'in' || type === 'out' || type === 'backend') ? type : 'backend';
+    mpTypeFilter = (!force && mpTypeFilter === next) ? null : next;
     document.querySelectorAll('#mpTypeBtns [data-mptype]').forEach(b => {
         b.classList.toggle('active', b.getAttribute('data-mptype') === mpTypeFilter);
     });
@@ -5694,9 +5786,38 @@ function renderMpAging(rows, dayCols){
             ? 'Counting only ' + mpState.cat.map(k => MP_BUCKETS[k].label.toLowerCase()).join(' / ') +
               ' people on ' + mpRangeLabel() + ' — '
             : 'Counting everyone on the roster for ' + mpRangeLabel() + ' (present, week off, leave, no show) — tick Category = Present for working people only. ') +
-        'Exit flags (Resigned / Terminate / Suspended) are included in the counts — ' + fmt(exitsAll) +
-        (isHub ? ' across all hubs.' : ' across all vendors.')
+        'Resigned / Terminated employees are excluded from the roster'
+        + (isHub ? '.' : '.')
     );
+
+    /* Same pivot again, but every cell is that row's share of its own grand
+       total — so each vendor / hub reads as a 100% mix of aging bands. */
+    const pctName = document.getElementById('mpAgingPctNameHead');
+    if (pctName) pctName.textContent = isHub ? 'Hub' : 'Vendor';
+    const pctExtra = document.getElementById('mpAgingPctExtraHead');
+    if (pctExtra) {
+        pctExtra.textContent = isHub ? 'Vendors' : 'Hubs';
+        pctExtra.title = isHub ? 'How many vendors work at this hub' : 'How many hubs this vendor works at';
+    }
+    const pctBody = document.getElementById('mpVaPctBody');
+    if (pctBody){
+        const pctCell = (n, d) => {
+            const p = d ? (n / d * 100) : null;
+            return '<td class="text-center">' + (p === null ? '' : (p > 0 && p < 1 ? '&lt;1%' : Math.round(p) + '%')) + '</td>';
+        };
+        pctBody.innerHTML = va.length ? (
+            va.map(v => '<tr>' +
+                '<td class="fw-bold">' + esc(v.key) + '</td>' +
+                bandKeys.map(k => pctCell(v.bands[k] || 0, v.total)).join('') +
+                '<td class="text-center fw-bold">' + (v.total ? '100%' : '—') + '</td>' +
+                '<td class="text-center text-muted">' + (v.others || '') + '</td>' +
+                '</tr>').join('') +
+            '<tr class="table-light fw-bold"><td>Grand Total</td>' +
+                bandKeys.map(k => pctCell(colTotals[k], grand)).join('') +
+                '<td class="text-center">' + (grand ? '100%' : '—') + '</td>' +
+                '<td class="text-center text-muted">' + va.length + '</td></tr>'
+        ) : '<tr><td colspan="11" class="text-center text-muted py-3">No employees in this scope</td></tr>';
+    }
     const shown = va.filter(v => v.avg !== null).slice(0, isHub ? 14 : 12);
     const canvas = document.getElementById('chartMpVendorAging');
     if (!canvas) return;
@@ -5749,7 +5870,9 @@ function renderManpower(){
     if (scope){
         const isWhole = dayCols.length === mpCols.length;
         const bits = [isWhole ? 'Scope: whole month' : 'Scope: ' + mpRangeLabel()];
-        if (mpTypeFilter !== 'all') bits.push('Type ' + (mpTypeFilter === 'in' ? 'Insource (Senior Associate / Associate)' : 'Outsource (Core Colleague)'));
+        if (mpTypeFilter === 'in') bits.push('Type Insource (Senior Associate / Associate)');
+        else if (mpTypeFilter === 'out') bits.push('Type Outsource (Core Colleague)');
+        else if (mpTypeFilter === 'backend') bits.push('Type Backend (Insource + Outsource)');
         const lbl = { hub: 'Hub', leg: 'Facility leg', title: 'Title', shift: 'Shift', vendor: 'Vendor' };
         Object.keys(lbl).forEach(k => { if (!mpAny(mpState[k])) bits.push(lbl[k] + ' ' + mpState[k].join(', ')); });
         if (!mpAny(mpState.band)) bits.push('Aging ' + mpState.band.map(k => (MP_BANDS.find(b => b.k === k) || { label: k }).label).join(', '));
@@ -5985,33 +6108,29 @@ async function loadPvaPlan(force){
 }
 
 function pvaSetSection(sec){
-    pvaSection = sec;
+    pvaSection = (sec === 'present') ? 'present' : 'out';
     const o = document.getElementById('pva-sec-out'),
-          n = document.getElementById('pva-sec-in'),
-          u = document.getElementById('pva-sec-none');
-    if (o) o.classList.toggle('active', sec === 'out');
-    if (n) n.classList.toggle('active', sec === 'in');
-    if (u) u.classList.toggle('active', sec === 'none');
+          p = document.getElementById('pva-sec-present');
+    if (o) o.classList.toggle('active', pvaSection === 'out');
+    if (p) p.classList.toggle('active', pvaSection === 'present');
     renderMpPlanVsActual();
 }
 
-/* Live sub-labels for the three scope cards: how many plan rows and how many
+/* Live sub-labels for the two scope cards: how many plan rows and how many
    planned heads each block actually carries, so the picker reads like a
-   summary instead of three anonymous buttons. */
-function pvaUpdateModeCounts(nonePresent){
+   summary instead of two anonymous buttons. */
+function pvaUpdateModeCounts(presentRange){
     const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
     if (pvaV2) {
         const hubs = sec => Object.keys(pvaV2Plan[sec] || {}).length;
         const heads = sec => Object.keys(pvaV2Plan[sec] || {})
             .reduce((s, h) => s + (pvaV2Plan[sec][h].total || 0), 0);
         set('pva-cnt-out', fmt(hubs('out')) + ' hubs · ' + fmt(heads('out')) + ' planned');
-        set('pva-cnt-in',  fmt(hubs('in'))  + ' hubs · ' + fmt(heads('in'))  + ' planned');
     } else {
         set('pva-cnt-out', fmt(Object.keys(pvaPlan.out || {}).length) + ' plan rows');
-        set('pva-cnt-in',  fmt(Object.keys(pvaPlan.in  || {}).length) + ' plan rows');
     }
-    set('pva-cnt-none', nonePresent === undefined || nonePresent === null
-        ? 'no plan row' : fmt(nonePresent) + ' present in range');
+    set('pva-cnt-present', presentRange === undefined || presentRange === null
+        ? 'insource + outsource' : fmt(presentRange) + ' present in range');
     const badge = document.getElementById('mpPvaScopeBadge');
     if (badge) badge.textContent = 'Plan sheet · ' +
         (pvaV2 ? 'YF\'26 headcount per hub' : 'per-day headcount');
@@ -6028,10 +6147,11 @@ function pvaUpdateModeCounts(nonePresent){
    that have Core present but no plan row). ============================ */
 function pv2HeadOut(){
     document.getElementById('mpPvaLeftTitle').textContent = 'Core Colleague — planned vs actual attend';
-    document.getElementById('mpPvaLeftNote').textContent = '— Peak Deficit = ROUNDUP(Planned − Avg of the last 3 days from today) · Fulfill % = Avg / Planned';
+    document.getElementById('mpPvaLeftNote').textContent = '— Var = Planned CC − Attend · Peak Deficit = ROUNDUP(Planned − Avg of the last 3 days from today) · Fulfill % = Avg / Planned';
     document.getElementById('mpPvaRightTitle').textContent = 'Function totals (first DOD)';
     document.getElementById('mpPvaHubHead').innerHTML =
         '<tr><th>Hub</th><th class="text-center">Planned CC</th><th class="text-center">Attend</th>' +
+        '<th class="text-center">Var</th>' +
         '<th class="text-center">Max last 3d</th><th class="text-center">Avg last 3d</th>' +
         '<th class="text-center">Peak Deficit</th><th class="text-center">Fulfill %</th></tr>';
     document.getElementById('mpPvaFacHead').innerHTML =
@@ -6166,7 +6286,7 @@ function renderPvaV2(hubBody, facBody, note){
         }
 
         if (!dods.length){
-            hubBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No date columns found.</td></tr>';
+            hubBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No date columns found.</td></tr>';
         } else {
             let html = '';
             dods.forEach(o => {
@@ -6182,7 +6302,7 @@ function renderPvaV2(hubBody, facBody, note){
                     Object.keys(dayT.out[h]).some(cc => win.some(w => cc === w.c)));
                 if (extra.length) groups['Other'] = (groups['Other'] || []).concat(extra);
 
-                html += '<tr class="table-dark"><td colspan="7" class="small fw-bold">DOD ' + esc('October ' + o.d +
+                html += '<tr class="table-dark"><td colspan="8" class="small fw-bold">DOD ' + esc('October ' + o.d +
                     ' · Attend on this DOD · Max/Avg over last 3 days: ' + pvWinLbl) + '</td></tr>';
 
                 let tot = { plan: 0, att: 0, max: 0, avg: 0.0, def: 0.0, cnt: 0 };
@@ -6208,6 +6328,7 @@ function renderPvaV2(hubBody, facBody, note){
                             '<td class="fw-bold">' + esc(h) + (hasPlan ? '' : ' <span class="small text-muted">no plan row</span>') + '</td>' +
                             '<td class="text-center">' + fmt(plan) + '</td>' +
                             '<td class="text-center fw-bold">' + fmt(att) + '</td>' +
+                            '<td class="text-center ' + (plan - att > 0 ? 'text-danger' : (plan - att < 0 ? 'text-info' : 'text-success')) + '">' + fmt(plan - att) + '</td>' +
                             '<td class="text-center">' + fmt(mx) + '</td>' +
                             '<td class="text-center">' + fmt(av) + '</td>' +
                             '<td class="text-center ' + (plan && plan - av > 0 ? 'text-danger' : 'text-info') + '">' + fmt(def) + '</td>' +
@@ -6219,6 +6340,7 @@ function renderPvaV2(hubBody, facBody, note){
                         '<td>' + esc(gn) + '</td>' +
                         '<td class="text-center">' + fmt(gAgg.plan) + '</td>' +
                         '<td class="text-center">' + fmt(gAgg.att) + '</td>' +
+                        '<td class="text-center ' + (gAgg.plan - gAgg.att > 0 ? 'text-danger' : (gAgg.plan - gAgg.att < 0 ? 'text-info' : 'text-success')) + '">' + fmt(gAgg.plan - gAgg.att) + '</td>' +
                         '<td class="text-center">' + fmt(gAgg.max) + '</td>' +
                         '<td class="text-center">' + fmt(gAgg.avg) + '</td>' +
                         '<td class="text-center ' + (gdef > 0 ? 'text-danger' : 'text-info') + '">' + fmt(gdef) + '</td>' +
@@ -6226,7 +6348,7 @@ function renderPvaV2(hubBody, facBody, note){
                     tot.plan += gAgg.plan; tot.cnt += hubs.length;
                 });
                 html += '<tr class="table-secondary fw-bold"><td>Overall planned CC</td>' +
-                    '<td class="text-center">' + fmt(tot.plan) + '</td><td colspan="5" class="small text-muted">hubs: ' + tot.cnt + '</td></tr>';
+                    '<td class="text-center">' + fmt(tot.plan) + '</td><td colspan="6" class="small text-muted">hubs: ' + tot.cnt + '</td></tr>';
             });
             hubBody.innerHTML = html;
         }
@@ -6237,102 +6359,96 @@ function renderPvaV2(hubBody, facBody, note){
         const dodLbl = dods.length ? dods.map(o => o.d).join(', ') : '—';
         note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
             'Planned CC = one YF\'26 headcount from the plan sheet (not per-day) · Attend = present bucket on the DOD (Present + WPH + Work on Week Off), all filters apply · ' +
+            'Var = Planned CC − Attend (positive = fewer people than planned) · ' +
             'Max/Avg = the 3 most recent days with data ending today (' + pvWinLbl + '), independent of the day filter · Peak Deficit = ROUNDUP(Planned − Avg) · Fulfill % = Avg / Planned · ' +
-            'Insource = every Associate / Senior Associate plan row (all functions) · ' +
             '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Outsource · Core ' + fmt(oSum) + ' + Insource · Assoc ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
-        pvaUpdateModeCounts(nSum);
+        pvaUpdateModeCounts(oSum + iSum + nSum);
         return;
     }
 
-    /* ---------- IN: every insource plan row --------------------------- */
-    if (pvaSection === 'in'){
-        // Plan rows carry ONE headcount per hub, so the Actual side has to be a
-        // per-day figure too — average present over the days that actually hold
-        // attendance in the selected range. Comparing one planned head with a
-        // whole-month sum produced meaningless −1500% variances.
+    /* ---------- PRESENT: everyone vs the combined plan ---------------- */
+    if (pvaSection === 'present'){
+        // Plan rows carry ONE headcount per hub, so the Actual side is an
+        // average present per active day — the same basis the old insource
+        // table used, now for every person on the roster.
         const activeDays = Math.max(1, dayCols.filter(c => pvReal(c)).length);
-        document.getElementById('mpPvaLeftTitle').textContent = 'Insource plan — Senior Associate & Associate, every plan row';
-        document.getElementById('mpPvaLeftNote').textContent = '— Plan = one YF\'26 headcount per hub · Actual = average present per active day';
-        document.getElementById('mpPvaRightTitle').textContent = 'Full insource plan sheet (all functions)';
+
+        const planByHub = {};
+        ['out', 'in'].forEach(sec => Object.keys(pvaV2Plan[sec] || {}).forEach(h => {
+            planByHub[h] = (planByHub[h] || 0) + (pvaV2Plan[sec][h].total || 0);
+        }));
+
+        const presentByHub = {};
+        const legOfHub = {};
+        mpAll.filter(t => mpMatch(t)).forEach(t => {
+            const hub = String(t.hub || '').trim() || '—';
+            const leg = String(t.leg || '').trim() || '—';
+            if (!legOfHub[hub]) legOfHub[hub] = leg;
+            const n = dayCols.filter(c => pvaIsPresent(t, c)).length;
+            if (n) presentByHub[hub] = (presentByHub[hub] || 0) + n;
+        });
+
+        const hubList = Array.from(new Set(Object.keys(planByHub).concat(Object.keys(presentByHub))))
+            .filter(h => !PVA_EXCLUDE_HUBS.includes(String(h).toLowerCase()))
+            .sort();
+
+        document.getElementById('mpPvaLeftTitle').textContent = 'Present — insource + outsource vs the combined plan';
+        document.getElementById('mpPvaLeftNote').textContent = '— Plan = insource + outsource headcount · Actual = average present per active day · Var = Plan − Actual';
+        document.getElementById('mpPvaRightTitle').textContent = 'By facility leg';
         document.getElementById('mpPvaHubHead').innerHTML =
-            '<tr><th>Hub</th><th>Function</th><th class="text-center">Plan</th><th class="text-center">Avg present/day</th>' +
+            '<tr><th>Hub</th><th class="text-center">Plan (in + out)</th><th class="text-center">Actual present</th>' +
             '<th class="text-center">Var</th><th class="text-center">Var %</th></tr>';
         document.getElementById('mpPvaFacHead').innerHTML =
-            '<tr><th>Hub</th><th>Function</th><th class="text-center">Plan</th></tr>';
+            '<tr><th>Facility leg</th><th class="text-center">Plan</th><th class="text-center">Actual</th>' +
+            '<th class="text-center">Var</th><th class="text-center">Var %</th></tr>';
+
         let html = '', sP = 0, sA = 0;
-        pvaV2Order.in.forEach(h => {
-            const row = pvaV2Plan.in[h];
-            const a = (rangeT['in'][h.toLowerCase()] || 0) / activeDays;
-            const p = row.total, v = p - a;
-            const pct = p ? Math.round(v / p * 100) + '%' : '—';
+        const legAgg = {};
+        hubList.forEach(h => {
+            const p = planByHub[h] || 0;
+            const a = (presentByHub[h] || 0) / activeDays;
+            const v = p - a;
+            const cls = v > 0 ? 'text-danger' : (v < 0 ? 'text-info' : 'text-success');
             sP += p; sA += a;
-            html += '<tr><td class="fw-bold">' + esc(h) + '</td><td>' + esc(row.func) + '</td>' +
-                '<td class="text-center">' + fmt(p) + '</td><td class="text-center fw-bold">' + a.toFixed(1) + '</td>' +
-                '<td class="text-center ' + (v > 0 ? 'text-danger' : (v < 0 ? 'text-info' : 'text-success')) + '">' + v.toFixed(1) + '</td>' +
-                '<td class="text-center small ' + (v > 0 ? 'text-danger' : (v < 0 ? 'text-info' : 'text-success')) + '">' + pct + '</td></tr>';
+            const leg = legOfHub[h] || '—';
+            if (!legAgg[leg]) legAgg[leg] = { p: 0, a: 0 };
+            legAgg[leg].p += p; legAgg[leg].a += a;
+            html += '<tr' + (p ? '' : ' class="table-warning"') + '>' +
+                '<td class="fw-bold">' + esc(h) + (p ? '' : ' <span class="small text-muted">no plan row</span>') + '</td>' +
+                '<td class="text-center">' + fmt(p) + '</td>' +
+                '<td class="text-center fw-bold">' + a.toFixed(1) + '</td>' +
+                '<td class="text-center ' + cls + '">' + v.toFixed(1) + '</td>' +
+                '<td class="text-center small ' + cls + '">' + (p ? Math.round(v / p * 100) + '%' : '—') + '</td></tr>';
         });
-        Object.keys(rangeT['in']).forEach(k => {
-            const hk = pvaHubMap[k] || k;
-            if (pvaV2Plan.in[hk]) return;
-            const a = rangeT['in'][k] / activeDays;
-            sA += a;
-            html += '<tr class="table-warning"><td class="fw-bold">' + esc(hk) + '</td><td>—</td>' +
-                '<td class="text-center">0</td><td class="text-center fw-bold">' + a.toFixed(1) + '</td>' +
-                '<td class="text-center text-danger">' + a.toFixed(1) + '</td><td class="text-center small text-muted">no plan row</td></tr>';
-        });
-        html += '<tr class="table-light fw-bold"><td colspan="2">Total</td>' +
-            '<td class="text-center">' + fmt(sP) + '</td><td class="text-center">' + sA.toFixed(1) + '</td>' +
-            '<td class="text-center ' + (sP - sA > 0 ? 'text-danger' : (sP - sA < 0 ? 'text-info' : 'text-success')) + '">' + (sP - sA).toFixed(1) + '</td>' +
-            '<td class="text-center small">' + (sP ? Math.round((sP - sA) / sP * 100) + '%' : '—') + '</td></tr>';
+        const tv = sP - sA;
+        html += '<tr class="table-light fw-bold"><td>Total</td>' +
+            '<td class="text-center">' + fmt(sP) + '</td>' +
+            '<td class="text-center">' + sA.toFixed(1) + '</td>' +
+            '<td class="text-center ' + (tv > 0 ? 'text-danger' : (tv < 0 ? 'text-info' : 'text-success')) + '">' + tv.toFixed(1) + '</td>' +
+            '<td class="text-center small">' + (sP ? Math.round(tv / sP * 100) + '%' : '—') + '</td></tr>';
         hubBody.innerHTML = html;
 
-        let rhtml = '';
-        pvaV2Order.in.forEach(h => {
-            const row = pvaV2Plan.in[h];
-            rhtml += '<tr><td class="fw-bold">' + esc(h) + '</td><td>' + esc(row.func) + '</td><td class="text-center">' + fmt(row.total) + '</td></tr>';
+        let fac = '';
+        Object.keys(legAgg).sort().forEach(leg => {
+            const g = legAgg[leg], fv = g.p - g.a;
+            const fcls = fv > 0 ? 'text-danger' : (fv < 0 ? 'text-info' : 'text-success');
+            fac += '<tr><td class="fw-bold">' + esc(leg) + '</td>' +
+                '<td class="text-center">' + fmt(g.p) + '</td>' +
+                '<td class="text-center fw-bold">' + g.a.toFixed(1) + '</td>' +
+                '<td class="text-center ' + fcls + '">' + fv.toFixed(1) + '</td>' +
+                '<td class="text-center small ' + fcls + '">' + (g.p ? Math.round(fv / g.p * 100) + '%' : '—') + '</td></tr>';
         });
-        facBody.innerHTML = rhtml;
+        facBody.innerHTML = fac || '<tr><td colspan="5" class="text-center text-muted py-3">No present days in this range.</td></tr>';
 
-        const oSum = Object.values(rangeT.out).reduce((a, b) => a + b, 0);
-        const iSum = Object.values(rangeT.in).reduce((a, b) => a + b, 0);
-        const nSum = Object.values(rangeT.none).reduce((a, b) => a + b, 0);
+        let presentSum = 0;
+        Object.keys(presentByHub).forEach(k => { presentSum += presentByHub[k]; });
         note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
-            'Plan = one YF\'26 headcount per hub from the plan sheet · Actual = average present per active day in the selected range (all filters) · ' +
-            'Insource covers every Associate / Senior Associate plan row — all functions, not LM only · ' +
-            '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Outsource · Core ' + fmt(oSum) + ' + Insource · Assoc ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
-        pvaUpdateModeCounts(nSum);
+            'Plan = insource plan (every Associate / Senior Associate row) + outsource plan (Core Colleague) per hub · ' +
+            'Actual = average present per active day in ' + esc(mpRangeLabel()) + ' (' + activeDays + ' active day' + (activeDays === 1 ? '' : 's') + '), all filters apply · ' +
+            '<strong>Var = Plan − Actual</strong> (positive = fewer people than planned).';
+        pvaUpdateModeCounts(presentSum);
         return;
     }
-
-    /* ---------- NONE: unplanned -------------------------------------- */
-    pv2HeadStd();
-    document.getElementById('mpPvaLeftTitle').textContent = 'Unplanned — present people covered by neither plan block';
-    document.getElementById('mpPvaRightTitle').textContent = 'Unplanned with facility leg';
-    document.getElementById('mpPvaHubHead').innerHTML =
-        '<tr><th>Hub</th><th class="text-center">Actual (range)</th></tr>';
-    document.getElementById('mpPvaFacHead').innerHTML =
-        '<tr><th>Hub</th><th>Facility leg</th><th class="text-center">Actual (range)</th></tr>';
-    const keys = Object.keys(rangeT.none).sort((a, b) => rangeT.none[b] - rangeT.none[a]);
-    let nHtml = '', nSum = 0;
-    keys.forEach(k => {
-        nSum += rangeT.none[k];
-        nHtml += '<tr><td class="fw-bold">' + esc(pvaHubMap[k] || k) + '</td><td class="text-center fw-bold">' + fmt(rangeT.none[k]) + '</td></tr>';
-    });
-    if (!keys.length) nHtml = '<tr><td colspan="2" class="text-center text-muted py-3">Nothing unplanned in this range.</td></tr>';
-    hubBody.innerHTML = nHtml;
-    let lHtml = '';
-    keys.forEach(k => {
-        lHtml += '<tr><td class="fw-bold">' + esc(pvaHubMap[k] || k) + '</td><td>' + esc(legFac.none[k] || '—') + '</td><td class="text-center fw-bold">' + fmt(rangeT.none[k]) + '</td></tr>';
-    });
-    if (!keys.length) lHtml = '<tr><td colspan="3" class="text-center text-muted py-3">—</td></tr>';
-    facBody.innerHTML = lHtml;
-    const oSum2 = Object.values(rangeT.out).reduce((a, b) => a + b, 0);
-    const nSum2 = Object.values(rangeT.none).reduce((a, b) => a + b, 0);
-    const iSum2 = Object.values(rangeT.in).reduce((a, b) => a + b, 0);
-    note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
-        'People matching the filters whose section is neither Core Colleague (outsource) nor the Insource plan rows — add them to the plan sheet if they should be planned · ' +
-        '<strong>Overall present (range): ' + fmt(oSum2 + nSum2 + iSum2) + ' = Outsource · Core ' + fmt(oSum2) + ' + Insource · Assoc ' + fmt(iSum2) + ' + Unplanned ' + fmt(nSum2) + '</strong>';
-    pvaUpdateModeCounts(nSum2);
 }
 
 /* Legacy tables (old per-day plan layout), rebuilt on every manpower
@@ -6405,7 +6521,9 @@ function renderMpPlanVsActual(){
         return list;
     };
 
-    const sec = pvaSection;
+    // Legacy (non-V2) plan layout has no combined "present" block — fall back to
+    // the outsource block so the table still renders instead of going blank.
+    const sec = pvaSection === 'present' ? 'out' : pvaSection;
     const rows = buildRows(sec);
     let sPlan = 0, sAct = 0, hubHtml = '';
     const facs = [], facMap = {};
