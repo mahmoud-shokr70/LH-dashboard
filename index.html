@@ -498,6 +498,23 @@ body.rail-collapsed { padding-left: 84px !important; }
     .hero-band::before { display: none; }
     .hero-band .kpi-mini { background: var(--brand-white); border-radius: var(--radius-xl); }
 
+    /* MM Pendency pivot tables — label, count, share, mix bar */
+    .mm-pivot td.mm-lbl { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mm-pivot tr.mm-total td { background: #FFFDF2; border-top: 2px solid #E9DFB8 !important; font-weight: 800; }
+    .mm-bar { height: 6px; border-radius: 999px; background: #F3EFE1; overflow: hidden; min-width: 44px; }
+    .mm-bar span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #FEED00, #E0B400); }
+    /* MM Pendency filter chips (facility / shipment type) */
+    .mm-chip { border-radius: 999px !important; font-size: .72rem; font-weight: 800; padding: 2px 10px;
+        display: inline-flex; align-items: center; gap: 6px; line-height: 1.5; }
+    .mm-chip .mm-chip-n { font-family: var(--font-num); font-size: .66rem; font-weight: 800; opacity: .7; }
+    .mm-chip.btn-outline-primary { border-color: #d8cfae; color: #6b6353; background: #FFFDF2; }
+    .mm-chip.btn-outline-primary:hover { background: var(--brand-yellow3); border-color: #d8cfae; color: #16171B; }
+    .mm-chip.btn-primary { background: var(--ink); border-color: var(--ink); color: var(--noon); }
+    .inner-tabs .it-btn .mm-tab-n { font-family: var(--font-num); font-size: .64rem; font-weight: 800;
+        background: rgba(0,0,0,.10); border-radius: 999px; padding: 1px 7px; }
+    .inner-tabs .it-btn.active .mm-tab-n { background: var(--noon); color: #16171B; }
+    .mm-overdue-table thead th { position: sticky; top: 0; z-index: 2; background: #F8F6EC; }
+
     /* Loader — noon dot-pulse */
     #loader .spinner-border { color: var(--noon); border-width: .25rem; }
     #loader .spinner-border { border-color: #16171B; border-right-color: transparent; }
@@ -644,6 +661,7 @@ body.rail-collapsed { padding-left: 84px !important; }
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard" title="LH Adherence"><i class="bi bi-speedometer2"></i> <span class="nl-txt">LH Adherence</span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live" title="LH Live Tracking"><i class="bi bi-broadcast"></i> <span class="nl-txt">LH Live Tracking</span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn" title="Manpower"><i class="bi bi-people"></i> <span class="nl-txt">Manpower</span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mm" id="mmTabBtn" title="MM Pendency"><i class="bi bi-box-seam"></i> <span class="nl-txt">MM Pendency</span></button></li>
         <!-- Trip Log & RCA is reached from the report cards / welcome screen, not the rail -->
         <li class="nav-item d-none"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-rca" id="rcaTabBtn" tabindex="-1" aria-hidden="true"></button></li>
     </ul>
@@ -1354,13 +1372,175 @@ body.rail-collapsed { padding-left: 84px !important; }
                             <span class="badge bg-light text-dark border">Other</span>
                         </div>
                     </div>
-                    <div style="overflow-x:auto; max-height:520px; overflow-y:auto">
+                    <div style="overflow-x:auto; max-height:520px; overflow-y:auto; content-visibility:auto; contain-intrinsic-size:auto 560px">
                         <table class="table table-sm align-middle fs-7 mb-0" id="mpGridTable" style="font-size:.72rem">
                             <thead class="table-light" id="mpGridHead"></thead>
                             <tbody id="mpGridBody"></tbody>
                         </table>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ============ PAGE: MM PENDENCY ============ -->
+        <div class="tab-pane fade" id="page-mm">
+            <div class="page-strip">
+                <div>
+                    <div class="k"><i class="bi bi-box-seam"></i>MM Pendency</div>
+                    <div class="d">Middle-mile shipments still pending — where they sit, how long they have been receiving, when they were last touched, why they are flagged, and which are already past their PDD.</div>
+                </div>
+                <span class="m">MIDDLE-MILE · PENDENCY</span>
+            </div>
+            <div class="inner-tabs-row">
+                <div class="inner-tabs">
+                    <button type="button" class="it-btn active" data-iview="summary" onclick="innerTab(this)"><i class="bi bi-pie-chart"></i>MM Pendency Summary</button>
+                    <button type="button" class="it-btn" data-iview="overdue" onclick="innerTab(this)"><i class="bi bi-alarm"></i>Overdue (PDD) <span class="mm-tab-n" id="mmOverdueTabCount">0</span></button>
+                </div>
+                <span class="it-meta" id="mmTabMeta">—</span>
+            </div>
+
+            <div class="card p-3 mb-4 border-0 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2" style="border-bottom:1px solid #ece7d5">
+                    <div>
+                        <h6 class="fw-bold m-0"><i class="bi bi-calendar3 me-2 text-primary"></i>Snapshot date
+                            <span class="text-muted fw-normal" style="font-size:.78rem">— one row per pending shipment on that day</span></h6>
+                        <div class="small text-muted mt-1" id="mmScopeLine">Choose a snapshot to summarise its pendency.</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge text-bg-warning" id="mmBadge">No data yet</span>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadMmCsv(true)" title="Reload the MM Pendency sheet"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
+                    </div>
+                </div>
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-3">
+                        <label class="form-label fw-bold small text-muted mb-1">Date</label>
+                        <select id="mm-date" class="form-select form-select-sm" onchange="mmDate=this.value;renderMmPendency()"></select>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-bold small text-muted mb-1">Facility <span class="fw-normal">— click to toggle</span></label>
+                        <div class="d-flex flex-wrap gap-1" id="mmFacBtns"></div>
+                    </div>
+                    <div class="col-12 col-md-5">
+                        <label class="form-label fw-bold small text-muted mb-1">Shipment Type <span class="fw-normal">— click to toggle</span></label>
+                        <div class="d-flex flex-wrap gap-1" id="mmTypeBtns"></div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 pt-2" style="border-top:1px solid #ece7d5">
+                    <div class="small text-muted" id="mmFilterNote">Showing every facility and shipment type.</div>
+                    <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="clearMmFilters()"><i class="bi bi-x-circle me-1"></i>Clear filters</button>
+                </div>
+            </div>
+
+            <div id="mmContent" style="display:none;">
+                <div data-view="summary">
+                    <div class="hero-band">
+                        <div class="row g-3">
+                            <div class="col-6 col-md"><div class="kpi-mini">
+                                <div class="lbl">Total Pending</div>
+                                <div class="val" id="k-mm-total">0</div>
+                                <div class="sub" id="k-mm-total-sub">shipments on this snapshot</div>
+                            </div></div>
+                            <div class="col-6 col-md"><div class="kpi-mini">
+                                <div class="lbl">Fresh Receiving</div>
+                                <div class="val text-success" id="k-mm-fresh">0</div>
+                                <div class="sub" id="k-mm-fresh-sub">0–1 day in receiving</div>
+                            </div></div>
+                            <div class="col-6 col-md"><div class="kpi-mini">
+                                <div class="lbl">Stale Scans</div>
+                                <div class="val text-danger" id="k-mm-stale">0</div>
+                                <div class="sub" id="k-mm-stale-sub">last update over 24 hrs</div>
+                            </div></div>
+                            <div class="col-6 col-md"><div class="kpi-mini">
+                                <div class="lbl">Not Sealed</div>
+                                <div class="val" id="k-mm-seal">0</div>
+                                <div class="sub" id="k-mm-seal-sub">in Pgroup, not attached by seal</div>
+                            </div></div>
+                            <div class="col-6 col-md"><div class="kpi-mini" style="cursor:pointer" onclick="mmOpenOverdue()" title="Open the overdue shipment list">
+                                <div class="lbl">Overdue (PDD)</div>
+                                <div class="val text-danger" id="k-mm-overdue">0</div>
+                                <div class="sub" id="k-mm-overdue-sub">past PDD on this snapshot</div>
+                            </div></div>
+                        </div>
+                    </div>
+
+                    <div class="sec-head"><span class="n">1</span>Pendency pivots <span class="hint">— facility, shipment type, receiving aging, last-update aging and flag for the selected snapshot</span></div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-lg-6">
+                            <div class="card p-3 border-0 shadow-sm h-100">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-building me-2 text-primary"></i>Facility</h6>
+                                <table class="table table-sm align-middle fs-7 mb-0 mm-pivot">
+                                    <thead class="table-light"><tr><th>Facility</th><th class="text-end mm-count-head" title="Shipments on the selected snapshot">Count</th><th class="text-end">Share</th><th style="width:26%">Mix</th></tr></thead>
+                                    <tbody id="mmFacBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="card p-3 border-0 shadow-sm h-100">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-tags me-2 text-primary"></i>Shipment type</h6>
+                                <table class="table table-sm align-middle fs-7 mb-0 mm-pivot">
+                                    <thead class="table-light"><tr><th>Shipment_Type</th><th class="text-end mm-count-head" title="Shipments on the selected snapshot">Count</th><th class="text-end">Share</th><th style="width:26%">Mix</th></tr></thead>
+                                    <tbody id="mmTypeBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="card p-3 border-0 shadow-sm h-100">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-inboxes me-2 text-primary"></i>Receiving aging</h6>
+                                <table class="table table-sm align-middle fs-7 mb-0 mm-pivot">
+                                    <thead class="table-light"><tr><th>Receiving_Aging_Range</th><th class="text-end mm-count-head" title="Shipments on the selected snapshot">Count</th><th class="text-end">Share</th><th style="width:26%">Mix</th></tr></thead>
+                                    <tbody id="mmRecBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="card p-3 border-0 shadow-sm h-100">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-clock-history me-2 text-primary"></i>Last update aging</h6>
+                                <table class="table table-sm align-middle fs-7 mb-0 mm-pivot">
+                                    <thead class="table-light"><tr><th>LastUpdate_Aging_Range</th><th class="text-end mm-count-head" title="Shipments on the selected snapshot">Count</th><th class="text-end">Share</th><th style="width:26%">Mix</th></tr></thead>
+                                    <tbody id="mmLuBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-3 mb-3 border-0 shadow-sm">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-flag me-2 text-primary"></i>Flag <span class="text-muted fw-normal" style="font-size:.72rem">— why these shipments are stuck</span></h6>
+                        <div style="max-height:420px;overflow-y:auto">
+                            <table class="table table-sm align-middle fs-7 mb-0 mm-pivot">
+                                <thead class="table-light"><tr><th>Flag</th><th class="text-end mm-count-head" title="Shipments on the selected snapshot">Count</th><th class="text-end">Share</th><th style="width:34%">Mix</th></tr></thead>
+                                <tbody id="mmFlagBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div data-view="overdue" class="iview-hidden">
+                    <div class="sec-head"><span class="n">2</span>Overdue shipments <span class="hint">— PDD already passed, but the shipment is still pending on this snapshot</span></div>
+                    <div class="card p-3 border-0 shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <h6 class="fw-bold m-0"><i class="bi bi-alarm me-2 text-primary"></i>Past PDD, not shipped
+                                <span class="text-muted fw-normal" style="font-size:.75rem" id="mmOverdueNote"></span></h6>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="badge text-bg-danger" id="mmOverdueBadge">—</span>
+                                <input type="text" id="mm-search" class="form-control form-control-sm" style="max-width:250px" placeholder="AWB, hub, flag, feedback…" oninput="renderMmOverdueTab()">
+                            </div>
+                        </div>
+                        <div style="max-height:560px;overflow:auto">
+                            <table class="table table-sm align-middle fs-7 mb-0 mm-pivot mm-overdue-table">
+                                <thead class="table-light"><tr>
+                                    <th>AWB</th><th>Facility</th><th>Hub</th><th>Type</th><th>PDD</th><th class="text-end">Late</th><th>Flag</th><th>Feedback</th>
+                                </tr></thead>
+                                <tbody id="mmOverdueBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="small text-muted mt-2" id="mmOverdueFoot"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="mmEmpty" class="card p-5 border-0 shadow-sm text-center mb-4">
+                <div class="spinner-border text-warning mx-auto mb-2" id="mmEmptySpin" role="status"></div>
+                <div class="fw-bold" id="mmEmptyTitle">Reading the MM Pendency sheet…</div>
+                <div class="small text-muted" id="mmEmptyMsg">The snapshot appears as soon as the published CSV answers.</div>
             </div>
         </div>
 
@@ -1380,7 +1560,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
                 <span class="it-meta" id="liveTabMeta">—</span>
             </div>
-            <div class="card p-3 mb-4 border-0 shadow-sm">
+            <div class="card p-3 mb-4 border-0 shadow-sm" id="liveFilterCard">
                 <div class="row g-2 align-items-end">
                     <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted">Date From</label>
@@ -2253,8 +2433,16 @@ function facetCountFn(sel, source){
     return function(value){ return facetCounts(facet, source)[String(value).trim()] || 0; };
 }
 
-function refreshFacetCounts(){
-    document.querySelectorAll('select.mcs-counted').forEach(function(el){ mcsSync(el); });
+/* Repaint the option counts of ONE page's dropdowns. The dashboard, the live
+   board and the Manpower filters each have their own scope, so a dashboard
+   filter change no longer re-counts the 1,500-row roster (and vice versa). */
+function refreshFacetCounts(scope){
+    const root = scope === 'dash' ? '#globalFilterBar'
+               : scope === 'live' ? '#liveFilterCard'
+               : scope === 'mp'   ? '#mpFilterCard'
+               : '';
+    document.querySelectorAll(root ? root + ' select.mcs-counted' : 'select.mcs-counted')
+        .forEach(function(el){ mcsSync(el); });
 }
 
 /* Wrapped clock difference: a trip that crosses midnight must not read as 23h. */
@@ -2519,8 +2707,8 @@ function applyDashboardFilters(){
         if (card) selectMetricCard(card, selectedMetricKey);
     }
 
-    // Repaint the number shown beside every option in every filter dropdown
-    refreshFacetCounts();
+    // Repaint the number shown beside every option in the dashboard dropdowns
+    refreshFacetCounts('dash');
 }
 
 /* Re-render whichever secondary page the operator is currently looking at,
@@ -2572,6 +2760,27 @@ function resetDashFilters(){
     applyDashboardFilters();
 }
 
+let dashDateSeeded = false;
+
+/* LH Adherence opens on yesterday (or the newest day at/before it that the
+   sheet actually carries). Runs once per load; a reset stays reset. */
+function seedDashDate(){
+    if(dashDateSeeded) return;
+    const f = document.getElementById('dash-date-from');
+    const t = document.getElementById('dash-date-to');
+    if(!f || !t) return;
+    if(f.value || t.value){ dashDateSeeded = true; return; }
+    if(!rawTrips.length) return;   // called before the sheet lands — seed on the next pass
+    const keys = Array.from(new Set(rawTrips
+        .map(x => x.dateKey || normDateKey(x.date))
+        .filter(Boolean))).sort();
+    const pick = nearestDateKey(yesterdayIso(), keys);
+    if(!pick) return;
+    f.value = pick;
+    t.value = pick;
+    dashDateSeeded = true;
+}
+
 function populateDashFilters(){
     const curSrc = selValues('#dash-src');
     const curDst = selValues('#dash-dst');
@@ -2600,6 +2809,7 @@ function populateDashFilters(){
     fillDashSelect('#dash-status', statuses, curStatus);
 
     // Paint the chips / scope badge and seed the option counts on first load.
+    seedDashDate();
     if (rawTrips.length) applyDashboardFilters();
 }
 
@@ -2907,6 +3117,37 @@ function inDateRange(dateKey, from, to){
     if(to   && dateKey > to)   return false;
     return true;
 }
+
+/* ---- per-page default date seeds ---------------------------------
+   Each page opens on the day the operator actually looks at:
+     LH Adherence  -> yesterday
+     LH Live Tracking -> today (falls back to the newest published DOD)
+     Manpower      -> today's roster column
+   A seed is applied once per load, only while the inputs are still empty,
+   so it can never overwrite a date the user picked. */
+function isoDay(d){
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
+}
+function todayIso(){
+    const d = new Date();
+    return isoDay(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+}
+function yesterdayIso(){
+    const d = new Date();
+    return isoDay(new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1));
+}
+/* Nearest available ISO key at or before `preferred`; the newest key when the
+   preferred day is older than everything the sheet holds. Empty when no data. */
+function nearestDateKey(preferred, keys){
+    if(!keys || !keys.length) return '';
+    let best = '';
+    for(let i = 0; i < keys.length; i++){
+        const k = keys[i];
+        if(k <= preferred && k > best) best = k;
+    }
+    return best || keys[keys.length - 1];
+}
 function fmtClock(d){
     if(!d) return '';
     return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
@@ -2981,6 +3222,12 @@ function bootApp() {
     const mpTab = document.querySelector('[data-bs-target="#page-mp"]');
     if (mpTab) mpTab.addEventListener('shown.bs.tab', function(){
         if (typeof loadManpowerCsv === 'function') loadManpowerCsv(false);
+    });
+
+    // MM Pendency is a 2.4k-row sheet, so it also loads on first open.
+    const mmTab = document.querySelector('[data-bs-target="#page-mm"]');
+    if (mmTab) mmTab.addEventListener('shown.bs.tab', function(){
+        if (typeof loadMmCsv === 'function') loadMmCsv(false);
     });
 
     loadDataFromCSV();
@@ -3106,7 +3353,12 @@ function wlRenderPages(){
         const icon   = iconEl ? iconEl.className : 'bi bi-grid';
         const desc   = descEl ? descEl.textContent.trim() : '';
         const views  = Array.prototype.slice.call(pane.querySelectorAll('.inner-tabs .it-btn'))
-            .map(function(b){ return '<span class="wl-view">' + esc(b.textContent.trim()) + '</span>'; }).join('');
+            .map(function(b){
+                // Live counts in a tab pill must not leak into the welcome card.
+                const clone = b.cloneNode(true);
+                clone.querySelectorAll('.mm-tab-n').forEach(function(el){ el.remove(); });
+                return '<span class="wl-view">' + esc(clone.textContent.trim()) + '</span>';
+            }).join('');
         return '<button type="button" class="wl-page" data-target="' + target + '">' +
             '<div class="t"><i class="' + icon + '"></i>' + esc(name.trim()) + '</div>' +
             (desc ? '<div class="d">' + esc(desc) + '</div>' : '') +
@@ -3253,10 +3505,13 @@ function loadLiveCsv() {
             const liveFromEl = document.getElementById('live-date-from');
             const liveToEl   = document.getElementById('live-date-to');
             if(liveFromEl && liveToEl && !liveFromEl.value && !liveToEl.value){
-                const dodKeys = liveRows.map(t=>normDateKey(t.dod)).filter(Boolean).sort();
-                if(dodKeys.length){
-                    liveFromEl.value = dodKeys[dodKeys.length-1];
-                    liveToEl.value   = dodKeys[dodKeys.length-1];
+                // Today when the feed carries it; otherwise the newest DOD
+                // at or before today, so the board is never born empty.
+                const dodKeys = [...new Set(liveRows.map(t=>normDateKey(t.dod)).filter(Boolean))].sort();
+                const pick = nearestDateKey(todayIso(), dodKeys);
+                if(pick){
+                    liveFromEl.value = pick;
+                    liveToEl.value   = pick;
                 }
             }
 
@@ -3577,6 +3832,7 @@ function refreshData(silent){
     try{ loadLiveCsv && loadLiveCsv(); }catch(e){ console.error('[refreshData] loadLiveCsv threw:', e); }
     try{ if (typeof loadLhPlan === 'function') loadLhPlan(true); }catch(e){ console.error('[refreshData] loadLhPlan threw:', e); }
     try{ if (typeof loadPvaPlan === 'function') loadPvaPlan(true); }catch(e){ console.error('[refreshData] loadPvaPlan threw:', e); }
+    try{ if (mmLoaded && typeof loadMmCsv === 'function') loadMmCsv(true); }catch(e){ console.error('[refreshData] loadMmCsv threw:', e); }
 
     if(btn){
         setTimeout(function(){ btn.disabled = false; }, 2000);
@@ -3752,6 +4008,7 @@ function autoRefreshBoth(){
     try{ loadDataFromCSV && loadDataFromCSV(); }catch(e){ console.error('[autoRefresh] main threw:', e); }
     try{ loadLiveCsv && loadLiveCsv(); }catch(e){ console.error('[autoRefresh] live threw:', e); }
     try{ if (typeof loadPvaPlan === 'function') loadPvaPlan(true); }catch(e){ console.error('[autoRefresh] plan threw:', e); }
+    try{ if (mmLoaded && typeof loadMmCsv === 'function') loadMmCsv(true); }catch(e){ console.error('[autoRefresh] mm threw:', e); }
 }
 
 /* Global header auto-refresh. mins = 0 turns it off. */
@@ -4042,7 +4299,7 @@ function renderLiveTracking(){
     if (typeof initSnapshots === 'function') initSnapshots();   // re-add camera buttons to re-rendered tables
     renderLiveReport(rows);
     if (typeof refreshTextSummary === 'function') refreshTextSummary(rows);
-    refreshFacetCounts();
+    refreshFacetCounts('live');
     if (typeof renderLiveGap === 'function') { try { renderLiveGap(); } catch(e){ console.warn('[renderLiveGap]', e); } }
 }
 
@@ -5397,9 +5654,17 @@ function syncMpState(){
 /* Rows matching every filter EXCEPT the named facet — the base used to count
    that facet's options. Always limited to people marked on the selected
    day(s), so the numbers line up with the KPI tiles and the tables. */
+/* The mcs component asks for a count once PER OPTION, so without this cache a
+   single Vendor dropdown (60 values) re-scanned the whole roster 60 times.
+   One cache slot per facet + render generation: 7 scans per render, not N. */
+let mpFacetGen = 0, mpFacetCache = {};
+function bumpMpFacets(){ mpFacetGen++; mpFacetCache = {}; }
+
 function mpFacetRows(except){
+    const key = except + '|' + mpFacetGen;
+    if (mpFacetCache[key]) return mpFacetCache[key];
     const dayCols = mpDayCols();
-    return mpAll.filter(t => {
+    const out = mpAll.filter(t => {
         if (!mpTypeOk(t)) return false;
         if (except !== 'day' && !dayCols.some(c => t.days[c] && t.days[c].bucket)) return false;
         if (except !== 'hub'    && !mpIn(mpState.hub,    t.hub))    return false;
@@ -5413,6 +5678,8 @@ function mpFacetRows(except){
         if (mpState.search && mpHay(t).indexOf(mpState.search.toLowerCase()) === -1) return false;
         return true;
     });
+    mpFacetCache[key] = out;
+    return out;
 }
 
 function mpCountFn(facet){
@@ -5433,8 +5700,10 @@ function mpCountFn(facet){
     };
 }
 
+/* Resign / Terminate is already resolved once at load into t.exited, so the
+   aging pivot no longer re-runs a regex over all 92 day cells of every row. */
 function mpExitFlagged(t, dayCols){
-    return dayCols.some(d => { const x = t.days[d]; return x && /resign|terminat|suspend/i.test(x.raw); });
+    return !!t.exited;
 }
 
 /* --- status → bucket. Order matters: "Work on Week Off" contains
@@ -5492,6 +5761,37 @@ function mpPrettyDay(col){
     return m ? (m[1] + ' ' + m[2].charAt(0).toUpperCase() + m[2].slice(1)) : String(col || '');
 }
 
+/* Manpower opens on today's column (e.g. "1-Nov"). When today is not a roster
+   column yet, it falls back to the newest column that actually carries a
+   present mark — future columns only hold pre-entered week offs / leave. */
+let mpDaySeeded = false;
+function seedMpDay(){
+    if (mpDaySeeded || !mpCols.length) return;
+    mpDaySeeded = true;
+    const df = document.getElementById('mp-day-from');
+    const dt = document.getElementById('mp-day-to');
+    if (!df || !dt) return;
+    if ((df.value && df.value !== MP_ALL) || (dt.value && dt.value !== MP_ALL)) return;
+    const now   = new Date();
+    const mon   = now.toLocaleString('en-US', { month: 'short' });
+    const want  = (now.getDate() + ' ' + mon).toLowerCase();
+    let pick = '';
+    mpCols.forEach(c => { if (!pick && mpPrettyDay(c).toLowerCase() === want) pick = c; });
+    if (!pick){
+        const present = {};
+        mpAll.forEach(t => Object.keys(t.days).forEach(c => {
+            const x = t.days[c];
+            if (x && x.bucket === 'present') present[c] = (present[c] || 0) + 1;
+        }));
+        for (let i = mpCols.length - 1; i >= 0; i--){ if (present[mpCols[i]]) { pick = mpCols[i]; break; } }
+    }
+    if (!pick) return;
+    df.value = pick;
+    dt.value = pick;
+    mpState.dayFrom = pick;
+    mpState.dayTo   = pick;
+}
+
 async function loadManpowerCsv(force){
     if (mpLoading || (mpLoaded && !force)) return;
     mpLoading = true;
@@ -5514,7 +5814,7 @@ async function loadManpowerCsv(force){
                     const raw = String(r[c] || '').trim();
                     if (raw === '') return;
                     const b = mpBucket(raw);
-                    t.days[c] = { raw: raw, bucket: b };
+                    t.days[c] = { raw: raw, bucket: b, code: mpCode(b, raw) };
                     t.counts[b]++; t.counts.marked++;
                 });
                 // The sheet keeps writing "Resigned …" / "Terminate …" into every
@@ -5526,6 +5826,7 @@ async function loadManpowerCsv(force){
             })
             .filter(t => !t.exited);
         mpLoaded = true;
+        seedMpDay();          // today's column (once per load, never overrides the user)
         buildMpStaticOptions();
         renderManpower();
         loadPvaPlan(false);   // plan-vs-actual tables inside the Manpower tab
@@ -5587,18 +5888,26 @@ function mpFillMulti(id, entries, keepLabels){
 /* Re-count every option against the current scope (same as the dashboard's
    refreshFacetCounts) and rebuild the Day From / Day To dropdown counts. */
 function refreshMpCounts(){
-    const dayCols = mpDayCols();
+    bumpMpFacets();
     const base = mpFacetRows('day');
+    /* One pass for every day column instead of scanning the base 92 times. */
+    const presentByCol = {};
+    base.forEach(t => {
+        Object.keys(t.days).forEach(c => {
+            const x = t.days[c];
+            if (x && x.bucket === 'present') presentByCol[c] = (presentByCol[c] || 0) + 1;
+        });
+    });
     const buildDay = function(selId, prevVal){
         const el = document.getElementById(selId);
         if (!el) return;
         el.innerHTML = [{ v: MP_ALL, l: (selId === 'mp-day-from') ? 'First day' : 'Last day' }].concat(
-            mpCols.map(c => ({ v: c, l: mpPrettyDay(c) + '  (' + base.filter(t => t.days[c] && t.days[c].bucket === 'present').length + ' present)' })
+            mpCols.map(c => ({ v: c, l: mpPrettyDay(c) + '  (' + (presentByCol[c] || 0) + ' present)' })
         )).map(o => '<option value="' + esc(o.v) + '">' + esc(o.l) + '</option>').join('');
         if (Array.from(el.options).some(o => o.value === prevVal)) el.value = prevVal;
     };
-    buildDay('mp-day-from', (document.getElementById('mp-day-from') || {}).value);
-    buildDay('mp-day-to',   (document.getElementById('mp-day-to')   || {}).value);
+    buildDay('mp-day-from', (document.getElementById('mp-day-from') || {}).value || mpState.dayFrom);
+    buildDay('mp-day-to',   (document.getElementById('mp-day-to')   || {}).value || mpState.dayTo);
     document.querySelectorAll('#mpFilterCard select.mcs-counted').forEach(function(el){ mcsSync(el); });
 }
 
@@ -5714,9 +6023,17 @@ function mpSetAgingMode(mode){
         if (b) b.classList.toggle('active', m === mpAgingMode);
     });
     /* Redraw just the aging card from the scope already on screen — a full
-       renderManpower() pass would re-count every facet for no reason. */
-    if (mpAgingScope) renderMpAging(mpAgingScope.rows, mpAgingScope.dayCols);
-    else if (mpLoaded) renderManpower();
+       renderManpower() pass would re-count every facet for no reason.
+       The 36k-cell grid is hidden while Chart.js measures its canvas, otherwise
+       that one measurement forces a full page layout (~1.8 s on a month view). */
+    const gridBody = document.getElementById('mpGridBody');
+    if (gridBody) gridBody.style.display = 'none';
+    try {
+        if (mpAgingScope) renderMpAging(mpAgingScope.rows, mpAgingScope.dayCols);
+        else if (mpLoaded) renderManpower();
+    } finally {
+        if (gridBody) gridBody.style.display = '';
+    }
 }
 function mpAgingPivot(rows, dayCols, mode){
     const keyField   = mode === 'hub' ? 'hub' : 'vendor';
@@ -5884,6 +6201,7 @@ function renderMpAging(rows, dayCols){
 /* --- main render --------------------------------------------- */
 function renderManpower(){
     if (!mpLoaded) return;
+    bumpMpFacets();
     syncMpState();
 
     const badge   = document.getElementById('mpBadge');
@@ -5942,9 +6260,15 @@ function renderManpower(){
     document.getElementById('mpTitleBody').innerHTML = titleRows.length
         ? titleRows.map(mpRowHtml).join('')
         : '<tr><td colspan="7" class="text-center text-muted py-3">No marked attendance in this scope</td></tr>';
-    renderMpGrid(gridded, dayCols);
+    /* Drop the previous employee grid before the aging chart is built: Chart.js
+       measures its canvas box, and with a whole-month grid (36k cells) still in
+       the document that measurement forces a full page layout (~1.8 s). The
+       grid is filled again below — same synchronous render, so no visible gap. */
+    const gridBody = document.getElementById('mpGridBody');
+    if (gridBody) gridBody.innerHTML = '';
     mpAgingScope = { rows: gridded, dayCols: dayCols };   // lets the vendor/hub switch redraw without a full re-render
     renderMpAging(gridded, dayCols);
+    renderMpGrid(gridded, dayCols);
     renderMpPlanVsActual();
     refreshMpCounts();
 }
@@ -5968,11 +6292,12 @@ function renderMpGrid(rows, dayCols){
         ? ('showing ' + MP_GRID_LIMIT + ' of ' + fmt(rows.length) + ' — narrow with search or the filters')
         : (fmt(rows.length) + ' employees');
     body.innerHTML = shown.map(t => {
+        const nameEsc = esc(t.name || '');
         const cells = dayCols.map(c => {
             const x = t.days[c];
-            if (!x || !x.bucket) return '<td class="text-center mp-cell" style="color:#e2e8f0">·</td>';
+            if (!x || !x.bucket) return '<td class="text-center mp-cell" style="color:#e2e8f0">\u00b7</td>';
             const cls = 'mp-c-' + x.bucket;
-            return '<td class="text-center mp-cell ' + cls + '" title="' + esc(x.raw) + ' — ' + esc(t.name || '') + '">' + esc(mpCode(x.bucket, x.raw)) + '</td>';
+            return '<td class="text-center mp-cell ' + cls + '" title="' + esc(x.raw) + ' - ' + nameEsc + '">' + esc(x.code || mpCode(x.bucket, x.raw)) + '</td>';
         }).join('');
         return '<tr>' +
             '<td class="text-muted">' + esc(t.empId || '') + '</td>' +
@@ -5985,6 +6310,407 @@ function renderMpGrid(rows, dayCols){
                 : '<td class="text-center mp-cell mp-band-' + t.band + '" title="' + fmt(t.aging) + ' days worked in the 9 months before this month">' + fmt(t.aging) + '</td>') +
             cells + '</tr>';
     }).join('') || '<tr><td colspan="' + (6 + dayCols.length) + '" class="text-center text-muted py-3">No employees match the current filters</td></tr>';
+}
+
+/* ================================================================
+   MM PENDENCY — the middle-mile pending-shipment snapshot
+   Reads the published MM Pendency sheet (gid 1025406163), which
+   appends one row per still-pending shipment per snapshot date.
+   The summary tab reproduces the ops pivots — Facility, shipment
+   type, receiving aging, last-update aging and Flag — for the date
+   picked in the dropdown, each with its count, share of that
+   snapshot and a Grand Total row, plus a KPI strip. Facility and
+   Shipment Type chips narrow every pivot and the overdue tab.
+   The overdue tab lists shipments whose PDD is already behind the
+   snapshot date (should have shipped, still pending) with their
+   flag, feedback and days late.
+================================================================ */
+const MM_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=1025406163&single=true&output=csv';
+
+let mmRows = [], mmDates = [], mmDate = '', mmLoaded = false, mmLoading = false;
+let mmFacSel = new Set(), mmTypeSel = new Set();   // empty set = every value
+
+function mmSoft(v){
+    return String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+}
+function mmText(v){
+    const s = mmSoft(v);
+    return s === '' ? '(blank)' : s;
+}
+
+/* Sheet dates arrive as M/D/YYYY; keep an ISO key for sorting and the
+   original M/D/YYYY for display so the header matches the sheet. */
+function mmDateParts(v){
+    const s = String(v == null ? '' : v).trim();
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) return {
+        key: m[3] + '-' + String(m[1]).padStart(2, '0') + '-' + String(m[2]).padStart(2, '0'),
+        label: (+m[1]) + '/' + (+m[2]) + '/' + m[3]
+    };
+    m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return { key: m[1] + '-' + m[2] + '-' + m[3], label: (+m[2]) + '/' + (+m[3]) + '/' + m[1] };
+    return { key: s || 'unknown', label: s || 'Unknown date' };
+}
+
+/* Aging labels must read chronologically (0–1 day → 1–2 → …), which the
+   sheet's own text order does not guarantee, so rank them explicitly. */
+function mmAgingRank(label){
+    const s = String(label || '').toLowerCase();
+    if (/more than 15|>\s*15\s*day/.test(s)) return 60;
+    if (/more than 72|>\s*72\s*hr/.test(s)) return 40;
+    if (/10\s*to\s*15/.test(s)) return 50;
+    if (/5\s*to\s*10/.test(s)) return 45;
+    if (/3\s*to\s*5/.test(s)) return 30;
+    if (/48\s*to\s*72/.test(s)) return 30;
+    if (/24\s*to\s*48/.test(s)) return 20;
+    if (/1\s*to\s*2/.test(s)) return 20;
+    if (/0\s*to\s*24/.test(s)) return 10;
+    if (/0\s*to\s*1\s*day/.test(s)) return 10;
+    return 99;
+}
+
+function buildMmDateOptions(){
+    const sel = document.getElementById('mm-date');
+    if (!sel) return;
+    const labels = new Map();
+    mmRows.forEach(function(r){ if (!labels.has(r.date)) labels.set(r.date, r.dateLabel); });
+    // Newest snapshot first, so the fresh date is the default on first load.
+    mmDates = Array.from(labels.keys()).sort().reverse();
+    const keep = mmDate || sel.value;
+    sel.innerHTML = mmDates.map(function(k){
+        return '<option value="' + esc(k) + '">' + esc(labels.get(k)) + '</option>';
+    }).join('');
+    // A reload must not move a date the operator already picked; only a
+    // vanished snapshot (or first load) falls back to the newest one.
+    mmDate = mmDates.indexOf(keep) >= 0 ? keep : (mmDates[0] || '');
+    sel.value = mmDate;
+}
+
+/* Rows of the chosen snapshot; the chip filters narrow them further. */
+function mmDateRows(){
+    return mmRows.filter(function(r){ return r.date === mmDate; });
+}
+function mmBaseRows(){
+    const rows = mmDateRows();
+    if (!mmFacSel.size && !mmTypeSel.size) return rows;
+    return rows.filter(function(r){
+        return (!mmFacSel.size || mmFacSel.has(r.facility)) &&
+               (!mmTypeSel.size || mmTypeSel.has(r.type));
+    });
+}
+
+/* Chip counts follow the OTHER filter (standard facet behaviour): the
+   facility list re-counts against the selected shipment types and the
+   type list re-counts against the selected facilities. */
+function renderMmChips(dateRows){
+    const facHost  = document.getElementById('mmFacBtns');
+    const typeHost = document.getElementById('mmTypeBtns');
+    if (!facHost || !typeHost) return;
+
+    const facOrder = [], typeOrder = [];
+    const facAll = new Map(), typeAll = new Map();
+    dateRows.forEach(function(r){
+        if (!facAll.has(r.facility)) { facAll.set(r.facility, 0); facOrder.push(r.facility); }
+        facAll.set(r.facility, facAll.get(r.facility) + 1);
+        if (!typeAll.has(r.type)) { typeAll.set(r.type, 0); typeOrder.push(r.type); }
+        typeAll.set(r.type, typeAll.get(r.type) + 1);
+    });
+    const byCount = function(all){
+        return function(a, b){ return (all.get(b) - all.get(a)) || String(a).localeCompare(String(b)); };
+    };
+    facOrder.sort(byCount(facAll));
+    typeOrder.sort(byCount(typeAll));
+
+    const facFacet = new Map(), typeFacet = new Map();
+    dateRows.forEach(function(r){
+        if (!mmTypeSel.size || mmTypeSel.has(r.type)) facFacet.set(r.facility, (facFacet.get(r.facility) || 0) + 1);
+        if (!mmFacSel.size || mmFacSel.has(r.facility)) typeFacet.set(r.type, (typeFacet.get(r.type) || 0) + 1);
+    });
+
+    const chip = function(value, n, on, kind){
+        const attr = kind === 'fac' ? 'data-mmfac' : 'data-mmtype';
+        const fn   = kind === 'fac' ? 'toggleMmFac' : 'toggleMmType';
+        return '<button type="button" class="btn btn-sm mm-chip ' + (on ? 'btn-primary' : 'btn-outline-primary') + '" ' +
+            attr + '="' + esc(value) + '" onclick="' + fn + '(this)" title="' +
+            (on ? 'Remove filter: ' : 'Filter by: ') + esc(value) + '">' +
+            esc(value) + ' <span class="mm-chip-n">' + fmt(n) + '</span></button>';
+    };
+
+    facHost.innerHTML = facOrder.map(function(v){
+        return chip(v, facFacet.get(v) || 0, mmFacSel.has(v), 'fac');
+    }).join('');
+    typeHost.innerHTML = typeOrder.map(function(v){
+        return chip(v, typeFacet.get(v) || 0, mmTypeSel.has(v), 'type');
+    }).join('');
+
+    const note = document.getElementById('mmFilterNote');
+    if (note) {
+        const f = mmFacSel.size ? 'facility ' + Array.from(mmFacSel).join(', ') : 'all facilities';
+        const t = mmTypeSel.size ? 'shipment type ' + Array.from(mmTypeSel).join(', ') : 'all shipment types';
+        note.textContent = 'Filtered to ' + f + ' · ' + t + '.';
+    }
+}
+
+function toggleMmFac(btn){
+    const v = btn.getAttribute('data-mmfac');
+    if (mmFacSel.has(v)) mmFacSel.delete(v); else mmFacSel.add(v);
+    renderMmPendency();
+}
+function toggleMmType(btn){
+    const v = btn.getAttribute('data-mmtype');
+    if (mmTypeSel.has(v)) mmTypeSel.delete(v); else mmTypeSel.add(v);
+    renderMmPendency();
+}
+function clearMmFilters(){
+    mmFacSel.clear();
+    mmTypeSel.clear();
+    const s = document.getElementById('mm-search');
+    if (s) s.value = '';
+    renderMmPendency();
+}
+function mmOpenOverdue(){
+    const btn = document.querySelector('#page-mm .inner-tabs .it-btn[data-iview="overdue"]');
+    if (btn) innerTab(btn);
+}
+
+/* Shipments whose PDD is strictly before the snapshot date: they should
+   already have shipped, yet the snapshot still lists them as pending. */
+function mmOverdueRows(baseRows){
+    return baseRows.filter(function(r){ return r.pdd && r.pdd < mmDate; })
+        .sort(function(a, b){
+            return a.pdd.localeCompare(b.pdd) || String(a.awb).localeCompare(String(b.awb));
+        });
+}
+
+function renderMmOverdueTab(baseRows){
+    if (!mmLoaded) return 0;
+    const body = document.getElementById('mmOverdueBody');
+    if (!body) return 0;
+
+    const scopeRows = baseRows || mmBaseRows();
+    const all = mmOverdueRows(scopeRows);
+    const dueToday = scopeRows.filter(function(r){ return r.pdd && r.pdd === mmDate; }).length;
+    const q = mmSoft((document.getElementById('mm-search') || {}).value).toLowerCase();
+    const list = q ? all.filter(function(r){
+        return [r.awb, r.facility, r.hub, r.type, r.flag, r.feedback, r.pddLabel]
+            .join(' ').toLowerCase().indexOf(q) >= 0;
+    }) : all;
+
+    const daysLate = function(r){
+        return Math.round((Date.parse(mmDate + 'T00:00:00Z') - Date.parse(r.pdd + 'T00:00:00Z')) / 86400000);
+    };
+
+    body.innerHTML = list.length ? list.map(function(r){
+        const late = daysLate(r);
+        const cls = late > 14 ? 'text-bg-danger' : (late > 7 ? 'text-bg-warning' : 'text-bg-light border');
+        return '<tr>' +
+            '<td class="fw-bold" style="white-space:nowrap">' + esc(r.awb || '—') + '</td>' +
+            '<td>' + esc(r.facility) + '</td>' +
+            '<td>' + esc(r.hub) + '</td>' +
+            '<td class="text-muted">' + esc(r.type) + '</td>' +
+            '<td style="white-space:nowrap">' + esc(r.pddLabel || '—') + '</td>' +
+            '<td class="text-end"><span class="badge ' + cls + '">' + late + 'd</span></td>' +
+            '<td>' + esc(r.flag) + '</td>' +
+            '<td class="text-muted">' + esc(r.feedback || '—') + '</td>' +
+        '</tr>';
+    }).join('') : '<tr><td colspan="8" class="text-center text-muted py-4">' +
+        (all.length ? 'No overdue shipment matches the search.' : 'No shipment is past its PDD for this snapshot and filter.') +
+        '</td></tr>';
+
+    const foot = document.getElementById('mmOverdueFoot');
+    if (foot) foot.textContent = q
+        ? 'Showing ' + fmt(list.length) + ' of ' + fmt(all.length) + ' overdue shipments · oldest PDD first'
+        : fmt(all.length) + ' shipments past PDD · oldest PDD first';
+
+    const note = document.getElementById('mmOverdueNote');
+    if (note) note.textContent = all.length
+        ? '— ' + fmt(all.length) + ' shipments · oldest PDD ' + all[0].pddLabel +
+          (dueToday ? ' · ' + fmt(dueToday) + ' due today' : '')
+        : (dueToday ? '— none overdue · ' + fmt(dueToday) + ' due today' : '— none for this snapshot and filter');
+
+    const badge = document.getElementById('mmOverdueBadge');
+    if (badge) { badge.className = 'badge text-bg-danger'; badge.textContent = fmt(list.length) + ' late'; }
+
+    const tabN = document.getElementById('mmOverdueTabCount');
+    if (tabN) tabN.textContent = fmt(all.length);
+
+    return all.length;
+}
+
+function renderMmPendency(){
+    if (!mmLoaded) return;
+
+    const badge    = document.getElementById('mmBadge');
+    const content  = document.getElementById('mmContent');
+    const empty    = document.getElementById('mmEmpty');
+    const dateRows = mmDateRows();
+    const rows     = mmBaseRows();
+    const total    = rows.length;
+    const sample   = dateRows[0];
+    const label    = (sample && sample.dateLabel) || mmDate || '—';
+
+    if (content) content.style.display = '';
+    if (empty) empty.style.display = 'none';
+
+    // The pivot count column carries the snapshot date, like the ops pivot.
+    document.querySelectorAll('#page-mm .mm-count-head').forEach(function(th){ th.textContent = label; });
+
+    renderMmChips(dateRows);
+    const overdue = renderMmOverdueTab(rows);
+
+    if (badge) {
+        badge.className = 'badge text-bg-success';
+        badge.textContent = fmt(total) + ' pending' +
+            (total !== dateRows.length ? ' of ' + fmt(dateRows.length) : '') + ' · ' + label;
+    }
+
+    const hubs = new Set(rows.map(function(r){ return r.hub; }));
+    const facs = new Set(rows.map(function(r){ return r.facility; }));
+    const scope = document.getElementById('mmScopeLine');
+    if (scope) scope.textContent = label + ' — ' + fmt(total) + ' of ' + fmt(dateRows.length) +
+        ' pending shipments across ' + facs.size + (facs.size === 1 ? ' facility' : ' facilities') +
+        ' and ' + hubs.size + (hubs.size === 1 ? ' hub' : ' hubs') + '.';
+    setViewMeta('mmTabMeta', label + ' · ' + fmt(total) + ' pending · ' + fmt(overdue) + ' overdue');
+
+    const pctOf = function(n){ return total ? (n * 100 / total) : 0; };
+    const setKpi = function(id, val, sub){
+        const v = document.getElementById(id);
+        if (v) v.textContent = val;
+        const s = document.getElementById(id + '-sub');
+        if (s) s.textContent = sub;
+    };
+    const sumWhere = function(field, re){
+        return rows.reduce(function(n, r){ return n + (re.test(String(r[field] || '')) ? 1 : 0); }, 0);
+    };
+
+    const fresh = sumWhere('receiving', /^0\s*to\s*1\s*day/i);
+    // Anything not last touched in the first 24 hrs is a stale scan.
+    const stale = rows.reduce(function(n, r){ return n + (/^0\s*to\s*24\s*hrs/i.test(r.lastUpdate) ? 0 : 1); }, 0);
+    const seal  = sumWhere('flag', /not attached by seal/i);
+
+    setKpi('k-mm-total', fmt(total), label + ' snapshot');
+    setKpi('k-mm-fresh', fmt(fresh), pctOf(fresh).toFixed(1) + '% received in 0–1 day');
+    setKpi('k-mm-stale', fmt(stale), pctOf(stale).toFixed(1) + '% last touched > 24 hrs');
+    setKpi('k-mm-seal',  fmt(seal),  pctOf(seal).toFixed(1) + '% waiting for a seal');
+    setKpi('k-mm-overdue', fmt(overdue), pctOf(overdue).toFixed(1) + '% past PDD');
+
+    const pivot = function(field, order){
+        const map = new Map();
+        rows.forEach(function(r){ map.set(r[field], (map.get(r[field]) || 0) + 1); });
+        const arr = Array.from(map, function(pair){ return { label: pair[0], count: pair[1] }; });
+        if (order === 'aging') {
+            arr.sort(function(a, b){
+                return (mmAgingRank(a.label) - mmAgingRank(b.label)) || String(a.label).localeCompare(String(b.label));
+            });
+        } else {
+            arr.sort(function(a, b){
+                return (b.count - a.count) || String(a.label).localeCompare(String(b.label));
+            });
+        }
+        return arr;
+    };
+
+    const fillTable = function(tbodyId, arr){
+        const body = document.getElementById(tbodyId);
+        if (!body) return;
+        if (!arr.length) {
+            body.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No rows for this snapshot and filter</td></tr>';
+            return;
+        }
+        let html = arr.map(function(x){
+            const p = pctOf(x.count);
+            const w = x.count ? Math.max(p, 1.5) : 0;
+            return '<tr>' +
+                '<td class="mm-lbl" title="' + esc(x.label) + '">' + esc(x.label) + '</td>' +
+                '<td class="text-end fw-bold">' + fmt(x.count) + '</td>' +
+                '<td class="text-end text-muted">' + p.toFixed(1) + '%</td>' +
+                '<td><div class="mm-bar"><span style="width:' + w.toFixed(1) + '%"></span></div></td>' +
+            '</tr>';
+        }).join('');
+        html += '<tr class="mm-total">' +
+            '<td>Grand Total</td>' +
+            '<td class="text-end">' + fmt(total) + '</td>' +
+            '<td class="text-end">100%</td>' +
+            '<td></td>' +
+        '</tr>';
+        body.innerHTML = html;
+    };
+
+    fillTable('mmFacBody',  pivot('facility'));
+    fillTable('mmTypeBody', pivot('type'));
+    fillTable('mmRecBody',  pivot('receiving', 'aging'));
+    fillTable('mmLuBody',   pivot('lastUpdate', 'aging'));
+    fillTable('mmFlagBody', pivot('flag'));
+}
+
+async function loadMmCsv(force){
+    if (mmLoading || (mmLoaded && !force)) return;
+    mmLoading = true;
+
+    const badge = document.getElementById('mmBadge');
+    const empty = document.getElementById('mmEmpty');
+    const spin  = document.getElementById('mmEmptySpin');
+    const title = document.getElementById('mmEmptyTitle');
+    const msg   = document.getElementById('mmEmptyMsg');
+    if (badge) { badge.className = 'badge text-bg-info'; badge.textContent = 'Loading pendency…'; }
+    if (empty && !mmLoaded) {
+        empty.style.display = '';
+        if (spin) spin.style.display = '';
+        if (title) title.textContent = 'Reading the MM Pendency sheet…';
+        if (msg) msg.textContent = 'The snapshot appears as soon as the published CSV answers.';
+    }
+
+    try {
+        // Google occasionally answers with an empty/HTML body (throttling).
+        // fetchCsvText only retries transport failures, so retry the parse too.
+        let rows = [];
+        for (let attempt = 0; attempt < 2 && !rows.length; attempt++) {
+            if (attempt) await sleep(900);
+            const text = await fetchCsvText(cacheBusted(MM_CSV_URL, Date.now() + attempt), null);
+            const parsed = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: false });
+            rows = (parsed.data || []).filter(function(r){ return r && String(r.Date || '').trim() !== ''; });
+        }
+        // A blocked/HTML answer parses into zero rows; treat that as a failure
+        // so the page shows a retry instead of a confident "0 pending".
+        if (!rows.length) throw new Error('The published CSV returned no dated rows.');
+
+        mmRows = rows.map(function(r){
+            const d = mmDateParts(r.Date);
+            const rawPdd = String(r.PDD || '').trim();
+            const pddIso = /^\d{4}-\d{2}-\d{2}/.test(rawPdd) ? rawPdd.slice(0, 10) : '';
+            const pdd = pddIso ? mmDateParts(pddIso) : null;
+            return {
+                date: d.key,
+                dateLabel: d.label,
+                facility: mmText(r.Facility),
+                hub: mmText(r.current_hub),
+                type: mmText(r.Shipment_Type),
+                receiving: mmText(r.Receiving_Aging_Range),
+                lastUpdate: mmText(r.LastUpdate_Aging_Range),
+                flag: mmText(r.Flag),
+                feedback: mmSoft(r.Feedback),
+                awb: mmSoft(r.awb_nr),
+                pdd: pddIso,
+                pddLabel: pdd ? pdd.label : ''
+            };
+        });
+        mmLoaded = true;
+        buildMmDateOptions();
+        renderMmPendency();
+        console.log('[MM Pendency] loaded', mmRows.length, 'rows across', mmDates.length, 'snapshots');
+    } catch (e) {
+        const m = (e && e.message) ? e.message : String(e);
+        console.warn('[MM Pendency] load failed:', e);
+        if (badge) { badge.className = 'badge text-bg-danger'; badge.textContent = 'Load failed — check publish'; }
+        if (empty) {
+            empty.style.display = '';
+            if (spin) spin.style.display = 'none';
+            if (title) title.textContent = 'Could not load the MM Pendency sheet';
+            if (msg) msg.innerHTML = esc(m) + ' — <button class="btn btn-sm btn-outline-secondary mt-2" onclick="loadMmCsv(true)"><i class="bi bi-arrow-repeat me-1"></i>Retry</button>';
+        }
+    } finally {
+        mmLoading = false;
+    }
 }
 
 /* ================================================================
@@ -7091,43 +7817,98 @@ function renderTripDetailsTable(data){
         t.dstHub.toLowerCase().includes(search)
     ) : data;
 
-    const rows = filtered.map((t, idx) => {
-        const statusColor = t.tripStatus === 'completed' ? 'text-success' : t.tripStatus === 'in_progress' || t.tripStatus === 'started' ? 'text-warning' : 'text-muted';
-        return `<tr>
-            <td>${idx + 1}</td>
-            <td>${esc(t.date||'')}</td>
-            <td><strong>${esc(t.tripId)}</strong></td>
-            <td class="text-muted small">${esc(t.tripCode||'')}</td>
-            <td>${esc(t.routeCode||'')}</td>
-            <td>${esc(t.srcHub)}</td>
-            <td>${esc(t.dstHub)}</td>
-            <td>${esc(t.vendor)}${t.plateNr?`<br/><small class="text-muted">${esc(t.plateNr)}</small>`:''}</td>
-            <td><span class="badge ${statusColor}">${esc(t.tripStatus||'—')}</span></td>
-            <td>${esc(t.facilitySrc||t.facility||'')}</td>
-            <td>${esc(t.facilityDst||'')}</td>
-            <td>${isPass(t.portalAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
-            <td>${isPass(t.portalPlanVsActualAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
-            <td>${isPass(t.gateInToOpenAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
-            <td>${isPass(t.openToSealAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
-            <td>${isPass(t.arrivalAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
-            <td>${isPass(t.vehicleAdh)?`<span class="badge bg-success-subtle text-success">✓</span>`:`<span class="badge bg-danger-subtle text-danger">✗</span>`}</td>
-            <td data-order="${t.shipments||0}">${fmt(t.shipments)}</td>
-            <td>${t.utilPct!==null&&t.utilPct!==undefined?`${Math.round(t.utilPct)}%`:''}</td>
-            <td>${t.perfectFlag?`<span class="badge bg-success-subtle text-success">${esc(t.perfectFlag)}</span>`:''}</td>
-            <td>${esc(t.flagHubs||'')}</td>
-            <td>${missingRcaFor(t).length?`<span class="text-danger">${missingRcaFor(t).length}</span>`:`<span class="text-success">✓</span>`}</td>
-        </tr>`;
-    }).join('');
-    
-    resetTable('#tripDetailsTable');
-    tripDetailsDT = null;
-    tbody.innerHTML = rows || `<tr><td colspan="22" class="text-center text-muted py-3">No trips match the current filters</td></tr>`;
-    if (!filtered.length) return;   // placeholder row only — DataTables cannot page over it
+    /* Keep the cell values raw (numbers stay sortable) and let DataTables
+       build markup only for the 15 rows it actually draws. Building 3,200
+       <tr> blocks up front was ~750 ms of every filter change. */
+    const rows = filtered.map((t, idx) => [
+        idx + 1,
+        t.date || '',
+        t.tripId || '',
+        t.tripCode || '',
+        t.routeCode || '',
+        t.srcHub || '',
+        t.dstHub || '',
+        { vendor: t.vendor || '', plate: t.plateNr || '' },
+        t.tripStatus || '',
+        t.facilitySrc || t.facility || '',
+        t.facilityDst || '',
+        t.portalAdh,
+        t.portalPlanVsActualAdh,
+        t.gateInToOpenAdh,
+        t.openToSealAdh,
+        t.arrivalAdh,
+        t.vehicleAdh,
+        t.shipments || 0,
+        (t.utilPct === null || t.utilPct === undefined) ? null : Math.round(t.utilPct),
+        t.perfectFlag || '',
+        t.flagHubs || '',
+        missingRcaFor(t).length
+    ]);
 
+    const passBadge = v => isPass(v)
+        ? '<span class="badge bg-success-subtle text-success">\u2713</span>'
+        : '<span class="badge bg-danger-subtle text-danger">\u2717</span>';
+    const cols = [
+        { data: 0 },
+        { data: 1 },
+        { data: 2, render: (d, type) => type === 'display' ? '<strong>' + esc(d) + '</strong>' : d },
+        { data: 3, render: (d, type) => type === 'display' ? '<span class="text-muted small">' + esc(d) + '</span>' : d },
+        { data: 4 },
+        { data: 5 },
+        { data: 6 },
+        { data: 7, render: (d, type) => {
+            if (type !== 'display') return d.vendor;
+            return esc(d.vendor) + (d.plate ? '<br/><small class="text-muted">' + esc(d.plate) + '</small>' : '');
+        } },
+        { data: 8, render: (d, type) => {
+            if (type !== 'display') return d;
+            const cls = d === 'completed' ? 'text-success' : (d === 'in_progress' || d === 'started') ? 'text-warning' : 'text-muted';
+            return '<span class="badge ' + cls + '">' + esc(d || '\u2014') + '</span>';
+        } },
+        { data: 9 },
+        { data: 10 },
+        { data: 11, render: (d, type) => type === 'display' ? passBadge(d) : d },
+        { data: 12, render: (d, type) => type === 'display' ? passBadge(d) : d },
+        { data: 13, render: (d, type) => type === 'display' ? passBadge(d) : d },
+        { data: 14, render: (d, type) => type === 'display' ? passBadge(d) : d },
+        { data: 15, render: (d, type) => type === 'display' ? passBadge(d) : d },
+        { data: 16, render: (d, type) => type === 'display' ? passBadge(d) : d },
+        { data: 17, render: (d, type) => type === 'display' ? fmt(d) : d },
+        { data: 18, render: (d, type) => type === 'display' ? (d === null ? '' : d + '%') : d },
+        { data: 19, render: (d, type) => {
+            if (type !== 'display') return d;
+            return d ? '<span class="badge bg-success-subtle text-success">' + esc(d) + '</span>' : '';
+        } },
+        { data: 20 },
+        { data: 21, render: (d, type) => {
+            if (type !== 'display') return d;
+            return d ? '<span class="text-danger">' + d + '</span>' : '<span class="text-success">\u2713</span>';
+        } }
+    ];
+    
+    /* One DataTable instance for the whole session: clear + add rows is far
+       cheaper than destroy + re-init (≈420 ms on 3,200 trips), and with
+       deferRender only the visible page is ever turned into DOM. */
+    if ($.fn.DataTable && $.fn.DataTable.isDataTable('#tripDetailsTable')) {
+        tripDetailsDT.clear();
+        tripDetailsDT.rows.add(rows);
+        tripDetailsDT.page(0);          // a new scope starts at the first page
+        tripDetailsDT.draw(false);
+        return;
+    }
+
+    tbody.innerHTML = '';
     tripDetailsDT = $('#tripDetailsTable').DataTable({
+        data: rows,
+        columns: cols,
         pageLength: 15,
         dom: 'lrtip',
         order: [[2,'asc']],
+        deferRender: true,
+        language: {
+            emptyTable: 'No trips match the current filters',
+            zeroRecords: 'No trips match the current filters'
+        },
         columnDefs: [
             { orderable: false, targets: [0,3,4,5,6,7,8,9,10,11,12,13,14,15,16,19,20,21] }
         ]
