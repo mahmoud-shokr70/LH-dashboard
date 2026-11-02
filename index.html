@@ -181,6 +181,14 @@ body.rail-collapsed #btnRefresh span { display: none; }
 body.rail-collapsed #autoRefreshBtn { width: 44px; margin: 0 auto; padding: .375rem 0; }
 body.rail-collapsed #autoRefreshLabel { display: none; }
 body.rail-collapsed { padding-left: 84px !important; }
+/* Per-tab data status dot (see setTabStatus). */
+#pageTabs .tab-dot { display: inline-block; width: 7px; height: 7px; border-radius: 99px;
+    background: #6b7280; margin-left: 5px; vertical-align: middle; flex: 0 0 7px; transition: background .2s; }
+#pageTabs .tab-dot[data-state="loading"] { background: #38bdf8; animation: tabDotPulse 1s ease-in-out infinite; }
+#pageTabs .tab-dot[data-state="ok"] { background: #22c55e; box-shadow: 0 0 0 2px rgba(34,197,94,.18); }
+#pageTabs .tab-dot[data-state="cache"] { background: #f59e0b; box-shadow: 0 0 0 2px rgba(245,158,11,.18); }
+#pageTabs .tab-dot[data-state="err"] { background: #ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,.2); }
+@keyframes tabDotPulse { 0%,100% { opacity: .3 } 50% { opacity: 1 } }
 @media (max-width: 900px) {
     .rail-toggle { display: none; }
     body { padding-left: 0 !important; }
@@ -212,6 +220,7 @@ body.rail-collapsed { padding-left: 84px !important; }
 .mp-c-weekoff { background: #fef9c3; color: #854d0e; }
 .mp-c-leave   { background: #e2e8f0; color: #334155; }
 .mp-c-noshow  { background: #fee2e2; color: #991b1b; }
+.mp-c-exit    { background: #ffe4e6; color: #9f1239; font-weight: 700; }
 .mp-c-other   { background: #f1f5f9; color: #64748b; }
 .mp-band-p01  { background: #f1f5f9; color: #64748b; }
 .mp-band-p24  { background: #fef3c7; color: #92400e; }
@@ -658,10 +667,10 @@ body.rail-collapsed { padding-left: 84px !important; }
     </div>
     <div class="rail-label">Navigate</div>
     <ul class="nav nav-pills" id="pageTabs">
-        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard" title="LH Adherence"><i class="bi bi-speedometer2"></i> <span class="nl-txt">LH Adherence</span></button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live" title="LH Live Tracking"><i class="bi bi-broadcast"></i> <span class="nl-txt">LH Live Tracking</span></button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn" title="Manpower"><i class="bi bi-people"></i> <span class="nl-txt">Manpower</span></button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mm" id="mmTabBtn" title="MM Pendency"><i class="bi bi-box-seam"></i> <span class="nl-txt">MM Pendency</span></button></li>
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard" title="LH Adherence"><i class="bi bi-speedometer2"></i> <span class="nl-txt">LH Adherence</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live" title="LH Live Tracking"><i class="bi bi-broadcast"></i> <span class="nl-txt">LH Live Tracking</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn" title="Manpower"><i class="bi bi-people"></i> <span class="nl-txt">Manpower</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mm" id="mmTabBtn" title="MM Pendency"><i class="bi bi-box-seam"></i> <span class="nl-txt">MM Pendency</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
         <!-- Trip Log & RCA is reached from the report cards / welcome screen, not the rail -->
         <li class="nav-item d-none"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-rca" id="rcaTabBtn" tabindex="-1" aria-hidden="true"></button></li>
     </ul>
@@ -1140,7 +1149,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                         <select id="mp-day-to" class="form-select form-select-sm"></select>
                     </div>
                     <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted mb-1">Category</label>
+                        <label class="form-label fw-bold small text-muted mb-1">Statuses</label>
                         <select id="mp-cat" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
@@ -1187,7 +1196,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                 </div>
                 <div class="small text-muted mt-2" id="mpLegend">
-                    <i class="bi bi-question-circle me-1"></i>All figures count one person once per day. <strong>Category</strong> lists the sheet's own statuses (Present, Week Off, No Show, Annual Leave, WPH …). Option counts update against the other filters, like the dashboard.
+                    <i class="bi bi-question-circle me-1"></i>All figures count one person once per day. <strong>Statuses</strong> lists the sheet's own statuses (Present, Week Off, No Show, Annual Leave, WPH …). Option counts update against the other filters, like the dashboard.
                 </div>
             </div>
 
@@ -2134,73 +2143,91 @@ function csvScheduleHeal(name, delay){
     }, delay || 25000);
 }
 
-/* How long a saved copy may be shown without touching the network. The line
-   haul export is a daily report, so a ten-minute-old copy is fine; the live
-   board must stay much fresher (it also has its own 60 s auto-refresh). */
-const csvMaxAge = { lh: 10 * 60 * 1000, live: 20 * 1000, mm: 10 * 60 * 1000, mp: 30 * 60 * 1000 };
+/* What each source last returned, for the tab status dots and tooltips. */
+const csvState = {};        // name -> { from, at, lines, partial }
+const csvFresh = {};        // name -> a background result waiting to be shown
+
+/* Accept a download as the new truth — even when it is smaller than the last
+   one. Google's partial exports are transient; a sheet edited by its owner is
+   not. Pretending a genuinely trimmed sheet is "partial" was hiding edits. */
+function csvAccept(name, res){
+    csvRemember(name, res.lines);
+    csvCacheSet(name, res.body, res.lines);
+    csvState[name] = { from: 'network', at: Date.now(), lines: res.lines, partial: !!res.partial };
+    if (!res.partial) csvHealTries[name] = 0;
+    else csvScheduleHeal(name, 8000);     // short body: look again in a moment
+    return res.body;
+}
 
 async function fetchCsvFull(url, name, minLines, onProgress, force){
     const floor  = csvFloor(name, minLines);
     const cached = await csvCacheGet(name);
-    /* Cache-first: a visitor gets the dashboard immediately, then the loader
-       re-runs in the background with fresh rows. Manual reloads (force) skip
-       straight to the network. A cached copy is still used as a fallback when
-       the network fails or answers with a partial export. */
-    if (!force && cached && cached.lines >= floor){
-        const age = Date.now() - (cached.t || 0);
-        if (age < (csvMaxAge[name] || 0)){
-            console.log('[CSV] ' + name + ' from the saved copy (' + Math.round(age / 1000) + 's old)');
-            csvScheduleHeal(name, 20000);
-            return cached.body;
-        }
+
+    /* A download that finished while a saved copy was already on screen. */
+    if (csvFresh[name]){
+        const rec = csvFresh[name];
+        delete csvFresh[name];
+        console.log('[CSV] ' + name + ' — swapped in the background result');
+        return csvAccept(name, rec);
     }
-    let best = '', bestLines = -1, lastErr = null;
-    const ATTEMPTS = 3;                       // a redirect/throttle burns one, a partial another
-    for (let i = 0; i < ATTEMPTS; i++){
-        if (i) await sleep(700 * i);
-        try {
-            const text  = await fetchCsvText(cacheBusted(url, Date.now() + i), onProgress);
-            const lines = csvLineCount(text);
-            if (lines > bestLines){ best = text; bestLines = lines; }
-            if (bestLines >= floor) break;
-            if (cached && cached.lines > bestLines){
-                // A complete copy is already saved — no need to wait for Google
-                // to finish regenerating its export, show the good one now.
-                break;
+
+    const download = (async function(){
+        let best = '', bestLines = -1, firstLines = -1, lastErr = null;
+        for (let i = 0; i < 3; i++){
+            if (i) await sleep(i === 1 ? 1500 : 3500);
+            try {
+                const text  = await fetchCsvText(cacheBusted(url, Date.now() + i), onProgress);
+                const lines = csvLineCount(text);
+                if (lines > bestLines){ best = text; bestLines = lines; }
+                if (i === 0) firstLines = lines;
+                if (lines >= floor) break;                       // full size, done
+                /* A short body that repeats almost exactly is a real edit
+                   (rows deleted), not a half-written export — accept it. */
+                if (i >= 1 && firstLines > 0 &&
+                    Math.abs(bestLines - firstLines) <= Math.max(2, firstLines * 0.05)) break;
+                console.warn('[CSV] ' + name + ' returned ' + bestLines + ' lines (last copy had ' +
+                             floor + '+) — checking again');
+            } catch (e) {
+                lastErr = e;
+                if (best) break;
             }
-            console.warn('[CSV] ' + name + ' returned only ' + bestLines + ' lines (expected ' + floor + '+) — fetching again');
-        } catch (e) {
-            lastErr = e;
-            if (best || cached) break;   // a saved copy means no reason to wait
         }
+        if (!best) throw (lastErr || new Error('the sheet returned an empty body'));
+        return { body: best, lines: bestLines, partial: bestLines < floor };
+    })();
+
+    if (!force && cached && cached.lines >= minLines){
+        /* Paint the saved copy if the sheet is slow, then swap in the fresh
+           result the moment it lands — so a reload is instant but never stuck
+           on old data. */
+        const winner = await Promise.race([
+            download.catch(function(){ return null; }),
+            sleep(1200).then(function(){ return null; })
+        ]);
+        if (winner) return csvAccept(name, winner);
+        download.then(function(res){
+            csvFresh[name] = res;
+            csvScheduleHeal(name, 50);
+        }).catch(function(){
+            csvScheduleHeal(name, 30000);           // saved copy stays on screen
+        });
+        csvState[name] = { from: 'cache', at: Date.now(), lines: cached.lines, partial: false };
+        console.log('[CSV] ' + name + ' painted from the saved copy while the sheet downloads');
+        return cached.body;
     }
-    if (!best){
+
+    let res;
+    try { res = await download; }
+    catch(e){
         if (cached){
-            console.warn('[CSV] ' + name + ' unavailable — showing the saved copy from ' +
-                         new Date(cached.t).toLocaleTimeString());
+            console.warn('[CSV] ' + name + ' failed — showing the saved copy');
+            csvState[name] = { from: 'cache', at: Date.now(), lines: cached.lines, partial: false };
             csvScheduleHeal(name, 30000);
             return cached.body;
         }
-        throw (lastErr || new Error('the sheet returned an empty body'));
+        throw e;
     }
-    if (bestLines >= floor){
-        csvHealTries[name] = 0;
-        csvRemember(name, bestLines);
-        csvCacheSet(name, best, bestLines);
-        return best;
-    }
-    /* Short body: the saved copy is complete, so serve it and heal in the
-       background instead of showing a half-empty dashboard. */
-    if (cached && cached.lines > bestLines){
-        console.warn('[CSV] ' + name + ' came back partial (' + bestLines + ' of ' + cached.lines +
-                     ' lines) — showing the last complete copy');
-        csvScheduleHeal(name, 25000);
-        return cached.body;
-    }
-    if (typeof showToast === 'function') showToast('Google sent a partial ' + name.toUpperCase() +
-        ' export (' + bestLines + ' rows) — retrying shortly', 'warning');
-    csvScheduleHeal(name, 30000);
-    return best;
+    return csvAccept(name, res);
 }
 
 /* Adds a unique throwaway query param so the browser and Google's CDN are forced
@@ -2725,6 +2752,39 @@ function showToast(msg, type='success'){
     wrap.appendChild(el);
     const t=new bootstrap.Toast(el,{delay:3500}); t.show();
     el.addEventListener('hidden.bs.toast',()=>el.remove());
+}
+
+/* ---- per-tab data status ----------------------------------------
+   A dot on each tab so an operator can see, at a glance, whether that
+   page has data and how old it is:
+     grey  not loaded yet   blue  downloading
+     green fresh from the sheet   amber saved/partial copy   red failed
+   Hovering the dot shows the row count and the time it was read. */
+function setTabStatus(pane, state, text){
+    const link = document.querySelector('#pageTabs .nav-link[data-bs-target="#' + pane + '"]');
+    if (!link) return;
+    let dot = link.querySelector('.tab-dot');
+    if (!dot){
+        dot = document.createElement('span');
+        dot.className = 'tab-dot';
+        link.appendChild(dot);
+    }
+    dot.setAttribute('data-state', state || 'idle');
+    dot.title = text || '';
+    dot.style.cursor = 'help';
+    /* Mirror the state on the tab itself, minus the state word, so hovering
+       anywhere on the tab explains it. */
+    const base = link.getAttribute('data-base-title') || link.getAttribute('title') || '';
+    if (!link.getAttribute('data-base-title')) link.setAttribute('data-base-title', base);
+    link.title = base + (text ? ' — ' + text : '');
+}
+function tabStatusFromCsv(pane, name, label, count, unit){
+    const st = csvState[name];
+    if (!st) return;
+    const when = new Date(st.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const text = fmt(count) + ' ' + unit + ' · ' + (st.from === 'cache' ? 'saved copy' : 'read from sheet') +
+                 ' ' + when + (st.partial ? ' · partial, retrying' : '');
+    setTabStatus(pane, st.from === 'cache' ? 'cache' : (st.partial ? 'cache' : 'ok'), text);
 }
 
 /* ================================================================
@@ -3605,6 +3665,7 @@ if (document.readyState === 'loading') {
 function loadLiveCsv(force) {
     const loader = document.getElementById('loader');
     const meta = document.getElementById('sheetMeta');
+    setTabStatus('page-live', 'loading', 'Downloading the Live Tracking sheet…');
 
     if(!loader){
         console.error('[loadLiveCsv] #loader missing; cannot show progress.');
@@ -3627,7 +3688,7 @@ function loadLiveCsv(force) {
     /* min 100 lines: a partially generated file used to arrive as a handful of
        rows and leave the board looking empty. */
     csvOnHeal('live', function(){ loadLiveCsv(true); });
-    fetchCsvFull(liveCsvUrl, 'live', 100, function(msg){ if (!appIsUp()) setLoadingState(loader, msg); }, !!force)
+    fetchCsvFull(liveCsvUrl, 'live', 20, function(msg){ if (!appIsUp()) setLoadingState(loader, msg); }, !!force)
         .then(csvText => Papa.parse(csvText, {
             header:true,
             skipEmptyLines:true,
@@ -3659,6 +3720,7 @@ function loadLiveCsv(force) {
                 arrVarMin:  hhmmDiff(row['Arriv_Time'], row['arrival time'])
             }));
             console.log('[loadLiveCsv] liveRows mapped:', liveRows.length);
+            tabStatusFromCsv('page-live', 'live', 'Live board', liveRows.length, 'occurrences');
 
             if(meta){
                 meta.innerText = 'Source: Line Haul Live DB • ' + fmt(rawTrips.length) + ' trips • Live occurrences: ' + fmt(liveRows.length) + ' • Synced at ' + new Date().toLocaleString();
@@ -3691,6 +3753,7 @@ function loadLiveCsv(force) {
             // Non-fatal: the Line Haul dashboard keeps working without the live board.
             const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error');
             console.error('[loadLiveCsv] failed:', msg);
+            setTabStatus('page-live', 'err', 'Live Tracking sheet failed: ' + msg);
             if (appIsUp()) { loader.style.display = 'none'; loader.innerHTML = ''; }
             showToast('Live Tracking sheet could not be loaded: ' + msg, 'danger');
             const box = document.getElementById('liveTables');
@@ -3795,6 +3858,7 @@ function initSnapshots(){
 function loadDataFromCSV(force) {
     const loader = document.getElementById('loader');
     const meta = document.getElementById('sheetMeta');
+    setTabStatus('page-dashboard', 'loading', 'Downloading the Line Haul sheet…');
     const startedAt = Date.now();
     // The full-screen loader is only for the very first load. Once the dashboard
     // is on screen a refresh must never replace it with a spinner — progress goes
@@ -3814,7 +3878,7 @@ function loadDataFromCSV(force) {
     /* min 500 lines: Google sometimes answers with only the newest trips while
        the export regenerates (the "7 trips" state), so keep the fuller body. */
     csvOnHeal('lh', function(){ loadDataFromCSV(true); });
-    fetchCsvFull(csvUrl, 'lh', 500, function(msg){ if (!appVisible) setLoadingState(loader, msg); }, !!force)
+    fetchCsvFull(csvUrl, 'lh', 20, function(msg){ if (!appVisible) setLoadingState(loader, msg); }, !!force)
         .then(csvText => Papa.parse(csvText, {
             header:true,
             skipEmptyLines:true,
@@ -3978,6 +4042,7 @@ function loadDataFromCSV(force) {
         .catch(err => {
             stopTicker();
             console.error('[loadDataFromCSV] failed:', err);
+            setTabStatus('page-dashboard', 'err', 'Line Haul sheet failed: ' + (err && err.message ? err.message : err));
             showLoadError(err instanceof Error ? err.message : String(err ?? 'Unknown load error'));
         });
 }
@@ -4071,6 +4136,7 @@ function initApp(res, preserve){
         try{ initSnapshots(); }catch(e){ console.warn('[initApp] initSnapshots failed:', e); }
     }
     console.log('[initApp] app shown with', rawTrips.length, 'trips');
+    tabStatusFromCsv('page-dashboard', 'lh', 'Line haul', rawTrips.length, 'trips');
 }
 
 /* ================================================================
@@ -5882,23 +5948,32 @@ function mpExitFlagged(t, dayCols){
 
 /* --- status → bucket. Order matters: "Work on Week Off" contains
    "week off" and "Working Public Holiday" contains "holiday", so the
-   worked variants are tested before the generic off-day keywords. --- */
+   worked variants are tested before the generic off-day keywords.
+   "Present" means the sheet's own Present* statuses — that is the number the
+   ops sheet reports — while a week-off that was worked stays a week-off day
+   (code WO+), and WPH counts as present because the person was at work. --- */
 function mpBucket(raw){
     const n = String(raw || '').toLowerCase().replace(/[^a-z]/g, '');
     if (!n) return '';
-    if (n.includes('workonweekoff') || n.includes('workingpublic') || n.startsWith('wph')) return 'present';
+    /* Resigned / Terminate is an EXIT event, not leave. The day it is written
+       on is not an attendance mark, but every earlier day still counts — a
+       person who resigned on the 20th was working on the 19th. */
+    if (n.includes('resign') || n.includes('terminat')) return 'exit';
+    if (n.includes('workonweekoff')) return 'weekoff';
+    if (n.includes('workingpublic') || n.startsWith('wph')) return 'present';
     if (n.includes('present')) return 'present';
     if (n.includes('weekoff'))  return 'weekoff';
     if (n.includes('noshow'))   return 'noshow';
-    if (/(leave|suspend|resign|terminat|pilgrimag|matern|patern|militar|marriage|death|birthday|publicholiday)/.test(n)) return 'leave';
+    if (/(leave|suspend|pilgrimag|matern|patern|militar|marriage|death|birthday|publicholiday)/.test(n)) return 'leave';
     return 'other';
 }
 
 /* Short code shown inside a day cell (✓ = present). */
 function mpCode(bucket, raw){
     if (bucket === 'present') return '\u2713';
-    if (bucket === 'weekoff') return 'WO';
+    if (bucket === 'weekoff') return /workonweekoff/i.test(String(raw || '')) ? 'WO+' : 'WO';
     if (bucket === 'noshow')  return 'NS';
+    if (bucket === 'exit')    return /terminat/i.test(String(raw || '')) ? 'TR' : 'RS';
     if (bucket === 'leave'){
         const x = String(raw || '').toLowerCase();
         if (x.startsWith('annual leave casual')) return 'AC';
@@ -5906,8 +5981,6 @@ function mpCode(bucket, raw){
         if (x.startsWith('sick leave not'))      return 'SN';
         if (x.startsWith('sick'))                return 'SL';
         if (x.startsWith('public'))              return 'PH';
-        if (x.startsWith('terminate'))           return 'TR';
-        if (x.startsWith('resign'))              return 'RS';
         if (x.startsWith('suspend'))             return 'SU';
         if (x.startsWith('matern'))              return 'MT';
         if (x.startsWith('patern'))              return 'PT';
@@ -6002,6 +6075,7 @@ async function loadManpowerCsv(force){
     const title = document.getElementById('mpEmptyTitle');
     const msg   = document.getElementById('mpEmptyMsg');
     if (badge) { badge.className = 'badge text-bg-info'; badge.textContent = 'Loading roster…'; }
+    setTabStatus('page-mp', 'loading', 'Downloading the Manpower roster…');
     if (empty && !mpLoaded){
         empty.style.display = '';
         if (title) title.textContent = 'Reading the Manpower roster…';
@@ -6019,7 +6093,7 @@ async function loadManpowerCsv(force){
             tFetched = Date.now();
             /* min 500 rows: the roster is 13.8k rows, so anything smaller is a
                partial export. fetchCsvFull already retries a stub internally. */
-            const text = await fetchCsvFull(MP_CSV_URL, 'mp', 500, null, !!force);
+            const text = await fetchCsvFull(MP_CSV_URL, 'mp', 50, null, !!force);
             tFetched = Date.now() - tFetched;
             const body = String(text || '').trim();
             if (body.length < 200 || /^loading\b/i.test(body)) continue;   // stub, try again
@@ -6056,7 +6130,7 @@ async function loadManpowerCsv(force){
             const name = pick(r, ['Name']);
             const hub  = pick(r, ['Hub']);
             if (!name && !hub) continue;                       // spacer / junk row
-            const t = { days: {}, counts: { present: 0, weekoff: 0, leave: 0, noshow: 0, other: 0, marked: 0 } };
+            const t = { days: {}, counts: { present: 0, weekoff: 0, leave: 0, noshow: 0, other: 0, exit: 0, marked: 0 } };
             t.empId  = pick(r, ['Adjusted ID']);
             t.leg    = pick(r, ['Facility Leg']);
             t.hub    = hub;
@@ -6071,25 +6145,25 @@ async function loadManpowerCsv(force){
             t.band   = mpBand(t.aging);
             t.exited = false;
 
-            /* Statuses are collected per row and only merged once the row is
-               known to stay, so "Resigned"/"Terminate" never appear as a
-               Category option (those people are dropped from the roster). */
+            /* Every employee stays on the roster. A resign / terminate cell is
+               an exit day: it keeps the person visible and counts on every day
+               they actually worked, but the exit day itself is not an
+               attendance mark and is never counted as leave. */
             const rowStatus = new Map();
-            let exited = false;
             for (let ci = 0; ci < days.length; ci++){
                 const c = days[ci];
                 const raw = String(r[c] === null || r[c] === undefined ? '' : r[c]).trim();
                 if (!raw) continue;
                 const info = mpCellInfo(raw);                  // cached per phrase
                 t.days[c] = info;
-                t.counts[info.bucket] = (t.counts[info.bucket] || 0) + 1;
-                t.counts.marked++;
+                if (info.bucket === 'exit'){
+                    t.exited = true;
+                } else {
+                    t.counts[info.bucket] = (t.counts[info.bucket] || 0) + 1;
+                    t.counts.marked++;
+                }
                 rowStatus.set(info.status, (rowStatus.get(info.status) || 0) + 1);
-                if (!exited && raw.length > 5 && /resign|terminat/i.test(raw)) exited = true;
             }
-            /* One "Resigned …" / "Terminate …" cell means the person has left:
-               drop them from every Manpower view, as before. */
-            if (exited) continue;
             rowStatus.forEach(function(n, s){ statusCount.set(s, (statusCount.get(s) || 0) + n); });
             list.push(t);
         }
@@ -6104,6 +6178,7 @@ async function loadManpowerCsv(force){
         const tBuild = Date.now();
         buildMpStaticOptions();
         renderManpower();
+        tabStatusFromCsv('page-mp', 'mp', 'Roster', mpAll.length, 'employees');
         loadPvaPlan(false);   // plan-vs-actual tables inside the Manpower tab
         console.log('[Manpower] loaded', mpAll.length, 'employees across', mpCols.length, 'days,',
                     mpStatuses.length, 'statuses · fetch', tFetched + 'ms, parse', tParsed + 'ms, build',
@@ -6111,6 +6186,7 @@ async function loadManpowerCsv(force){
     } catch (e) {
         const m = (e && e.message) ? e.message : String(e);
         console.warn('[Manpower] load failed:', e);
+        setTabStatus('page-mp', 'err', 'Manpower roster failed: ' + m);
         if (badge) { badge.className = 'badge text-bg-danger'; badge.textContent = 'Load failed — press Reload'; }
         if (empty){
             empty.style.display = '';
@@ -6209,13 +6285,21 @@ function mpMatch(t, ignoreCat, ignoreType){
     return true;
 }
 
-/* Counts of employees + manually-marked days for the current scope. */
+/* Counts of employees + manually-marked days for the current scope. Exit days
+   (RS / TR) keep the person on the roster but are not attendance marks, so
+   they are counted in `exit` instead of present / leave. */
 function mpCounts(rows, dayCols){
-    const c = { roster: 0, present: 0, weekoff: 0, leave: 0, noshow: 0, other: 0, marked: 0 };
+    const c = { roster: 0, present: 0, weekoff: 0, leave: 0, noshow: 0, other: 0, exit: 0, marked: 0 };
     rows.forEach(t => {
-        let marked = 0;
-        dayCols.forEach(d => { const x = t.days[d]; if (x){ marked++; c[x.bucket]++; } });
-        if (marked){ c.roster++; c.marked += marked; }
+        let marked = 0, any = 0;
+        dayCols.forEach(d => {
+            const x = t.days[d];
+            if (!x) return;
+            any++;
+            if (x.bucket === 'exit'){ c.exit++; return; }
+            marked++; c[x.bucket]++;
+        });
+        if (any){ c.roster++; c.marked += marked; }
     });
     return c;
 }
@@ -6224,10 +6308,16 @@ function mpBreakRows(rows, get, dayCols){
     const m = new Map();
     rows.forEach(t => {
         const key = get(t) || '—';
-        const g = m.get(key) || { roster: 0, present: 0, weekoff: 0, leave: 0, noshow: 0, other: 0, marked: 0 };
-        let marked = 0;
-        dayCols.forEach(d => { const x = t.days[d]; if (x){ marked++; g[x.bucket]++; } });
-        if (marked){ g.roster++; g.marked += marked; }
+        const g = m.get(key) || { roster: 0, present: 0, weekoff: 0, leave: 0, noshow: 0, other: 0, exit: 0, marked: 0 };
+        let marked = 0, any = 0;
+        dayCols.forEach(d => {
+            const x = t.days[d];
+            if (!x) return;
+            any++;
+            if (x.bucket === 'exit'){ g.exit++; return; }
+            marked++; g[x.bucket]++;
+        });
+        if (any){ g.roster++; g.marked += marked; }
         m.set(key, g);
     });
     return Array.from(m.entries()).map(([k, g]) => ({ key: k, g: g }))
@@ -6404,8 +6494,9 @@ function renderMpAging(rows, dayCols){
         (mpState.cat.length
             ? 'Counting only ' + mpState.cat.map(s => String(s).toLowerCase()).join(' / ') +
               ' people on ' + mpRangeLabel() + ' — '
-            : 'Counting everyone on the roster for ' + mpRangeLabel() + ' (present, week off, leave, no show) — pick Category = Present for working people only. ') +
-        'Resigned / Terminated employees are excluded from the roster'
+            : 'Counting everyone on the roster for ' + mpRangeLabel() + ' (present, week off, leave, no show) - pick Status = Present for working people only. ') +
+        'Resigned / Terminated days are marked RS / TR and count as neither present nor leave; '
+        + 'the employee still counts on every day worked before leaving'
         + (isHub ? '.' : '.')
     );
 
@@ -6512,7 +6603,7 @@ function renderManpower(){
         const lbl = { hub: 'Hub', leg: 'Facility leg', title: 'Title', shift: 'Shift', vendor: 'Vendor' };
         Object.keys(lbl).forEach(k => { if (!mpAny(mpState[k])) bits.push(lbl[k] + ' ' + mpState[k].join(', ')); });
         if (!mpAny(mpState.band)) bits.push('Aging ' + mpState.band.map(k => (MP_BANDS.find(b => b.k === k) || { label: k }).label).join(', '));
-        if (!mpAny(mpState.cat))  bits.push('Category ' + mpState.cat.join(', '));
+        if (!mpAny(mpState.cat))  bits.push('Status ' + mpState.cat.join(', '));
         if (mpState.search) bits.push('Search "' + mpState.search + '"');
         scope.textContent = bits.join('  |  ');
     }
@@ -6935,6 +7026,7 @@ async function loadMmCsv(force){
     const title = document.getElementById('mmEmptyTitle');
     const msg   = document.getElementById('mmEmptyMsg');
     if (badge) { badge.className = 'badge text-bg-info'; badge.textContent = 'Loading pendency…'; }
+    setTabStatus('page-mm', 'loading', 'Downloading the MM Pendency sheet…');
     if (empty && !mmLoaded) {
         empty.style.display = '';
         if (spin) spin.style.display = '';
@@ -6947,7 +7039,7 @@ async function loadMmCsv(force){
         // with a partial CSV while the export regenerates. fetchCsvFull keeps
         // the fuller of two answers and retries a stub/truncated body.
         csvOnHeal('mm', function(){ loadMmCsv(true); });
-        const text = await fetchCsvFull(MM_CSV_URL, 'mm', 100, null, !!force);
+        const text = await fetchCsvFull(MM_CSV_URL, 'mm', 20, null, !!force);
         const parsed = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: false });
         const rows = (parsed.data || []).filter(function(r){ return r && String(r.Date || '').trim() !== ''; });
         // A blocked/HTML answer parses into zero rows; treat that as a failure
@@ -6978,9 +7070,11 @@ async function loadMmCsv(force){
         buildMmDateOptions();
         renderMmPendency();
         console.log('[MM Pendency] loaded', mmRows.length, 'rows across', mmDates.length, 'snapshots');
+        tabStatusFromCsv('page-mm', 'mm', 'Pendency', mmRows.length, 'rows');
     } catch (e) {
         const m = (e && e.message) ? e.message : String(e);
         console.warn('[MM Pendency] load failed:', e);
+        setTabStatus('page-mm', 'err', 'MM Pendency sheet failed: ' + m);
         if (badge) { badge.className = 'badge text-bg-danger'; badge.textContent = 'Load failed — check publish'; }
         if (empty) {
             empty.style.display = '';
@@ -7007,7 +7101,7 @@ async function loadMmCsv(force){
    whatever its function (LM, GWH, LPC, First Mile, Bulky), is
    compared with the Noon-vendor associates present at that hub.
    Actual = the Manpower present bucket
-   (Present + WPH + Work on Week Off) from the filtered roster,
+   (Present + WPH) from the filtered roster,
    joined by hub. People matching no plan row fall into Unplanned.
    To plug in MORE plan sheets later, parsePvaPlan() is generic
    over the facility, hub, day-columns layout — add a source
@@ -7024,9 +7118,9 @@ let pvaHubMap = {};                                    // hub (lowercase) -> pla
 let pvaSection = 'out';
 
 function pvaKey(fac, hub){ return String(fac || '').trim() + '|' + String(hub || '').trim(); }
-/* "Present" = the same bucket the Manpower tab uses: Present + WPH +
-   Work on Week Off (mpBucket already folded them into 'present'),
-   so the Actual lines up with the Manpower Present KPI. */
+/* "Present" = the same bucket the Manpower tab uses: Present + WPH
+   (mpBucket folds them into 'present'), so the Actual lines up with the
+   Manpower Present KPI. Work-on-week-off stays a week-off day. */
 function pvaIsPresent(t, c){ const x = t.days[c]; return !!(x && x.bucket === 'present'); }
 function pvaPlanFor(sec, key, ix){ const p = (pvaPlan[sec] || {})[key]; return sec === 'none' ? 0 : (p ? (p[ix] || 0) : 0); }
 function pvaVarCell(p, a){
@@ -7257,7 +7351,10 @@ function pvaAvgTable(cfg){
 function pv2HeadOut(){
     document.getElementById('mpPvaLeftTitle').textContent = 'Core Colleague — planned vs actual attend';
     document.getElementById('mpPvaLeftNote').textContent = '— Var = Planned CC − Attend (positive = short of plan) · Peak Deficit = ROUNDUP(Planned − Avg of the last 3 days from today) · Fulfill % = Avg / Planned';
-    document.getElementById('mpPvaRightTitle').textContent = 'Function totals (first DOD)';
+    document.getElementById('mpPvaRightTitle').textContent = 'Function totals (first DOD) — Core Colleague only';
+    document.getElementById('mpPvaRightTitle').title =
+        'Planned and Attend are Core Colleague only (the outsource plan). ' +
+        'Plan rows for a hub with no employees on the roster, such as CAI-Z5 (15 heads), are not shown.';
     document.getElementById('mpPvaHubHead').innerHTML =
         '<tr><th>Hub</th><th class="text-center">Planned CC</th><th class="text-center">Attend</th>' +
         '<th class="text-center">Var</th>' +
@@ -7389,14 +7486,19 @@ function renderPvaV2(hubBody, facBody, note){
                 funcAgg[f].plan += row.total;
                 funcAgg[f].att  += ((dayT.out[h.toLowerCase()] || {})[dods[0].c] || 0);
             });
-            let right = '';
+            let right = '', sPl = 0, sAt = 0;
             Object.keys(funcAgg).forEach(f => {
                 const r = funcAgg[f], v = r.plan - r.att;
+                sPl += r.plan; sAt += r.att;
                 right += '<tr><td class="fw-bold">' + esc(f) + '</td>' +
                     '<td class="text-center">' + fmt(r.plan) + '</td>' +
                     '<td class="text-center fw-bold">' + fmt(r.att) + '</td>' +
                     '<td class="text-center ' + pvaVarCls(v) + '">' + fmt(v) + '</td></tr>';
             });
+            right += '<tr class="table-light fw-bold"><td>Total</td>' +
+                '<td class="text-center">' + fmt(sPl) + '</td>' +
+                '<td class="text-center">' + fmt(sAt) + '</td>' +
+                '<td class="text-center ' + pvaVarCls(sPl - sAt) + '">' + fmt(sPl - sAt) + '</td></tr>';
             facBody.innerHTML = right;
         }
 
