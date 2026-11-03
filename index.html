@@ -519,6 +519,14 @@ body.rail-collapsed { padding-left: 84px !important; }
         font-weight: 700; line-height: 1.4; padding: 0 5px; border-radius: 4px;
         background: #F5F3EA; border: 1px solid #E7E2D2; color: #6B6549; letter-spacing: .02em; cursor: help; }
     .pd-mf-legend { font-size: .7rem; color: #8A8468; }
+    /* Row-level manifest detail: aging chips */
+    .pd-age { display: inline-block; font-family: var(--font-num); font-size: .62rem; font-weight: 800;
+        padding: 1px 7px; border-radius: 999px; white-space: nowrap;
+        background: #F5F3EA; border: 1px solid #E7E2D2; color: #6B6549; }
+    .pd-age.mid { background: #FFF3E0; border-color: #F7DDB5; color: #B54708; }
+    .pd-age.old { background: #FDECEA; border-color: #F6C9C4; color: #B42318; }
+    .pd-detail td, .pd-detail th { white-space: nowrap; }
+    .pd-detail thead th { position: sticky; top: 0; z-index: 2; }
     /* WH receiving — plan vs actual */
     .wr-pill { display: inline-block; min-width: 48px; padding: 1px 7px; border-radius: 999px;
         font-size: .7rem; font-weight: 800; font-family: var(--font-num); }
@@ -1705,8 +1713,26 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                     <div style="overflow-x:auto" id="pdPipeTable"></div>
                 </div>
-                </div><!-- /pending reports -->
-            </div>
+                <div class="sec-head"><span class="n">3</span>MF shipment detail <span class="hint">— one row per shipment that already sits on a manifest</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-table me-2 text-primary"></i>Manifest number, warehouse and aging</h6>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="small text-muted" id="pdDetailNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdExportCsv('mf')" title="Download the rows in the table below">
+                                <i class="bi bi-filetype-csv me-1"></i>Export MF rows
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdExportCsv('all')" title="Download every row of the Pending sheet">
+                                <i class="bi bi-download me-1"></i>Export all pending
+                            </button>
+                        </div>
+                    </div>
+                    <div style="overflow:auto;max-height:480px" id="pdDetailTable"></div>
+                    <div class="pd-mf-legend mt-2">
+                        <i class="bi bi-info-circle me-1"></i>Oldest aging first. Both buttons download a UTF-8 CSV (BOM included) that opens straight in Excel.
+                    </div>
+                </div>
+                </div><!-- /pending reports -->            </div>
 
             <div id="pdEmpty" class="card p-5 border-0 shadow-sm text-center mb-4">
                 <div class="spinner-border text-warning mx-auto mb-2" id="pdEmptySpin" role="status"></div>
@@ -2118,7 +2144,7 @@ body.rail-collapsed { padding-left: 84px !important; }
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'V2';
+const BUILD = 'V3';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -7452,6 +7478,84 @@ function pdTabMetaUpdate(){
         ' · ' + fmt(pdRows.length - withMf.length) + ' awaiting MF';
 }
 
+/* Row-level MF detail: one line per shipment that already sits on a manifest.
+   Aging is the sheet's own aging_range label; oldest bucket first, then WH,
+   then manifest number, so the worst rows are always at the top. */
+function pdAgeClass(aging){
+    if (!aging) return '';
+    const h = pdAgingStart(aging);
+    if (h >= 24) return 'old';
+    if (h >= 8) return 'mid';
+    return '';
+}
+/* Blank/unknown aging labels sort BELOW 0-2Hrs, never above 24Hrs+. */
+function pdAgeRank(aging){
+    return aging ? Math.min(pdAgingStart(aging), 1e9 - 1) : -1;
+}
+function pdDetailSorted(rows){
+    return rows.slice().sort(function(a, b){
+        return (pdAgeRank(b.aging) - pdAgeRank(a.aging)) ||
+            String(a.wh || '').localeCompare(String(b.wh || ''), undefined, { numeric: true, sensitivity: 'base' }) ||
+            String(a.mf || '').localeCompare(String(b.mf || ''), undefined, { numeric: true, sensitivity: 'base' });
+    });
+}
+function pdRenderDetail(){
+    const host = document.getElementById('pdDetailTable');
+    if (!host) return;
+    const withMf = pdDetailSorted(pdRows.filter(function(r){ return r.mf; }));
+    const note = document.getElementById('pdDetailNote');
+    const manifests = new Set(withMf.map(function(r){ return r.mf; })).size;
+    if (note) note.textContent = withMf.length
+        ? fmt(withMf.length) + ' shipments · ' + fmt(manifests) + ' manifest' + (manifests === 1 ? '' : 's')
+        : 'no shipment sits on a manifest';
+    if (!withMf.length){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">No shipment is sitting on a manifest right now.</div>';
+        return;
+    }
+    const body = withMf.map(function(r){
+        const age = r.aging
+            ? '<span class="pd-age ' + pdAgeClass(r.aging) + '">' + esc(r.aging) + '</span>'
+            : dash();
+        return '<tr>' +
+            '<td class="fw-bold">' + esc(r.mf || '—') + '</td>' +
+            '<td>' + esc(r.wh || '—') + '</td>' +
+            '<td>' + age + '</td>' +
+            '<td class="small text-muted">' + esc(r.awb || '—') + '</td>' +
+            '<td class="small text-muted">' + esc(r.mfType || '—') + '</td>' +
+            '<td class="small text-muted">' + esc(r.pdd || '—') + '</td>' +
+            '<td class="small text-muted">' + esc(r.hub || '—') + '</td>' +
+            '</tr>';
+    }).join('');
+    host.innerHTML = '<table class="table table-sm align-middle fs-7 mb-0 pd-detail">' +
+        '<thead class="table-light"><tr>' +
+        '<th>Manifest Nr</th><th>WH</th><th>Aging</th>' +
+        '<th>AWB</th><th>Manifest type</th><th>PDD</th><th>Forward hub</th>' +
+        '</tr></thead><tbody>' + body + '</tbody></table>';
+}
+/* Download the detail rows (mf, what is on screen) or every pending row (all). */
+function pdExportCsv(which){
+    const isAll = which === 'all';
+    const rows = isAll ? pdRows : pdRows.filter(function(r){ return r.mf; });
+    if (!rows.length){
+        showToast('Nothing to export' + (isAll ? '' : ' — no shipment sits on a manifest'), 'danger');
+        return;
+    }
+    const headers = ['Manifest Nr', 'WH', 'Aging', 'AWB', 'Manifest type', 'PDD', 'Forward hub', 'Updated at'];
+    const lines = [headers.map(csvCell).join(',')];
+    pdDetailSorted(rows).forEach(function(r){
+        lines.push([r.mf, r.wh, r.aging, r.awb, r.mfType, r.pdd, r.hub, r.updated]
+            .map(csvCell).join(','));
+    });
+    const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+    a.href = URL.createObjectURL(blob);
+    a.download = (isAll ? 'pending_all_' : 'pending_mf_') + stamp + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+    showToast('Exported ' + fmt(rows.length) + ' ' + (isAll ? 'pending' : 'manifest') + ' rows to CSV');
+}
+
 function renderPendingTab(){
     if (!pdLoaded) return;
     const withMf = pdRows.filter(r => r.mf);
@@ -7485,6 +7589,7 @@ function renderPendingTab(){
     const pipeBody = document.getElementById('pdPipeTable');
     if (pipeBody) pipeBody.innerHTML = pdTable(pdPivot(noMf), cols,
         'Every shipment already has a manifest.');
+    pdRenderDetail();
 
     const mfNote = document.getElementById('pdMfNote');
     if (mfNote) mfNote.textContent = fmt(withMf.length) + ' shipments · ' +
