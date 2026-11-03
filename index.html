@@ -512,6 +512,21 @@ body.rail-collapsed { padding-left: 84px !important; }
     .mm-pivot tr.mm-total td { background: #FFFDF2; border-top: 2px solid #E9DFB8 !important; font-weight: 800; }
     .mm-bar { height: 6px; border-radius: 999px; background: #F3EFE1; overflow: hidden; min-width: 44px; }
     .mm-bar span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #FEED00, #E0B400); }
+
+    /* Pending tab — unique manifest count printed under each shipment count */
+    .pd-cell-n { font-weight: 800; line-height: 1.15; }
+    .pd-mf-badge { display: inline-block; margin-top: 2px; font-family: var(--font-num); font-size: .6rem;
+        font-weight: 700; line-height: 1.4; padding: 0 5px; border-radius: 4px;
+        background: #F5F3EA; border: 1px solid #E7E2D2; color: #6B6549; letter-spacing: .02em; cursor: help; }
+    .pd-mf-legend { font-size: .7rem; color: #8A8468; }
+    /* WH receiving — plan vs actual */
+    .wr-pill { display: inline-block; min-width: 48px; padding: 1px 7px; border-radius: 999px;
+        font-size: .7rem; font-weight: 800; font-family: var(--font-num); }
+    .wr-pill.low { background: #FDECEA; color: #B42318; }
+    .wr-pill.mid { background: #FFF3E0; color: #B54708; }
+    .wr-pill.ok  { background: #E7F6EC; color: #067647; }
+    .wr-pill.na  { background: #F1F0EA; color: #8A8468; }
+    .wr-total td { background: #FFFDF2; border-top: 2px solid #E9DFB8 !important; font-weight: 800; }
     /* MM Pendency filter chips (facility / shipment type) */
     .mm-chip { border-radius: 999px !important; font-size: .72rem; font-weight: 800; padding: 2px 10px;
         display: inline-flex; align-items: center; gap: 6px; line-height: 1.5; }
@@ -671,6 +686,7 @@ body.rail-collapsed { padding-left: 84px !important; }
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live" title="LH Live Tracking"><i class="bi bi-broadcast"></i> <span class="nl-txt">LH Live Tracking</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn" title="Manpower"><i class="bi bi-people"></i> <span class="nl-txt">Manpower</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mm" id="mmTabBtn" title="MM Pendency"><i class="bi bi-box-seam"></i> <span class="nl-txt">MM Pendency</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-pending" id="pdTabBtn" title="Pending"><i class="bi bi-hourglass-split"></i> <span class="nl-txt">Pending</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
         <!-- Trip Log & RCA is reached from the report cards / welcome screen, not the rail -->
         <li class="nav-item d-none"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-rca" id="rcaTabBtn" tabindex="-1" aria-hidden="true"></button></li>
     </ul>
@@ -1553,6 +1569,121 @@ body.rail-collapsed { padding-left: 84px !important; }
             </div>
         </div>
 
+        <!-- ============ PAGE: PENDING (manifest pending) ============ -->
+        <div class="tab-pane fade" id="page-pending">
+            <div class="page-strip">
+                <div>
+                    <div class="k"><i class="bi bi-hourglass-split"></i>Pending</div>
+                    <div class="d">Shipments the warehouses have not finished — what already sits on a manifest but has not been unpacked, and what is still waiting for a manifest to be created.</div>
+                </div>
+                <span class="m">WAREHOUSE · PENDING</span>
+            </div>
+            <div class="inner-tabs-row">
+                <div class="inner-tabs">
+                    <button type="button" class="it-btn active" data-pview="all"><i class="bi bi-list-columns-reverse"></i>Pending reports</button>
+                </div>
+                <span class="it-meta" id="pdTabMeta">—</span>
+            </div>
+
+            <div class="card p-3 mb-4 border-0 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h6 class="fw-bold m-0"><i class="bi bi-hourglass-split me-2 text-primary"></i>Manifest pending
+                            <span class="text-muted fw-normal" style="font-size:.78rem">— one row per shipment still open in a warehouse</span></h6>
+                        <div class="small text-muted mt-1" id="pdScopeLine">Aging comes from the sheet's own <code>aging_range</code> column.</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge text-bg-warning" id="pdBadge">No data yet</span>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadPendingCsv(true);loadWhRecvCsv(true)" title="Reload the Pending sheet"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pdContent" style="display:none;">
+                <div class="hero-band">
+                    <div class="row g-3">
+                        <div class="col-6 col-md"><div class="kpi-mini">
+                            <div class="lbl">Pending shipments</div>
+                            <div class="val" id="k-pd-total">0</div>
+                            <div class="sub" id="k-pd-total-sub">on the sheet</div>
+                        </div></div>
+                        <div class="col-6 col-md"><div class="kpi-mini">
+                            <div class="lbl">Pending in MF</div>
+                            <div class="val text-warning" id="k-pd-mf">0</div>
+                            <div class="sub" id="k-pd-mf-sub">manifest exists, not unpacked</div>
+                        </div></div>
+                        <div class="col-6 col-md"><div class="kpi-mini">
+                            <div class="lbl">Awaiting MF</div>
+                            <div class="val text-danger" id="k-pd-nomf">0</div>
+                            <div class="sub">warehouse created, no manifest yet</div>
+                        </div></div>
+                        <div class="col-6 col-md"><div class="kpi-mini">
+                            <div class="lbl">Aged 24Hrs+</div>
+                            <div class="val" id="k-pd-old">0</div>
+                            <div class="sub">both reports together</div>
+                        </div></div>
+                        <div class="col-6 col-md"><div class="kpi-mini">
+                            <div class="lbl">Received today</div>
+                            <div class="val text-success" id="k-pd-recv">0</div>
+                            <div class="sub" id="k-pd-recv-sub">unpacked in the warehouses</div>
+                        </div></div>
+                    </div>
+                </div>
+
+                <div class="sec-head"><span class="n">1</span>WH receiving — plan vs actual <span class="hint">— what the warehouses unpacked today, against today's plan</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-box-arrow-in-down me-2 text-primary"></i>Facility receiving · today
+                            <span class="text-muted fw-normal" style="font-size:.78rem" id="wrDateNote"></span></h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted" id="wrNote">—</span>
+                            <span class="badge text-bg-secondary" id="wrBadge">No data yet</span>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto" id="wrTable"></div>
+                    <div class="pd-mf-legend mt-2" id="wrLegend">
+                        <i class="bi bi-calendar-check me-1"></i>Only rows whose <code>unpack_date</code> is today. Plan is the sheet's own Plan column; % = Actual ÷ Plan.
+                    </div>
+                </div>
+
+                <div class="sec-head"><span class="n">2</span>Receiving by forward hub × flag <span class="hint">— who received what today</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-diagram-2 me-2 text-primary"></i>forward_hub_flag × flag</h6>
+                        <span class="small text-muted" id="wrPivotNote">—</span>
+                    </div>
+                    <div style="overflow-x:auto" id="wrPivotTable"></div>
+                </div>
+
+                <div class="sec-head"><span class="n">3</span>Pending shipments in MF <span class="hint">— the MF exists, but the shipment has not been unpacked on it</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-box-seam me-2 text-primary"></i>WH × aging range</h6>
+                        <span class="small text-muted" id="pdMfNote">—</span>
+                    </div>
+                    <div style="overflow-x:auto" id="pdMfTable"></div>
+                    <div class="pd-mf-legend mt-2" id="pdMfLegend">
+                        <i class="bi bi-tag me-1"></i>Each count is followed by the number of <strong>different manifests</strong> those shipments sit on. Hover the MF badge to see their numbers.
+                    </div>
+                </div>
+
+                <div class="sec-head"><span class="n">4</span>Pipeline — no MF yet <span class="hint">— the warehouse created the shipment and has not created a manifest for it</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>WH × aging range</h6>
+                        <span class="small text-muted" id="pdPipeNote">—</span>
+                    </div>
+                    <div style="overflow-x:auto" id="pdPipeTable"></div>
+                </div>
+            </div>
+
+            <div id="pdEmpty" class="card p-5 border-0 shadow-sm text-center mb-4">
+                <div class="spinner-border text-warning mx-auto mb-2" id="pdEmptySpin" role="status"></div>
+                <div class="fw-bold" id="pdEmptyTitle">Reading the Pending sheet…</div>
+                <div class="small text-muted" id="pdEmptyMsg">The reports appear as soon as the published CSV answers.</div>
+            </div>
+        </div>
+
         <!-- ============ PAGE 2: LIVE TRACKING ============ -->
         <div class="tab-pane fade" id="page-live">
             <div class="page-strip">
@@ -2230,12 +2361,68 @@ async function fetchCsvFull(url, name, minLines, onProgress, force){
     return csvAccept(name, res);
 }
 
+/* One-shot text read that prefers the live document, then the snapshot. */
+async function fetchSheetText(pubUrl, onProgress){
+    const live = gvizUrl(pubUrl);
+    if (live){
+        try {
+            const text = await fetchCsvText(cacheBusted(live, Date.now()), onProgress);
+            const body = String(text || '').trim();
+            if (body && body.charAt(0) !== '<' && body.indexOf(',') > 0) return text;
+            console.warn('[CSV] live text read was not CSV; using the published copy');
+        } catch (e) {
+            console.warn('[CSV] live text read failed; using the published copy:', (e && e.message) || e);
+        }
+    }
+    return fetchCsvText(cacheBusted(pubUrl, Date.now()), onProgress);
+}
+
 /* Adds a unique throwaway query param so the browser and Google's CDN are forced
    to hand back the current sheet instead of a cached copy. */
 function cacheBusted(url, salt){
     const sep = url.indexOf('?') === -1 ? '?' : '&';
     return url + sep + '_cb=' + Date.now() + '_' + (salt === undefined ? 0 : salt) +
            '_' + Math.random().toString(36).slice(2, 7);
+}
+
+/* ================================================================
+   LIVE SHEET SOURCE
+   The /pub "Publish to web" CSV is a SNAPSHOT. Google re-publishes it on
+   its own schedule (Cache-Control: max-age=300) and, while it catches up,
+   different Google servers hand out different versions of the same URL —
+   so an edit could seem to "not stick", or stick on one reload and vanish
+   on the next.
+
+   The gviz endpoint below reads the DOCUMENT itself: Cache-Control
+   no-store, no publish step, edits visible on the next read. It uses the
+   same gid, so every published URL maps to it one-to-one. If the document
+   ever stops being link-shared (or anything else goes wrong) the loader
+   silently falls back to the published copy, so the page keeps working.
+================================================================ */
+const SHEET_FILE_ID = '1d3kuwh7fBMhiTbjoVKWKoXoTJEdr8HQZE42g3yquoPI';
+function gvizUrl(pubUrl){
+    const m = String(pubUrl || '').match(/[?&]gid=(\d+)/);
+    if (!m || !SHEET_FILE_ID) return null;
+    return 'https://docs.google.com/spreadsheets/d/' + SHEET_FILE_ID +
+           '/gviz/tq?tqx=out:csv&gid=' + m[1];
+}
+/* Read live first, fall back to the published snapshot. `name` stays the
+   same either way so the cache, the retry logic and the tab dots keep
+   working untouched. */
+async function fetchSheetCsv(pubUrl, name, minLines, onProgress, force){
+    const live = gvizUrl(pubUrl);
+    if (live){
+        try {
+            const text = await fetchCsvFull(live, name, minLines, onProgress, force);
+            const body = String(text || '').trim();
+            /* A gviz failure comes back as an HTML sign-in page, never CSV. */
+            if (body && body.charAt(0) !== '<' && body.indexOf(',') > 0) return text;
+            console.warn('[CSV] ' + name + ' — the live endpoint did not answer with CSV; using the published copy');
+        } catch (e) {
+            console.warn('[CSV] ' + name + ' — live endpoint failed; using the published copy:', (e && e.message) || e);
+        }
+    }
+    return fetchCsvFull(pubUrl, name, minLines, onProgress, force);
 }
 
 /* ================================================================
@@ -3453,6 +3640,14 @@ function bootApp() {
         if (typeof loadMmCsv === 'function') loadMmCsv(false);
     });
 
+    // Pending is a ~6.6k-row sheet; load it the first time the tab is opened.
+    // The WH receiving sheet rides along with it — it is only 128 rows.
+    const pdTab = document.querySelector('[data-bs-target="#page-pending"]');
+    if (pdTab) pdTab.addEventListener('shown.bs.tab', function(){
+        if (typeof loadPendingCsv === 'function') loadPendingCsv(false);
+        if (typeof loadWhRecvCsv === 'function') loadWhRecvCsv(false);
+    });
+
     loadDataFromCSV();
     loadLiveCsv();
     if (typeof loadLhPlan === 'function') loadLhPlan(false);
@@ -3479,6 +3674,7 @@ function innerTab(btn){
     if (!pane) return;
     pane.querySelectorAll('.inner-tabs .it-btn').forEach(b => b.classList.toggle('active', b === btn));
     const view = btn.getAttribute('data-iview');
+    if (typeof window.ctTrack === 'function') window.ctTrack('inner_view', { page: pane.id, view: view });
     pane.querySelectorAll('[data-view]').forEach(sec => {
         sec.classList.toggle('iview-hidden', sec.getAttribute('data-view') !== view);
     });
@@ -3615,6 +3811,7 @@ function wlInit(){
         new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     wlRenderPages();
     gate.querySelectorAll('.wl-page').forEach(b => b.addEventListener('click', () => {
+        if (typeof window.ctTrack === 'function') window.ctTrack('welcome_start', { target: b.dataset.target });
         const pill = document.querySelector(`[data-bs-target="${b.dataset.target}"]`);
         if (pill) pill.click();
         if (b.dataset.fr) {
@@ -3688,7 +3885,7 @@ function loadLiveCsv(force) {
     /* min 100 lines: a partially generated file used to arrive as a handful of
        rows and leave the board looking empty. */
     csvOnHeal('live', function(){ loadLiveCsv(true); });
-    fetchCsvFull(liveCsvUrl, 'live', 20, function(msg){ if (!appIsUp()) setLoadingState(loader, msg); }, !!force)
+    fetchSheetCsv(liveCsvUrl, 'live', 20, function(msg){ if (!appIsUp()) setLoadingState(loader, msg); }, !!force)
         .then(csvText => Papa.parse(csvText, {
             header:true,
             skipEmptyLines:true,
@@ -3878,7 +4075,7 @@ function loadDataFromCSV(force) {
     /* min 500 lines: Google sometimes answers with only the newest trips while
        the export regenerates (the "7 trips" state), so keep the fuller body. */
     csvOnHeal('lh', function(){ loadDataFromCSV(true); });
-    fetchCsvFull(csvUrl, 'lh', 20, function(msg){ if (!appVisible) setLoadingState(loader, msg); }, !!force)
+    fetchSheetCsv(csvUrl, 'lh', 20, function(msg){ if (!appVisible) setLoadingState(loader, msg); }, !!force)
         .then(csvText => Papa.parse(csvText, {
             header:true,
             skipEmptyLines:true,
@@ -4069,6 +4266,8 @@ function refreshData(silent){
     try{ if (typeof loadLhPlan === 'function') loadLhPlan(true); }catch(e){ console.error('[refreshData] loadLhPlan threw:', e); }
     try{ if (typeof loadPvaPlan === 'function') loadPvaPlan(true); }catch(e){ console.error('[refreshData] loadPvaPlan threw:', e); }
     try{ if (mmLoaded && typeof loadMmCsv === 'function') loadMmCsv(true); }catch(e){ console.error('[refreshData] loadMmCsv threw:', e); }
+    try{ if (pdLoaded && typeof loadPendingCsv === 'function') loadPendingCsv(true); }catch(e){ console.error('[refreshData] loadPendingCsv threw:', e); }
+    try{ if (wrLoaded && typeof loadWhRecvCsv === 'function') loadWhRecvCsv(true); }catch(e){ console.error('[refreshData] loadWhRecvCsv threw:', e); }
 
     if(btn){
         setTimeout(function(){ btn.disabled = false; }, 2000);
@@ -4248,6 +4447,8 @@ function autoRefreshBoth(){
     try{ loadLiveCsv && loadLiveCsv(true); }catch(e){ console.error('[autoRefresh] live threw:', e); }
     try{ if (typeof loadPvaPlan === 'function') loadPvaPlan(true); }catch(e){ console.error('[autoRefresh] plan threw:', e); }
     try{ if (mmLoaded && typeof loadMmCsv === 'function') loadMmCsv(true); }catch(e){ console.error('[autoRefresh] mm threw:', e); }
+    try{ if (pdLoaded && typeof loadPendingCsv === 'function') loadPendingCsv(true); }catch(e){ console.error('[autoRefresh] pending threw:', e); }
+    try{ if (wrLoaded && typeof loadWhRecvCsv === 'function') loadWhRecvCsv(true); }catch(e){ console.error('[autoRefresh] whrecv threw:', e); }
 }
 
 /* Global header auto-refresh. mins = 0 turns it off. */
@@ -5224,7 +5425,7 @@ async function loadLhPlan(force){
     const note = document.getElementById('lhPlanNote');
     if (note) note.textContent = 'Loading the LH plan sheet…';
     try {
-        const text = await fetchCsvText(cacheBusted(LH_PLAN_CSV_URL, Date.now()), null);
+        const text = await fetchSheetText(LH_PLAN_CSV_URL, null);
         const res = Papa.parse(text, { header: true, skipEmptyLines: true });
         lhPlan = (res.data || []).map(r => {
             const from = String(r['From'] || '').trim();
@@ -6093,7 +6294,7 @@ async function loadManpowerCsv(force){
             tFetched = Date.now();
             /* min 500 rows: the roster is 13.8k rows, so anything smaller is a
                partial export. fetchCsvFull already retries a stub internally. */
-            const text = await fetchCsvFull(MP_CSV_URL, 'mp', 50, null, !!force);
+            const text = await fetchSheetCsv(MP_CSV_URL, 'mp', 50, null, !!force);
             tFetched = Date.now() - tFetched;
             const body = String(text || '').trim();
             if (body.length < 200 || /^loading\b/i.test(body)) continue;   // stub, try again
@@ -7039,7 +7240,7 @@ async function loadMmCsv(force){
         // with a partial CSV while the export regenerates. fetchCsvFull keeps
         // the fuller of two answers and retries a stub/truncated body.
         csvOnHeal('mm', function(){ loadMmCsv(true); });
-        const text = await fetchCsvFull(MM_CSV_URL, 'mm', 20, null, !!force);
+        const text = await fetchSheetCsv(MM_CSV_URL, 'mm', 20, null, !!force);
         const parsed = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: false });
         const rows = (parsed.data || []).filter(function(r){ return r && String(r.Date || '').trim() !== ''; });
         // A blocked/HTML answer parses into zero rows; treat that as a failure
@@ -7084,6 +7285,494 @@ async function loadMmCsv(force){
         }
     } finally {
         mmLoading = false;
+    }
+}
+
+/* ================================================================
+   PENDING — shipments the warehouses have not finished yet
+   Source: the published "manifest pending" sheet (gid 1537679619).
+   The sheet already computes aging_range, so the page only pivots it:
+     • Pending in MF — manifest_nr is filled: the manifest exists and the
+       shipment is on it, but it has not been unpacked yet.
+     • Pipeline      — manifest_nr is empty: the warehouse created the
+       shipment and has not created a manifest for it.
+   One row per warehouse (WH), one column per aging bucket, plus a
+   grand-total column and row. Rows with a blank aging_range are skipped
+   — the sheet's own pivots skip them too.
+   More reports plug in as extra cards inside #pdContent.
+================================================================ */
+const PD_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=1537679619&single=true&output=csv';
+/* Operational order of the sheet's aging labels (oldest last). */
+const PD_AGING = ['0-2Hrs', '2-4Hrs', '4-8Hrs', '8-12Hrs', '12-24Hrs', '24Hrs+'];
+let pdRows = [], pdLoaded = false, pdLoading = false;
+
+function pdAgingStart(label){
+    const m = String(label || '').match(/(\d+(?:\.\d+)?)/);
+    return m ? parseFloat(m[1]) : 9e9;
+}
+/* Every bucket the sheet actually uses: the known ones in operational order,
+   then anything new appended by its starting hour so nothing is ever lost. */
+function pdAgingCols(rows){
+    const seen = new Set();
+    rows.forEach(r => { if (r.aging) seen.add(r.aging); });
+    const known = PD_AGING.filter(b => seen.has(b));
+    const extra = Array.from(seen)
+        .filter(b => known.indexOf(b) === -1 && PD_AGING.indexOf(b) === -1)
+        .sort((a, b) => (pdAgingStart(a) - pdAgingStart(b)) || String(a).localeCompare(String(b)));
+    return known.concat(extra);
+}
+/* Pivot WH × aging. When withManifests is set, every cell also keeps the
+   manifest numbers behind its count, so a supervisor reading "263" can see
+   WHICH manifests those 263 shipments are sitting on. */
+function pdPivot(rows, withManifests){
+    const m = new Map();
+    rows.forEach(r => {
+        if (!r.aging) return;                       // no bucket = not in the pivot
+        const key = r.wh || '(blank)';
+        let g = m.get(key);
+        if (!g){ g = { wh: key, cells: {}, total: 0, mfCells: {} }; m.set(key, g); }
+        g.cells[r.aging] = (g.cells[r.aging] || 0) + 1;
+        g.total++;
+        if (withManifests){
+            const bag = g.mfCells[r.aging] || (g.mfCells[r.aging] = {});
+            const mf = r.mf || '(no MF)';
+            bag[mf] = (bag[mf] || 0) + 1;
+        }
+    });
+    return Array.from(m.values()).sort((a, b) =>
+        String(a.wh).localeCompare(String(b.wh), undefined, { numeric: true, sensitivity: 'base' }));
+}
+/* How many DIFFERENT manifests a cell's shipments sit on. The manifest numbers
+   themselves ride along in the tooltip; the cell only shows the unique count. */
+function pdManifestBadge(bag){
+    if (!bag) return '';
+    const list = Object.keys(bag).sort((a, b) => String(a).localeCompare(String(b)));
+    if (!list.length) return '';
+    const n = list.length;
+    return '<div class="pd-mf-badge" title="' + esc(list.join('\n')) + '">' +
+        fmt(n) + ' MF' + '</div>';
+}
+function pdTable(rows, cols, emptyText, opts){
+    if (!rows.length || !cols.length){
+        return '<div class="text-center text-muted py-4 small">' + esc(emptyText) + '</div>';
+    }
+    const withMf = !!(opts && opts.showManifests);
+    const totals = {};
+    let grand = 0;
+    const cell = function(g, c){
+        const n = g.cells[c] || 0;
+        if (!n) return '';
+        if (!withMf) return fmt(n);
+        return '<div class="pd-cell-n">' + fmt(n) + '</div>' +
+            pdManifestBadge((g.mfCells || {})[c]);
+    };
+    const body = rows.map(g => {
+        cols.forEach(c => { totals[c] = (totals[c] || 0) + (g.cells[c] || 0); });
+        grand += g.total;
+        return '<tr><td class="fw-bold">' + esc(g.wh) + '</td>' +
+            cols.map(c => '<td class="text-center">' + cell(g, c) + '</td>').join('') +
+            '<td class="text-center fw-bold">' + fmt(g.total) + '</td></tr>';
+    }).join('');
+    const foot = '<tr class="table-light fw-bold"><td>Grand Total</td>' +
+        cols.map(c => '<td class="text-center">' + (totals[c] ? fmt(totals[c]) : '') + '</td>').join('') +
+        '<td class="text-center">' + fmt(grand) + '</td></tr>';
+    return '<table class="table table-sm align-middle fs-7 mb-0 mm-pivot">' +
+        '<thead class="table-light"><tr><th>WH</th>' +
+        cols.map(c => '<th class="text-center">' + esc(c) + '</th>').join('') +
+        '<th class="text-center">' + (withMf ? 'Total' : 'Grand Total') + '</th></tr></thead>' +
+        '<tbody>' + body + foot + '</tbody></table>';
+}
+
+function renderPendingTab(){
+    if (!pdLoaded) return;
+    const withMf = pdRows.filter(r => r.mf);
+    const noMf   = pdRows.filter(r => !r.mf);
+    const cols   = pdAgingCols(pdRows);
+    const aged   = pdRows.filter(r => r.aging).length;
+    const blank  = pdRows.length - aged;
+    const manifests = new Set(withMf.map(r => r.mf)).size;
+    const old = pdRows.filter(r => r.aging === PD_AGING[PD_AGING.length - 1]).length;
+
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('k-pd-total', fmt(pdRows.length));
+    set('k-pd-total-sub', blank
+        ? fmt(aged) + ' with an aging bucket'
+        : 'every row carries an aging bucket');
+    set('k-pd-mf', fmt(withMf.length));
+    set('k-pd-mf-sub', fmt(manifests) + ' manifest' + (manifests === 1 ? '' : 's') + ' open');
+    set('k-pd-nomf', fmt(noMf.length));
+    set('k-pd-old', fmt(old));
+
+    const scope = document.getElementById('pdScopeLine');
+    if (scope){
+        scope.textContent = "Aging comes from the sheet's own aging_range column" +
+            (blank ? ' — ' + fmt(blank) + ' row' + (blank === 1 ? '' : 's') +
+                     ' without an aging bucket are skipped, like the sheet pivot.' : '.');
+    }
+
+    const mfBody = document.getElementById('pdMfTable');
+    if (mfBody) mfBody.innerHTML = pdTable(pdPivot(withMf, true), cols,
+        'No shipment is waiting on a manifest right now.', { showManifests: true });
+    const pipeBody = document.getElementById('pdPipeTable');
+    if (pipeBody) pipeBody.innerHTML = pdTable(pdPivot(noMf), cols,
+        'Every shipment already has a manifest.');
+
+    const mfNote = document.getElementById('pdMfNote');
+    if (mfNote) mfNote.textContent = fmt(withMf.length) + ' shipments · ' +
+        fmt(manifests) + ' manifest' + (manifests === 1 ? '' : 's');
+    const pipeNote = document.getElementById('pdPipeNote');
+    if (pipeNote) pipeNote.textContent = fmt(noMf.length) + ' shipments with no manifest yet';
+
+    const content = document.getElementById('pdContent');
+    if (content) content.style.display = '';
+    const empty = document.getElementById('pdEmpty');
+    if (empty) empty.style.display = 'none';
+    const badge = document.getElementById('pdBadge');
+    if (badge){ badge.className = 'badge text-bg-success'; badge.textContent = fmt(pdRows.length) + ' pending shipments'; }
+    setViewMeta('pdTabMeta', fmt(pdRows.length) + ' shipments · ' + fmt(pdPivot(pdRows).length) + ' warehouses');
+}
+
+async function loadPendingCsv(force){
+    if (pdLoading || (pdLoaded && !force)) return;
+    pdLoading = true;
+    const badge = document.getElementById('pdBadge');
+    const empty = document.getElementById('pdEmpty');
+    const spin  = document.getElementById('pdEmptySpin');
+    const title = document.getElementById('pdEmptyTitle');
+    const msg   = document.getElementById('pdEmptyMsg');
+    if (badge) { badge.className = 'badge text-bg-info'; badge.textContent = 'Loading pending…'; }
+    if (empty && !pdLoaded){
+        empty.style.display = '';
+        if (spin) spin.style.display = '';
+        if (title) title.textContent = 'Reading the Pending sheet…';
+        if (msg) msg.textContent = 'Both pivots appear as soon as the published CSV answers.';
+    }
+    setTabStatus('page-pending', 'loading', 'Downloading the Pending sheet…');
+
+    try {
+        csvOnHeal('pending', function(){ loadPendingCsv(true); });
+        let parsed = null, raw = [];
+        for (let attempt = 0; attempt < 3 && !raw.length; attempt++){
+            if (attempt) await sleep(1200 * attempt);
+            const text = await fetchSheetCsv(PD_CSV_URL, 'pending', 50, null, !!force);
+            const body = String(text || '').trim();
+            if (body.length < 200 || /^loading\b/i.test(body)) continue;   // stub, try again
+            parsed = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: false });
+            raw = (parsed.data || []).filter(r => r && (r.awb_nr || r.WH));
+        }
+        if (!raw.length) throw new Error('Google kept returning its "Loading…" placeholder. The published sheet was still generating — press Reload in a moment.');
+
+        const fields = (parsed.meta && parsed.meta.fields) ? parsed.meta.fields : Object.keys(raw[0] || {});
+        const H = Object.create(null);
+        fields.forEach(f => { H[String(f).trim().toLowerCase()] = f; });
+        const pick = function(r, names){
+            for (let i = 0; i < names.length; i++){
+                const key = H[String(names[i]).trim().toLowerCase()];
+                if (key !== undefined){
+                    const v = r[key];
+                    return v === null || v === undefined ? '' : String(v).trim();
+                }
+            }
+            return '';
+        };
+
+        pdRows = raw.map(function(r){
+            return {
+                awb:   pick(r, ['awb_nr']),
+                mf:    pick(r, ['manifest_nr']),
+                wh:    pick(r, ['WH']),
+                aging: pick(r, ['aging_range']),
+                mfType: pick(r, ['manifest_type']),
+                pdd:   pick(r, ['PDD']),
+                hub:   pick(r, ['forward_hub', 'origin_warehouse']),
+                updated: pick(r, ['updated_at'])
+            };
+        });
+        pdLoaded = true;
+        renderPendingTab();
+        tabStatusFromCsv('page-pending', 'pending', 'Pending', pdRows.length, 'shipments');
+        console.log('[Pending] loaded', pdRows.length, 'shipments —',
+                    pdRows.filter(r => r.mf).length, 'on a manifest,',
+                    pdRows.filter(r => !r.mf).length, 'awaiting one');
+    } catch (e) {
+        const m = (e && e.message) ? e.message : String(e);
+        console.warn('[Pending] load failed:', e);
+        setTabStatus('page-pending', 'err', 'Pending sheet failed: ' + m);
+        if (badge) { badge.className = 'badge text-bg-danger'; badge.textContent = 'Load failed — press Reload'; }
+        if (empty){
+            empty.style.display = '';
+            if (spin) spin.style.display = 'none';
+            if (title) title.textContent = 'Could not load the Pending sheet';
+            if (msg) msg.innerHTML = esc(m) + ' — <button class="btn btn-sm btn-outline-secondary mt-2" onclick="loadPendingCsv(true)"><i class="bi bi-arrow-repeat me-1"></i>Retry</button>';
+        }
+    } finally {
+        pdLoading = false;
+    }
+}
+
+/* ================================================================
+   WH RECEIVING — plan vs actual, TODAY ONLY
+   The published sheet (gid 115783227) carries two blocks side by side
+   on the same worksheet:
+     A  cols A–F : Wh_grouped, total_Shipments, unpack_date, Plan,
+                   Facility Receiving, WH Type
+     B  cols I–N : Wh_grouped, forward_hub, flag, forward_hub_flag,
+                   total_Shipments, unpack_date
+   Both are already aggregated per warehouse per day, so this page only
+   filters to today and pivots — nothing is re-counted from raw rows.
+   Cols G/H are blank spacers, hence the fixed index offsets.
+================================================================ */
+const WR_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=115783227&single=true&output=csv';
+/* Facility order as the sheet lists it — anything new falls to the end. */
+const WR_FACILITY_ORDER = ['CAI-Z2', 'CAI-Z5', 'EPX', 'directship_express', 'directship',
+                           'DS Bulky', 'directship_express Bulky', 'Drop off'];
+const WR_FLAG_ORDER = ['Core NS', 'Core Sort', 'Core Bulky', 'Drop off', 'DS', 'DSE', 'DSE Bulky'];
+
+let wrRows = [], wrPivotRows = [], wrLoaded = false, wrLoading = false;
+let wrTodayLabel = '', wrNewestSeen = '';
+
+function wrNum(v){
+    const n = Number(String(v === null || v === undefined ? '' : v).replace(/[^0-9.\-]/g, ''));
+    return isFinite(n) ? n : 0;
+}
+/* The sheet writes M/D/YYYY. Read it without trusting the locale, and accept
+   D/M/YYYY too so a flipped sheet never blanks the whole page. */
+function wrDay(str){
+    const m = String(str || '').trim().match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+    if (!m) return null;
+    let y = parseInt(m[3], 10);
+    if (y < 100) y += 2000;
+    return { a: parseInt(m[1], 10), b: parseInt(m[2], 10), y: y };
+}
+function wrIsToday(str){
+    const d = wrDay(str);
+    if (!d) return false;
+    const now = new Date();
+    if (d.y !== now.getFullYear()) return false;
+    const m = now.getMonth() + 1, day = now.getDate();
+    return (d.a === m && d.b === day) || (d.a === day && d.b === m);
+}
+function wrOrd(list, v){
+    const i = list.indexOf(v);
+    return i === -1 ? list.length : i;
+}
+function wrPill(plan, actual){
+    if (!plan) return '<span class="wr-pill na" title="the sheet has no plan for this row">—</span>';
+    const pct = Math.round((actual / plan) * 100);
+    /* A plan cell far below actual is a sheet problem, not a 1000% day —
+       flag it instead of printing an impossible percentage. */
+    if (pct > 200) return '<span class="wr-pill na" title="Actual ' + fmt(actual) +
+        ' against a plan of ' + fmt(plan) + ' — that plan cell looks wrong in the published sheet">plan?</span>';
+    const cls = pct >= 90 ? 'ok' : (pct >= 60 ? 'mid' : 'low');
+    return '<span class="wr-pill ' + cls + '" title="' + fmt(actual) + ' of ' + fmt(plan) + ' planned">' +
+        pct + '%</span>';
+}
+
+function renderWhRecv(){
+    const tbl  = document.getElementById('wrTable');
+    const piv  = document.getElementById('wrPivotTable');
+    const note = document.getElementById('wrNote');
+    const pnote = document.getElementById('wrPivotNote');
+    const badge = document.getElementById('wrBadge');
+    const dateNote = document.getElementById('wrDateNote');
+    if (dateNote) dateNote.textContent = wrTodayLabel ? '· ' + wrTodayLabel : '';
+
+    const recvTotal = wrRows.reduce(function(a, r){ return a + r.total; }, 0);
+    const planTotal = wrRows.reduce(function(a, r){ return a + r.plan; }, 0);
+    const active = wrRows.filter(function(r){ return r.total > 0; }).length;
+    const kpi = document.getElementById('k-pd-recv');
+    if (kpi) kpi.textContent = fmt(recvTotal);
+    const ksub = document.getElementById('k-pd-recv-sub');
+    if (ksub) ksub.textContent = active + ' warehouse' + (active === 1 ? '' : 's') + ' unpacking today';
+
+    if (tbl){
+        if (!wrRows.length){
+            tbl.innerHTML = '<div class="text-center text-muted py-4 small">No receiving rows dated today' +
+                (wrNewestSeen ? " — the sheet's newest day is " + esc(wrNewestSeen) + '.' : '.') + '</div>';
+        } else {
+            const rows = wrRows.slice().sort(function(a, b){
+                return (wrOrd(WR_FACILITY_ORDER, a.facility) - wrOrd(WR_FACILITY_ORDER, b.facility)) ||
+                       String(a.wh).localeCompare(String(b.wh), undefined, { numeric: true });
+            });
+            const body = rows.map(function(r){
+                return '<tr>' +
+                    '<td class="text-muted">' + esc(r.facility) + '</td>' +
+                    '<td>' + esc(r.whType) + '</td>' +
+                    '<td class="fw-bold">' + esc(r.wh) + '</td>' +
+                    '<td class="text-end">' + (r.plan ? fmt(r.plan) : '<span class="text-muted">—</span>') + '</td>' +
+                    '<td class="text-end fw-bold">' + fmt(r.total) + '</td>' +
+                    '<td class="text-center">' + wrPill(r.plan, r.total) + '</td>' +
+                '</tr>';
+            }).join('');
+            const foot = '<tr class="wr-total">' +
+                '<td colspan="3">Total</td>' +
+                '<td class="text-end">' + fmt(planTotal) + '</td>' +
+                '<td class="text-end">' + fmt(recvTotal) + '</td>' +
+                '<td class="text-center">' + wrPill(planTotal, recvTotal) + '</td>' +
+            '</tr>';
+            tbl.innerHTML = '<table class="table table-sm align-middle fs-7 mb-0 mm-pivot">' +
+                '<thead class="table-light"><tr>' +
+                    '<th>Facility receiving</th><th>WH type</th><th>Warehouse</th>' +
+                    '<th class="text-end">Plan</th><th class="text-end">Actual</th><th class="text-center">%</th>' +
+                '</tr></thead><tbody>' + body + foot + '</tbody></table>';
+        }
+    }
+    if (note) note.textContent = wrRows.length
+        ? fmt(wrRows.length) + ' warehouses · ' + fmt(recvTotal) + ' shipments · ' +
+          (planTotal ? Math.round((recvTotal / planTotal) * 100) + '% of plan' : 'no plan')
+        : 'nothing dated today yet';
+
+    /* --- forward_hub_flag × flag ------------------------------------ */
+    if (piv){
+        if (!wrPivotRows.length){
+            piv.innerHTML = '<div class="text-center text-muted py-4 small">No hub × flag rows dated today.</div>';
+        } else {
+            const flags = Array.from(new Set(wrPivotRows.map(function(r){ return r.flag; })))
+                .sort(function(a, b){ return wrOrd(WR_FLAG_ORDER, a) - wrOrd(WR_FLAG_ORDER, b) || String(a).localeCompare(String(b)); });
+            const hubs = Array.from(new Set(wrPivotRows.map(function(r){ return r.hubFlag || '(blank)'; })))
+                .sort(function(a, b){ return String(a).localeCompare(String(b), undefined, { sensitivity: 'base' }); });
+            const cell = {};
+            wrPivotRows.forEach(function(r){
+                const k = (r.hubFlag || '(blank)') + '\u0000' + r.flag;
+                cell[k] = (cell[k] || 0) + r.total;
+            });
+            const colTot = {}, rowTot = {};
+            let grand = 0;
+            const body = hubs.map(function(h){
+                let rt = 0;
+                const tds = flags.map(function(f){
+                    const v = cell[h + '\u0000' + f] || 0;
+                    colTot[f] = (colTot[f] || 0) + v;
+                    rt += v;
+                    return '<td class="text-center">' + (v ? fmt(v) : '') + '</td>';
+                }).join('');
+                rowTot[h] = rt;
+                grand += rt;
+                return '<tr><td class="fw-bold">' + esc(h) + '</td>' + tds +
+                    '<td class="text-center fw-bold">' + fmt(rt) + '</td></tr>';
+            }).join('');
+            const foot = '<tr class="table-light fw-bold"><td>Grand Total</td>' +
+                flags.map(function(f){ return '<td class="text-center">' + (colTot[f] ? fmt(colTot[f]) : '') + '</td>'; }).join('') +
+                '<td class="text-center">' + fmt(grand) + '</td></tr>';
+            piv.innerHTML = '<table class="table table-sm align-middle fs-7 mb-0 mm-pivot">' +
+                '<thead class="table-light"><tr><th>forward_hub_flag</th>' +
+                    flags.map(function(f){ return '<th class="text-center">' + esc(f) + '</th>'; }).join('') +
+                    '<th class="text-center">Grand Total</th>' +
+                '</tr></thead><tbody>' + body + foot + '</tbody></table>';
+        }
+    }
+    if (pnote) pnote.textContent = wrPivotRows.length
+        ? fmt(wrPivotRows.reduce(function(a, r){ return a + r.total; }, 0)) + ' shipments across ' +
+          new Set(wrPivotRows.map(function(r){ return r.hubFlag; })).size + ' hub groups'
+        : '—';
+
+    if (badge){
+        if (wrLoaded && wrRows.length){
+            badge.className = 'badge text-bg-success';
+            badge.textContent = fmt(recvTotal) + ' unpacked today';
+        } else if (wrLoaded){
+            badge.className = 'badge text-bg-secondary';
+            badge.textContent = 'Nothing today yet';
+        }
+    }
+
+    /* Name any plan cell that cannot be right, so nobody reads "plan?" as a bug. */
+    const legend = document.getElementById('wrLegend');
+    if (legend){
+        const flagged = wrRows.filter(function(r){ return r.plan > 0 && (r.total / r.plan) * 100 > 200; });
+        legend.innerHTML = '<i class="bi bi-calendar-check me-1"></i>Only rows whose <code>unpack_date</code> is today. ' +
+            "Plan is the sheet's own Plan column; % = Actual ÷ Plan." +
+            (flagged.length
+                ? ' <span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle me-1"></i>' +
+                  flagged.map(function(r){ return esc(r.wh) + ' (' + fmt(r.total) + ' vs plan ' + fmt(r.plan) + ')'; }).join(', ') +
+                  ' — that plan cell looks wrong in the published sheet.</span>'
+                : '');
+    }
+}
+
+async function loadWhRecvCsv(force){
+    if (wrLoading || (wrLoaded && !force)) return;
+    wrLoading = true;
+    const badge = document.getElementById('wrBadge');
+    if (badge){ badge.className = 'badge text-bg-info'; badge.textContent = 'Loading receiving…'; }
+
+    try {
+        csvOnHeal('whrecv', function(){ loadWhRecvCsv(true); });
+        let parsed = null, data = [];
+        for (let attempt = 0; attempt < 3 && !data.length; attempt++){
+            if (attempt) await sleep(1200 * attempt);
+            const text = await fetchSheetCsv(WR_CSV_URL, 'whrecv', 20, null, !!force);
+            const body = String(text || '').trim();
+            if (body.length < 200 || /^loading\b/i.test(body)) continue;   // stub, try again
+            parsed = Papa.parse(text, { header: false, skipEmptyLines: 'greedy' });
+            data = (parsed.data || []).filter(function(r){
+                return r && r.length > 5 && (String(r[0] || '').trim() || String(r[8] || '').trim());
+            });
+        }
+        if (!data.length) throw new Error('Google kept returning its "Loading…" placeholder for the receiving sheet.');
+
+        const A = new Map(), B = [], dates = [];
+        data.forEach(function(r){
+            const aw = String(r[0] || '').trim();
+            if (aw){
+                const d = String(r[2] || '').trim();
+                if (d) dates.push(d);
+                if (wrIsToday(d)){
+                    const key = aw + '\u0000' + String(r[4] || '').trim() + '\u0000' + String(r[5] || '').trim();
+                    const cur = A.get(key);
+                    if (cur){ cur.total += wrNum(r[1]); }
+                    else {
+                        A.set(key, {
+                            wh: aw,
+                            facility: String(r[4] || '').trim(),
+                            whType: String(r[5] || '').trim(),
+                            total: wrNum(r[1]),
+                            plan: wrNum(r[3])
+                        });
+                    }
+                }
+            }
+            const bw = String(r[8] || '').trim();
+            if (bw && wrIsToday(String(r[13] || '').trim())){
+                B.push({
+                    wh: bw,
+                    hub: String(r[9] || '').trim(),
+                    flag: String(r[10] || '').trim(),
+                    hubFlag: String(r[11] || '').trim(),
+                    total: wrNum(r[12])
+                });
+            }
+        });
+
+        /* Newest day the sheet carries, for a helpful "nothing yet" message. */
+        let best = null;
+        dates.forEach(function(d){
+            const p = wrDay(d);
+            if (!p) return;
+            if (!best || (p.y * 10000 + p.a * 100 + p.b) > (best.y * 10000 + best.a * 100 + best.b)) best = p;
+        });
+        wrNewestSeen = best ? (best.a + '/' + best.b + '/' + best.y) : '';
+        const now = new Date();
+        wrTodayLabel = (now.getMonth() + 1) + '/' + now.getDate() + '/' + now.getFullYear();
+
+        wrRows = Array.from(A.values());
+        wrPivotRows = B;
+        wrLoaded = true;
+        renderWhRecv();
+        console.log('[WhRecv] today:', wrRows.length, 'warehouse rows,', B.length,
+                    'hub rows,', wrRows.reduce(function(a, r){ return a + r.total; }, 0), 'shipments');
+    } catch (e) {
+        const m = (e && e.message) ? e.message : String(e);
+        console.warn('[WhRecv] load failed:', e);
+        if (badge){ badge.className = 'badge text-bg-danger'; badge.textContent = 'Load failed'; }
+        const tbl = document.getElementById('wrTable');
+        if (tbl){
+            tbl.innerHTML = '<div class="text-center text-muted py-4 small">' + esc(m) +
+                ' <button class="btn btn-sm btn-outline-secondary mt-2" onclick="loadWhRecvCsv(true)">' +
+                '<i class="bi bi-arrow-repeat me-1"></i>Retry</button></div>';
+        }
+    } finally {
+        wrLoading = false;
     }
 }
 
@@ -7233,7 +7922,7 @@ async function loadPvaPlan(force){
     pvaLoading = true;
     renderMpPlanVsActual();                // flips the note to "Loading plan…"
     try {
-        const text = await fetchCsvText(cacheBusted(PVA_CSV_URL, Date.now()), null);
+        const text = await fetchSheetText(PVA_CSV_URL, null);
         parsePvaPlan(text);
         pvaLoaded = pvaV2 || pvaDays.length > 0;
         if (!pvaLoaded) console.warn('[loadPvaPlan] parsed but no plan rows found');
@@ -7246,6 +7935,7 @@ async function loadPvaPlan(force){
 
 function pvaSetSection(sec){
     pvaSection = (sec === 'in' || sec === 'backend') ? sec : 'out';
+    if (typeof window.ctTrack === 'function') window.ctTrack('pva_scope', { mode: pvaSection });
     [['out', 'pva-sec-out'], ['in', 'pva-sec-in'], ['backend', 'pva-sec-backend']].forEach(([k, id]) => {
         const b = document.getElementById(id);
         if (b) b.classList.toggle('active', pvaSection === k);
@@ -7910,6 +8600,7 @@ function openFinalReport(anchorId){
 /* Turns an insight card into a link: every card opens the view that explains it. */
 function insightAction(act){
     if (!act) return;
+    if (typeof window.ctTrack === 'function') window.ctTrack('insight_action', { action: String(act).split(':')[0], arg: String(act).split(':').slice(1).join(':') });
     const parts = String(act).split(':');
     const kind = parts[0], arg = parts[1];
     const showTab = function(target){
@@ -7944,6 +8635,7 @@ function insightAction(act){
    scorecard so the operator sees that vendor's own numbers — not the blend. */
 function drillVendor(name){
     if (!name) return;
+    if (typeof window.ctTrack === 'function') window.ctTrack('vendor_drill', { vendor: name });
     const sel = '#dash-vendor';
     const exists = document.querySelector(sel) &&
         Array.prototype.slice.call(document.querySelector(sel).options).some(o => o.value === name);
