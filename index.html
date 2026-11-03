@@ -527,6 +527,19 @@ body.rail-collapsed { padding-left: 84px !important; }
     .pd-age.old { background: #FDECEA; border-color: #F6C9C4; color: #B42318; }
     .pd-detail td, .pd-detail th { white-space: nowrap; }
     .pd-detail thead th { position: sticky; top: 0; z-index: 2; }
+    /* Click-to-copy manifest number in the MF pending details table */
+    .pd-mf-copy { border: 0; background: transparent; padding: 0; font: inherit; font-weight: 800;
+        color: #16171B; text-align: left; cursor: copy; border-bottom: 1px dashed #C9BE97; }
+    .pd-mf-copy:hover { color: #8A6D1A; border-bottom-color: #8A6D1A; }
+    .pd-mf-copy.copied { color: #067647; border-bottom-color: #067647; }
+    /* Pending / receiving tables: compact cells, hugging their content.
+       A table that fits on screen also fits in a snapshot you can send. */
+    #page-pending .mm-pivot { width: auto; }
+    #page-pending .mm-pivot > thead > tr > th { padding: 4px 9px; font-size: .72rem; white-space: nowrap; }
+    #page-pending .mm-pivot > tbody > tr > td { padding: 3px 9px; font-size: .72rem; }
+    #page-pending .pd-detail { width: auto; }
+    #page-pending .pd-detail > thead > tr > th { padding: 4px 9px; font-size: .72rem; }
+    #page-pending .pd-detail > tbody > tr > td { padding: 3px 9px; font-size: .72rem; }
     /* WH receiving — plan vs actual */
     .wr-pill { display: inline-block; min-width: 48px; padding: 1px 7px; border-radius: 999px;
         font-size: .7rem; font-weight: 800; font-family: var(--font-num); }
@@ -1670,6 +1683,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                             <span class="text-muted fw-normal" style="font-size:.78rem" id="wrDateNote"></span></h6>
                         <div class="d-flex align-items-center gap-2">
                             <span class="small text-muted" id="wrNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrTable','WH receiving — today','wh_receiving_today')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
                             <span class="badge text-bg-secondary" id="wrBadge">No data yet</span>
                         </div>
                     </div>
@@ -1683,7 +1697,10 @@ body.rail-collapsed { padding-left: 84px !important; }
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-diagram-2 me-2 text-primary"></i>forward_hub_flag × flag</h6>
-                        <span class="small text-muted" id="wrPivotNote">—</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted" id="wrPivotNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrPivotTable','Receiving by forward hub × flag','wh_receiving_hub_flag')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                        </div>
                     </div>
                     <div style="overflow-x:auto" id="wrPivotTable"></div>
                     <div class="pd-mf-legend mt-2" id="wrPivotLegend">
@@ -1693,11 +1710,26 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div><!-- /receiving reports -->
 
                 <div data-view="pending" class="iview-hidden">
-                <div class="sec-head"><span class="n">1</span>Pending shipments in MF <span class="hint">— the MF exists, but the shipment has not been unpacked on it</span></div>
+                <div class="sec-head"><span class="n">1</span>Pipeline pending WH <span class="hint">— the warehouse created the shipment and has not created a manifest for it</span></div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                        <h6 class="fw-bold m-0"><i class="bi bi-box-seam me-2 text-primary"></i>WH × aging range</h6>
-                        <span class="small text-muted" id="pdMfNote">—</span>
+                        <h6 class="fw-bold m-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>Pipeline pending WH</h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted" id="pdPipeNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('pdPipeTable','Pipeline pending WH — WH × aging','pipeline_pending_wh')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto" id="pdPipeTable"></div>
+                </div>
+
+                <div class="sec-head"><span class="n">2</span>Pending MF <span class="hint">— the MF exists, but the shipment has not been unpacked on it</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-box-seam me-2 text-primary"></i>Pending MF</h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted" id="pdMfNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('pdMfTable','Pending MF — WH × aging','pending_mf')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                        </div>
                     </div>
                     <div style="overflow-x:auto" id="pdMfTable"></div>
                     <div class="pd-mf-legend mt-2" id="pdMfLegend">
@@ -1705,20 +1737,13 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                 </div>
 
-                <div class="sec-head"><span class="n">2</span>Pipeline — no MF yet <span class="hint">— the warehouse created the shipment and has not created a manifest for it</span></div>
-                <div class="card p-3 border-0 shadow-sm mb-4">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                        <h6 class="fw-bold m-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>WH × aging range</h6>
-                        <span class="small text-muted" id="pdPipeNote">—</span>
-                    </div>
-                    <div style="overflow-x:auto" id="pdPipeTable"></div>
-                </div>
-                <div class="sec-head"><span class="n">3</span>MF shipment detail <span class="hint">— one row per shipment that already sits on a manifest</span></div>
+                <div class="sec-head"><span class="n">3</span>MF pending details <span class="hint">— one row per shipment that already sits on a manifest · click a manifest number to copy it</span></div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-table me-2 text-primary"></i>Manifest number, warehouse and aging</h6>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <span class="small text-muted" id="pdDetailNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('pdDetailTable','MF pending details','mf_pending_details')" title="Copy the rows on screen as a PNG image (first 60 rows)"><i class="bi bi-camera me-1"></i>Snap</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdExportCsv('mf')" title="Download the rows in the table below">
                                 <i class="bi bi-filetype-csv me-1"></i>Export MF rows
                             </button>
@@ -2144,7 +2169,7 @@ body.rail-collapsed { padding-left: 84px !important; }
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'V3';
+const BUILD = 'V8';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -4087,6 +4112,155 @@ async function snapshotEl(el, name){
     } catch (err) {
         console.error('snapshot failed', err);
         snapStatus('Snapshot failed: ' + (err && err.message ? err.message : 'error'));
+    }
+}
+
+/* ---- Table snapshots (Live WH Receiving) ---------------------------
+   html2canvas clones the whole document and crawls on a page with 500+
+   rows, so these plain tables are redrawn straight onto a canvas: instant,
+   and cropped to the table itself — the image stays small enough to paste
+   into Teams / WhatsApp / an email. */
+const SNAP_FONT = '"Segoe UI", system-ui, -apple-system, Arial, sans-serif';
+function pdTableToCanvas(table, title){
+    const SCALE = 2, M = 18, PADX = 11, ROWH = 26, HEADH = 32, TOPH = 58, FOOT = 30, MAXROWS = 60;
+    if (!table || !table.tHead || !table.tBodies[0]) throw new Error('no table to draw');
+    const head = Array.from(table.tHead.rows[0].cells).map(function(c){ return c.innerText.replace(/\s+/g, ' ').trim(); });
+    const allRows = Array.from(table.tBodies[0].rows);
+    /* A cell can stack two readings (count on top, MF badge or share under it).
+       innerText turns that into two lines — join them with a dot on one line. */
+    const cellText = function(td){
+        return td.innerText.split(/\n+/).map(function(s){ return s.replace(/\s+/g, ' ').trim(); })
+            .filter(Boolean).join(' \u00b7 ');
+    };
+    const shown = allRows.slice(0, MAXROWS).map(function(tr){
+        return {
+            cells: Array.from(tr.cells).map(cellText),
+            total: tr.classList.contains('wr-total') ||
+                   /^(grand\s+)?total/i.test(((tr.cells[0] || {}).innerText || '').trim()) ||
+                   /\btable-light\b/.test(tr.className)
+        };
+    });
+    /* A column whose cells are numbers reads better right-aligned. */
+    const isNum = head.map(function(_, i){
+        let num = 0, seen = 0;
+        shown.forEach(function(r){
+            const v = (r.cells[i] || '').trim();
+            if (!v) return;
+            seen++;
+            /* "434 · 9 MF" still counts as a number column. */
+            if (/^-?[\d,]+(?:\.\d+)?%?$/.test(v.split(' \u00b7 ')[0])) num++;
+        });
+        return seen > 0 && num / seen >= 0.6;
+    });
+
+    const probe = document.createElement('canvas').getContext('2d');
+    const F_HEAD = '800 13px ' + SNAP_FONT, F_BODY = '600 13px ' + SNAP_FONT;
+    const widths = head.map(function(h, i){
+        probe.font = F_HEAD;
+        let w = probe.measureText(h).width;
+        probe.font = F_BODY;
+        shown.forEach(function(r){ w = Math.max(w, probe.measureText(r.cells[i] || '').width); });
+        return Math.ceil(w) + PADX * 2;
+    });
+    const tableW = widths.reduce(function(a, b){ return a + b; }, 0);
+    const sub = (allRows.length > shown.length ? 'First ' + shown.length + ' of ' + allRows.length + ' rows \u00b7 ' : '') +
+        new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+    probe.font = '800 15px ' + SNAP_FONT;
+    const titleW = probe.measureText(title).width;
+    probe.font = '600 11px ' + SNAP_FONT;
+    const subW = probe.measureText(sub).width;
+    const width = Math.ceil(Math.max(tableW, titleW, subW)) + M * 2;
+    const height = TOPH + HEADH + shown.length * ROWH + FOOT;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width * SCALE;
+    canvas.height = height * SCALE;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(SCALE, SCALE);
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#FEEE00';                       // brand accent
+    ctx.fillRect(0, 0, width, 4);
+    ctx.fillStyle = '#16171B';
+    ctx.font = '800 15px ' + SNAP_FONT;
+    ctx.fillText(title, M, 30);
+    ctx.fillStyle = '#8A8468';
+    ctx.font = '600 11px ' + SNAP_FONT;
+    ctx.fillText(sub, M, 48);
+
+    const xAt = [];
+    let x = M;
+    widths.forEach(function(w){ xAt.push(x); x += w; });
+
+    /* Header band */
+    ctx.fillStyle = '#FFF2CC';
+    ctx.fillRect(M, TOPH, tableW, HEADH);
+    ctx.fillStyle = '#16171B';
+    ctx.font = F_HEAD;
+    head.forEach(function(h, i){
+        const cx = isNum[i] ? xAt[i] + widths[i] - PADX : xAt[i] + PADX;
+        ctx.textAlign = isNum[i] ? 'right' : 'left';
+        ctx.fillText(h, cx, TOPH + HEADH / 2 + 1);
+    });
+    ctx.strokeStyle = '#D9CB94';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(M, TOPH + HEADH); ctx.lineTo(M + tableW, TOPH + HEADH); ctx.stroke();
+
+    /* Body */
+    shown.forEach(function(r, ri){
+        const y = TOPH + HEADH + ri * ROWH;
+        if (r.total){
+            ctx.fillStyle = '#FFFDF2';
+            ctx.fillRect(M, y, tableW, ROWH);
+        } else if (ri % 2) {
+            ctx.fillStyle = '#FCFAF2';
+            ctx.fillRect(M, y, tableW, ROWH);
+        }
+        ctx.font = r.total ? ('800 13px ' + SNAP_FONT) : F_BODY;
+        ctx.fillStyle = '#16171B';
+        head.forEach(function(_, i){
+            const v = r.cells[i] === undefined ? '' : r.cells[i];
+            const cx = isNum[i] ? xAt[i] + widths[i] - PADX : xAt[i] + PADX;
+            ctx.textAlign = isNum[i] ? 'right' : 'left';
+            ctx.fillText(v, cx, y + ROWH / 2 + 1);
+        });
+        ctx.strokeStyle = '#EFE8CF';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(M, y + ROWH); ctx.lineTo(M + tableW, y + ROWH); ctx.stroke();
+    });
+
+    /* Footer */
+    ctx.fillStyle = '#8A8468';
+    ctx.font = '600 11px ' + SNAP_FONT;
+    ctx.textAlign = 'left';
+    ctx.fillText('Control Tower \u00b7 Middle-Mile Ops', M, height - FOOT / 2);
+    return canvas;
+}
+
+async function pdSnapTable(containerId, title, fileBase){
+    const host = document.getElementById(containerId);
+    const table = host && host.querySelector('table');
+    if (!table){ showToast('Nothing to capture \u2014 this table has no rows yet', 'danger'); return; }
+    snapStatus('Rendering ' + title + '\u2026');
+    try {
+        const canvas = pdTableToCanvas(table, title);
+        const name = fileBase || containerId;
+        try {
+            const blob = await copyCanvasToClipboard(canvas);
+            window.__lastSnapBlob = blob;
+            snapStatus('\ud83d\udcf8 ' + title + ' copied \u2014 paste it anywhere (Ctrl+V)');
+        } catch (err) {
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL('image/png');
+            a.download = 'control_tower_' + name + '_' +
+                new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '') + '.png';
+            document.body.appendChild(a); a.click(); a.remove();
+            snapStatus('\ud83d\udcf8 ' + title + ' downloaded \u2014 clipboard images are not available here');
+        }
+    } catch (e) {
+        console.error('[snap]', e);
+        snapStatus('Snapshot failed: ' + ((e && e.message) || e));
     }
 }
 
@@ -7517,7 +7691,8 @@ function pdRenderDetail(){
             ? '<span class="pd-age ' + pdAgeClass(r.aging) + '">' + esc(r.aging) + '</span>'
             : dash();
         return '<tr>' +
-            '<td class="fw-bold">' + esc(r.mf || '—') + '</td>' +
+            '<td><button type="button" class="pd-mf-copy" data-mf="' + esc(r.mf) + '" ' +
+                'title="Click to copy this manifest number" onclick="pdCopyMf(this)">' + esc(r.mf) + '</button></td>' +
             '<td>' + esc(r.wh || '—') + '</td>' +
             '<td>' + age + '</td>' +
             '<td class="small text-muted">' + esc(r.awb || '—') + '</td>' +
@@ -7531,6 +7706,22 @@ function pdRenderDetail(){
         '<th>Manifest Nr</th><th>WH</th><th>Aging</th>' +
         '<th>AWB</th><th>Manifest type</th><th>PDD</th><th>Forward hub</th>' +
         '</tr></thead><tbody>' + body + '</tbody></table>';
+}
+/* Click a manifest number to copy it — paste it straight into the WH tool. */
+function pdCopyMf(el){
+    const mf = (el && el.getAttribute('data-mf')) || '';
+    if (!mf) return;
+    const done = function(){
+        el.classList.add('copied');
+        setTimeout(function(){ el.classList.remove('copied'); }, 1200);
+        showToast('Copied manifest ' + mf);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(mf).then(done, function(){ fallbackCopy(mf); done(); });
+    } else {
+        fallbackCopy(mf);
+        done();
+    }
 }
 /* Download the detail rows (mf, what is on screen) or every pending row (all). */
 function pdExportCsv(which){
