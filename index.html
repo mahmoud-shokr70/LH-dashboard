@@ -527,6 +527,11 @@ body.rail-collapsed { padding-left: 84px !important; }
     .wr-pill.ok  { background: #E7F6EC; color: #067647; }
     .wr-pill.na  { background: #F1F0EA; color: #8A8468; }
     .wr-total td { background: #FFFDF2; border-top: 2px solid #E9DFB8 !important; font-weight: 800; }
+    /* hub × flag pivot: % / Shipments switch */
+    /* Hub × flag cell: count on top, share of today underneath (like the MF badge) */
+    .wr-pv-p { display: inline-block; margin-top: 2px; font-family: var(--font-num); font-size: .6rem;
+        font-weight: 700; line-height: 1.4; padding: 0 5px; border-radius: 4px;
+        border: 1px solid #E7E2D2; color: #6B6549; letter-spacing: .02em; }
     /* MM Pendency filter chips (facility / shipment type) */
     .mm-chip { border-radius: 999px !important; font-size: .72rem; font-weight: 800; padding: 2px 10px;
         display: inline-flex; align-items: center; gap: 6px; line-height: 1.5; }
@@ -603,7 +608,7 @@ body.rail-collapsed { padding-left: 84px !important; }
     .inner-tabs-row .inner-tabs { margin-bottom: 0; }
     .inner-tabs-row .it-meta { font-family: var(--font-num); font-size: .68rem; font-weight: 700;
         color: #6b6353; background: #FFFDF2; border: 1px solid var(--warm-line); border-radius: 999px;
-        padding: 6px 13px; box-shadow: var(--shadow-card); white-space: nowrap; }
+        padding: 6px 13px; box-shadow: var(--shadow-card); white-space: nowrap; margin-left: auto; }
     /* Numbered section headings used inside the pages */
     .sec-head { display: flex; align-items: center; gap: 8px; font-family: var(--font-head);
         font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .6px;
@@ -612,6 +617,14 @@ body.rail-collapsed { padding-left: 84px !important; }
         border-radius: 7px; background: var(--ink); color: var(--noon); font-size: .66rem; }
     .sec-head .hint { font-family: var(--font-body); font-weight: 600; text-transform: none;
         letter-spacing: 0; color: var(--warm-sub); font-size: .72rem; }
+    /* Pending tab: the reports split into a WH block and an MF block */
+    .inner-tabs .it-btn .it-tag { font-family: var(--font-num); font-size: .58rem; font-weight: 800;
+        letter-spacing: .04em; margin-left: 7px; padding: 1px 6px; border-radius: 999px;
+        background: rgba(22, 23, 27, .08); color: #6B6549; vertical-align: 1px; }
+    .inner-tabs .it-btn.active .it-tag { background: var(--brand-yellow3); color: var(--ink); }
+    /* the sticky tab row must not let content show through while scrolling */
+    #page-pending .inner-tabs-row { background: rgba(255, 249, 232, .94); backdrop-filter: blur(8px);
+        padding-top: 6px; padding-bottom: 6px; border-radius: 0 0 12px 12px; }
     .inner-tabs .it-btn { border: 0; background: transparent; border-radius: 999px; padding: 7px 18px;
         font-family: var(--font-head); font-weight: 800; font-size: .74rem; text-transform: uppercase;
         letter-spacing: .5px; color: #8A7A5A; cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
@@ -686,7 +699,7 @@ body.rail-collapsed { padding-left: 84px !important; }
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live" title="LH Live Tracking"><i class="bi bi-broadcast"></i> <span class="nl-txt">LH Live Tracking</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn" title="Manpower"><i class="bi bi-people"></i> <span class="nl-txt">Manpower</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mm" id="mmTabBtn" title="MM Pendency"><i class="bi bi-box-seam"></i> <span class="nl-txt">MM Pendency</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-pending" id="pdTabBtn" title="Pending"><i class="bi bi-hourglass-split"></i> <span class="nl-txt">Pending</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-pending" id="pdTabBtn" title="Live WH Receiving"><i class="bi bi-box-arrow-in-down"></i> <span class="nl-txt">Live WH Receiving</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
         <!-- Trip Log & RCA is reached from the report cards / welcome screen, not the rail -->
         <li class="nav-item d-none"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-rca" id="rcaTabBtn" tabindex="-1" aria-hidden="true"></button></li>
     </ul>
@@ -1573,14 +1586,15 @@ body.rail-collapsed { padding-left: 84px !important; }
         <div class="tab-pane fade" id="page-pending">
             <div class="page-strip">
                 <div>
-                    <div class="k"><i class="bi bi-hourglass-split"></i>Pending</div>
+                    <div class="k"><i class="bi bi-box-arrow-in-down"></i>Live WH Receiving</div>
                     <div class="d">Shipments the warehouses have not finished — what already sits on a manifest but has not been unpacked, and what is still waiting for a manifest to be created.</div>
                 </div>
-                <span class="m">WAREHOUSE · PENDING</span>
+                <span class="m">WAREHOUSE · RECEIVING</span>
             </div>
             <div class="inner-tabs-row">
                 <div class="inner-tabs">
-                    <button type="button" class="it-btn active" data-pview="all"><i class="bi bi-list-columns-reverse"></i>Pending reports</button>
+                    <button type="button" class="it-btn active" data-iview="receiving" onclick="innerTab(this)"><i class="bi bi-box-arrow-in-down"></i>WH receiving reports</button>
+                    <button type="button" class="it-btn" data-iview="pending" onclick="innerTab(this)"><i class="bi bi-hourglass-split"></i>Pending reports <span class="it-tag">MF</span></button>
                 </div>
                 <span class="it-meta" id="pdTabMeta">—</span>
             </div>
@@ -1588,8 +1602,8 @@ body.rail-collapsed { padding-left: 84px !important; }
             <div class="card p-3 mb-4 border-0 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
-                        <h6 class="fw-bold m-0"><i class="bi bi-hourglass-split me-2 text-primary"></i>Manifest pending
-                            <span class="text-muted fw-normal" style="font-size:.78rem">— one row per shipment still open in a warehouse</span></h6>
+                        <h6 class="fw-bold m-0"><i class="bi bi-hourglass-split me-2 text-primary" id="pdHeadIcon"></i><span id="pdHeadTitle">Manifest pending</span>
+                            <span class="text-muted fw-normal" style="font-size:.78rem" id="pdHeadSub">— one row per shipment still open in a warehouse</span></h6>
                         <div class="small text-muted mt-1" id="pdScopeLine">Aging comes from the sheet's own <code>aging_range</code> column.</div>
                     </div>
                     <div class="d-flex align-items-center gap-2">
@@ -1602,34 +1616,45 @@ body.rail-collapsed { padding-left: 84px !important; }
             <div id="pdContent" style="display:none;">
                 <div class="hero-band">
                     <div class="row g-3">
-                        <div class="col-6 col-md"><div class="kpi-mini">
+                        <div class="col-6 col-md" data-view="pending"><div class="kpi-mini">
                             <div class="lbl">Pending shipments</div>
                             <div class="val" id="k-pd-total">0</div>
                             <div class="sub" id="k-pd-total-sub">on the sheet</div>
                         </div></div>
-                        <div class="col-6 col-md"><div class="kpi-mini">
+                        <div class="col-6 col-md" data-view="pending"><div class="kpi-mini">
                             <div class="lbl">Pending in MF</div>
                             <div class="val text-warning" id="k-pd-mf">0</div>
                             <div class="sub" id="k-pd-mf-sub">manifest exists, not unpacked</div>
                         </div></div>
-                        <div class="col-6 col-md"><div class="kpi-mini">
+                        <div class="col-6 col-md" data-view="pending"><div class="kpi-mini">
                             <div class="lbl">Awaiting MF</div>
                             <div class="val text-danger" id="k-pd-nomf">0</div>
                             <div class="sub">warehouse created, no manifest yet</div>
                         </div></div>
-                        <div class="col-6 col-md"><div class="kpi-mini">
+                        <div class="col-6 col-md" data-view="pending"><div class="kpi-mini">
                             <div class="lbl">Aged 24Hrs+</div>
                             <div class="val" id="k-pd-old">0</div>
                             <div class="sub">both reports together</div>
                         </div></div>
-                        <div class="col-6 col-md"><div class="kpi-mini">
+                        <div class="col-6 col-md" data-view="receiving"><div class="kpi-mini">
                             <div class="lbl">Received today</div>
                             <div class="val text-success" id="k-pd-recv">0</div>
                             <div class="sub" id="k-pd-recv-sub">unpacked in the warehouses</div>
                         </div></div>
+                        <div class="col-6 col-md" data-view="receiving"><div class="kpi-mini">
+                            <div class="lbl">Total plan</div>
+                            <div class="val" id="k-pd-plan">0</div>
+                            <div class="sub">planned volume for today</div>
+                        </div></div>
+                        <div class="col-6 col-md" data-view="receiving"><div class="kpi-mini">
+                            <div class="lbl">Var = actual − plan</div>
+                            <div class="val" id="k-pd-var">0</div>
+                            <div class="sub" id="k-pd-var-sub">actual − plan</div>
+                        </div></div>
                     </div>
                 </div>
 
+                <div data-view="receiving">
                 <div class="sec-head"><span class="n">1</span>WH receiving — plan vs actual <span class="hint">— what the warehouses unpacked today, against today's plan</span></div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
@@ -1653,9 +1678,14 @@ body.rail-collapsed { padding-left: 84px !important; }
                         <span class="small text-muted" id="wrPivotNote">—</span>
                     </div>
                     <div style="overflow-x:auto" id="wrPivotTable"></div>
+                    <div class="pd-mf-legend mt-2" id="wrPivotLegend">
+                        <i class="bi bi-percent me-1"></i>Each cell shows the shipments and their share of everything received today; the row and column totals are the margins.
+                    </div>
                 </div>
+                </div><!-- /receiving reports -->
 
-                <div class="sec-head"><span class="n">3</span>Pending shipments in MF <span class="hint">— the MF exists, but the shipment has not been unpacked on it</span></div>
+                <div data-view="pending" class="iview-hidden">
+                <div class="sec-head"><span class="n">1</span>Pending shipments in MF <span class="hint">— the MF exists, but the shipment has not been unpacked on it</span></div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-box-seam me-2 text-primary"></i>WH × aging range</h6>
@@ -1667,7 +1697,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                 </div>
 
-                <div class="sec-head"><span class="n">4</span>Pipeline — no MF yet <span class="hint">— the warehouse created the shipment and has not created a manifest for it</span></div>
+                <div class="sec-head"><span class="n">2</span>Pipeline — no MF yet <span class="hint">— the warehouse created the shipment and has not created a manifest for it</span></div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>WH × aging range</h6>
@@ -1675,6 +1705,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                     <div style="overflow-x:auto" id="pdPipeTable"></div>
                 </div>
+                </div><!-- /pending reports -->
             </div>
 
             <div id="pdEmpty" class="card p-5 border-0 shadow-sm text-center mb-4">
@@ -3678,6 +3709,7 @@ function innerTab(btn){
     pane.querySelectorAll('[data-view]').forEach(sec => {
         sec.classList.toggle('iview-hidden', sec.getAttribute('data-view') !== view);
     });
+    if (pane.id === 'page-pending') pdTabMetaUpdate();
     /* A chart built while its section was hidden keeps a 0x0 canvas, so every
        switch re-measures whatever is now on screen. */
     setTimeout(function(){
@@ -7340,6 +7372,7 @@ function pdPivot(rows, withManifests){
         }
     });
     return Array.from(m.values()).sort((a, b) =>
+        (b.total - a.total) ||
         String(a.wh).localeCompare(String(b.wh), undefined, { numeric: true, sensitivity: 'base' }));
 }
 /* How many DIFFERENT manifests a cell's shipments sit on. The manifest numbers
@@ -7381,6 +7414,42 @@ function pdTable(rows, cols, emptyText, opts){
         cols.map(c => '<th class="text-center">' + esc(c) + '</th>').join('') +
         '<th class="text-center">' + (withMf ? 'Total' : 'Grand Total') + '</th></tr></thead>' +
         '<tbody>' + body + foot + '</tbody></table>';
+}
+
+/* The chip on the right of the inner-tab bar always describes the view on
+   screen: MF numbers for the pending report, WH numbers for receiving. */
+function pdTabMetaUpdate(){
+    const el = document.getElementById('pdTabMeta');
+    if (!el) return;
+    const pane = document.getElementById('page-pending');
+    const active = pane && pane.querySelector('.inner-tabs .it-btn.active');
+    const view = active ? active.getAttribute('data-iview') : 'receiving';
+    /* the card above the reports follows the same view */
+    const title = document.getElementById('pdHeadTitle');
+    const sub = document.getElementById('pdHeadSub');
+    const icon = document.getElementById('pdHeadIcon');
+    const badge = document.getElementById('pdBadge');
+    if (view === 'receiving'){
+        if (title) title.textContent = 'Facility receiving';
+        if (sub) sub.textContent = '— what the warehouses unpacked today';
+        if (icon) icon.className = 'bi bi-box-arrow-in-down me-2 text-primary';
+        if (!wrRows.length){ el.textContent = '—'; return; }
+        const recv = wrRows.reduce(function(a, r){ return a + r.total; }, 0);
+        const plan = wrRows.reduce(function(a, r){ return a + r.plan; }, 0);
+        if (badge){ badge.className = 'badge text-bg-success'; badge.textContent = fmt(recv) + ' unpacked today'; }
+        el.textContent = fmt(wrRows.length) + ' warehouses · ' + fmt(recv) + ' shipments' +
+            (plan ? ' · ' + Math.round((recv / plan) * 100) + '% of plan' : '');
+        return;
+    }
+    if (title) title.textContent = 'Manifest pending';
+    if (sub) sub.textContent = '— one row per shipment still open in a warehouse';
+    if (icon) icon.className = 'bi bi-hourglass-split me-2 text-primary';
+    if (!pdRows.length){ el.textContent = '—'; return; }
+    if (badge){ badge.className = 'badge text-bg-success'; badge.textContent = fmt(pdRows.length) + ' pending shipments'; }
+    const withMf = pdRows.filter(function(r){ return r.mf; });
+    const mfs = new Set(withMf.map(function(r){ return r.mf; })).size;
+    el.textContent = fmt(withMf.length) + ' in MF · ' + fmt(mfs) + ' MF' + (mfs === 1 ? '' : 's') +
+        ' · ' + fmt(pdRows.length - withMf.length) + ' awaiting MF';
 }
 
 function renderPendingTab(){
@@ -7429,7 +7498,7 @@ function renderPendingTab(){
     if (empty) empty.style.display = 'none';
     const badge = document.getElementById('pdBadge');
     if (badge){ badge.className = 'badge text-bg-success'; badge.textContent = fmt(pdRows.length) + ' pending shipments'; }
-    setViewMeta('pdTabMeta', fmt(pdRows.length) + ' shipments · ' + fmt(pdPivot(pdRows).length) + ' warehouses');
+    pdTabMetaUpdate();
 }
 
 async function loadPendingCsv(force){
@@ -7526,7 +7595,7 @@ const WR_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPk
 /* Facility order as the sheet lists it — anything new falls to the end. */
 const WR_FACILITY_ORDER = ['CAI-Z2', 'CAI-Z5', 'EPX', 'directship_express', 'directship',
                            'DS Bulky', 'directship_express Bulky', 'Drop off'];
-const WR_FLAG_ORDER = ['Core NS', 'Core Sort', 'Core Bulky', 'Drop off', 'DS', 'DSE', 'DSE Bulky'];
+const WR_FLAG_ORDER = ['After Sales Warranty', 'Core NS', 'Core Sort', 'Core Bulky', 'Drop off', 'DS', 'DSE', 'DSE Bulky'];
 
 let wrRows = [], wrPivotRows = [], wrLoaded = false, wrLoading = false;
 let wrTodayLabel = '', wrNewestSeen = '';
@@ -7584,6 +7653,19 @@ function renderWhRecv(){
     if (kpi) kpi.textContent = fmt(recvTotal);
     const ksub = document.getElementById('k-pd-recv-sub');
     if (ksub) ksub.textContent = active + ' warehouse' + (active === 1 ? '' : 's') + ' unpacking today';
+    /* Plan vs variance: plain arithmetic on the sheet's own Plan column. */
+    const planKpi = document.getElementById('k-pd-plan');
+    if (planKpi) planKpi.textContent = fmt(planTotal);
+    const varKpi = document.getElementById('k-pd-var');
+    const variance = recvTotal - planTotal;
+    if (varKpi){
+        varKpi.textContent = (variance > 0 ? '+' : '') + fmt(variance);
+        varKpi.className = 'val ' + (variance < 0 ? 'text-danger' : (variance > 0 ? 'text-success' : 'text-muted'));
+    }
+    const varSub = document.getElementById('k-pd-var-sub');
+    if (varSub) varSub.textContent = planTotal
+        ? Math.round((recvTotal / planTotal) * 100) + '% of plan achieved'
+        : 'no plan in the sheet';
 
     if (tbl){
         if (!wrRows.length){
@@ -7591,7 +7673,8 @@ function renderWhRecv(){
                 (wrNewestSeen ? " — the sheet's newest day is " + esc(wrNewestSeen) + '.' : '.') + '</div>';
         } else {
             const rows = wrRows.slice().sort(function(a, b){
-                return (wrOrd(WR_FACILITY_ORDER, a.facility) - wrOrd(WR_FACILITY_ORDER, b.facility)) ||
+                return (b.total - a.total) ||
+                       (wrOrd(WR_FACILITY_ORDER, a.facility) - wrOrd(WR_FACILITY_ORDER, b.facility)) ||
                        String(a.wh).localeCompare(String(b.wh), undefined, { numeric: true });
             });
             const body = rows.map(function(r){
@@ -7622,38 +7705,69 @@ function renderWhRecv(){
           (planTotal ? Math.round((recvTotal / planTotal) * 100) + '% of plan' : 'no plan')
         : 'nothing dated today yet';
 
-    /* --- forward_hub_flag × flag ------------------------------------ */
+    /* --- forward_hub_flag × flag ------------------------------------
+       Mirrors the sheet's own pivot, but every cell carries both readings:
+       the shipment count on top and that cell's share of everything
+       received today underneath, on the same red heat scale. */
     if (piv){
         if (!wrPivotRows.length){
             piv.innerHTML = '<div class="text-center text-muted py-4 small">No hub × flag rows dated today.</div>';
         } else {
             const flags = Array.from(new Set(wrPivotRows.map(function(r){ return r.flag; })))
                 .sort(function(a, b){ return wrOrd(WR_FLAG_ORDER, a) - wrOrd(WR_FLAG_ORDER, b) || String(a).localeCompare(String(b)); });
-            const hubs = Array.from(new Set(wrPivotRows.map(function(r){ return r.hubFlag || '(blank)'; })))
-                .sort(function(a, b){ return String(a).localeCompare(String(b), undefined, { sensitivity: 'base' }); });
             const cell = {};
+            const rowTot = {};
             wrPivotRows.forEach(function(r){
-                const k = (r.hubFlag || '(blank)') + '\u0000' + r.flag;
+                const hub = r.hubFlag || '(blank)';
+                const k = hub + '\u0000' + r.flag;
                 cell[k] = (cell[k] || 0) + r.total;
+                rowTot[hub] = (rowTot[hub] || 0) + r.total;
             });
-            const colTot = {}, rowTot = {};
-            let grand = 0;
+            /* Busiest hub group first, like every other table on the page. */
+            const hubs = Array.from(new Set(wrPivotRows.map(function(r){ return r.hubFlag || '(blank)'; })))
+                .sort(function(a, b){
+                    return (rowTot[b] || 0) - (rowTot[a] || 0) ||
+                        String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
+                });
+            let grand = 0, maxCell = 0;
+            Object.keys(cell).forEach(function(k){
+                grand += cell[k];
+                if (cell[k] > maxCell) maxCell = cell[k];
+            });
+            const shareOf = function(v){ return grand ? (v / grand) * 100 : 0; };
+            /* Excel-style red scale on the share pill: pale for a rounding
+               error, strong for the biggest square in the grid. */
+            const heat = function(v){
+                if (!v || !maxCell) return 'rgba(214,45,60,0)';
+                const t = Math.min(1, v / maxCell);
+                const a = (0.06 + 0.34 * Math.pow(t, 1.2)).toFixed(3);
+                return 'rgba(214,45,60,' + a + ')';
+            };
+            /* One cell, two readings: shipments on top, share of today under
+               it — the same stacked shape as the count + MF badge. */
+            const show = function(v){
+                if (!v) return '';
+                return '<div class="pd-cell-n">' + fmt(v) + '</div>' +
+                    '<div class="wr-pv-p" style="background:' + heat(v) + '">' +
+                        shareOf(v).toFixed(2) + '%</div>';
+            };
+            const colTot = {};
             const body = hubs.map(function(h){
                 let rt = 0;
                 const tds = flags.map(function(f){
                     const v = cell[h + '\u0000' + f] || 0;
                     colTot[f] = (colTot[f] || 0) + v;
                     rt += v;
-                    return '<td class="text-center">' + (v ? fmt(v) : '') + '</td>';
+                    return '<td class="text-center"' + (v ? ' title="' + fmt(v) + ' shipments · ' +
+                        shareOf(v).toFixed(2) + '% of today"' : '') + '>' + show(v) + '</td>';
                 }).join('');
-                rowTot[h] = rt;
-                grand += rt;
                 return '<tr><td class="fw-bold">' + esc(h) + '</td>' + tds +
-                    '<td class="text-center fw-bold">' + fmt(rt) + '</td></tr>';
+                    '<td class="text-center fw-bold"' + (rt ? ' title="' + fmt(rt) + ' shipments · ' +
+                        shareOf(rt).toFixed(2) + '% of today"' : '') + '>' + show(rt) + '</td></tr>';
             }).join('');
             const foot = '<tr class="table-light fw-bold"><td>Grand Total</td>' +
-                flags.map(function(f){ return '<td class="text-center">' + (colTot[f] ? fmt(colTot[f]) : '') + '</td>'; }).join('') +
-                '<td class="text-center">' + fmt(grand) + '</td></tr>';
+                flags.map(function(f){ return '<td class="text-center">' + show(colTot[f] || 0) + '</td>'; }).join('') +
+                '<td class="text-center">' + show(grand) + '</td></tr>';
             piv.innerHTML = '<table class="table table-sm align-middle fs-7 mb-0 mm-pivot">' +
                 '<thead class="table-light"><tr><th>forward_hub_flag</th>' +
                     flags.map(function(f){ return '<th class="text-center">' + esc(f) + '</th>'; }).join('') +
@@ -7663,7 +7777,7 @@ function renderWhRecv(){
     }
     if (pnote) pnote.textContent = wrPivotRows.length
         ? fmt(wrPivotRows.reduce(function(a, r){ return a + r.total; }, 0)) + ' shipments across ' +
-          new Set(wrPivotRows.map(function(r){ return r.hubFlag; })).size + ' hub groups'
+          new Set(wrPivotRows.map(function(r){ return r.hubFlag; })).size + ' hub groups · each cell is shipments + % of today'
         : '—';
 
     if (badge){
@@ -7688,6 +7802,7 @@ function renderWhRecv(){
                   ' — that plan cell looks wrong in the published sheet.</span>'
                 : '');
     }
+    pdTabMetaUpdate();
 }
 
 async function loadWhRecvCsv(force){
