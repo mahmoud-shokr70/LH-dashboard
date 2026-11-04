@@ -322,6 +322,8 @@ body.rail-collapsed { padding-left: 84px !important; }
 .score-pill { border-radius: 999px; padding: 2px 10px; font-weight: 700; font-size: .74rem; display: inline-block; min-width: 52px; text-align: center; }
 .adh-good { background:#e5f3e0; color:#1e7a2e; } .adh-mid { background:#fdf3ce; color:#8a6d1a; }
 .adh-bad { background:#fdecea; color:var(--brand-red); } .adh-na { background:#efece2; color:#6b6353; }
+.adh-pending { background:#fdf3ce; color:#8a6d1a; }
+.live-pending-arr { color:#8a6d1a; font-style:italic; font-size:.72rem; white-space:nowrap; }
 
 .table-container { background: var(--brand-white); border-radius: var(--radius-xl); border: 1px solid var(--warm-line); padding: 20px; box-shadow: var(--shadow-card); }
 
@@ -543,9 +545,10 @@ body.rail-collapsed { padding-left: 84px !important; }
     /* WH receiving — plan vs actual */
     .wr-pill { display: inline-block; min-width: 48px; padding: 1px 7px; border-radius: 999px;
         font-size: .7rem; font-weight: 800; font-family: var(--font-num); }
-    .wr-pill.low { background: #FDECEA; color: #B42318; }
+    .wr-pill.low { background: #FDECEA; color: #B42318; }      /* under plan */
     .wr-pill.mid { background: #FFF3E0; color: #B54708; }
-    .wr-pill.ok  { background: #E7F6EC; color: #067647; }
+    .wr-pill.ok  { background: #E7F6EC; color: #067647; }      /* 90–110% = on plan */
+    .wr-pill.high { background: #F7C9C4; color: #912018; }     /* over plan */
     .wr-pill.na  { background: #F1F0EA; color: #8A8468; }
     .wr-total td { background: #FFFDF2; border-top: 2px solid #E9DFB8 !important; font-weight: 800; }
     /* hub × flag pivot: % / Shipments switch */
@@ -718,6 +721,7 @@ body.rail-collapsed { padding-left: 84px !important; }
     <ul class="nav nav-pills" id="pageTabs">
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard" title="LH Adherence"><i class="bi bi-speedometer2"></i> <span class="nl-txt">LH Adherence</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live" title="LH Live Tracking"><i class="bi bi-broadcast"></i> <span class="nl-txt">LH Live Tracking</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-dock" title="Dock Utilization"><i class="bi bi-box-seam"></i> <span class="nl-txt">Dock Utilization</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn" title="Manpower"><i class="bi bi-people"></i> <span class="nl-txt">Manpower</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mm" id="mmTabBtn" title="MM Pendency"><i class="bi bi-box-seam"></i> <span class="nl-txt">MM Pendency</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-pending" id="pdTabBtn" title="Live WH Receiving"><i class="bi bi-box-arrow-in-down"></i> <span class="nl-txt">Live WH Receiving</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
@@ -1604,6 +1608,92 @@ body.rail-collapsed { padding-left: 84px !important; }
         </div>
 
         <!-- ============ PAGE: PENDING (manifest pending) ============ -->
+        <div class="tab-pane fade" id="page-dock">
+            <div class="page-strip">
+                <div>
+                    <div class="k"><i class="bi bi-box-seam"></i>Dock Utilization</div>
+                    <div class="d">Open → seal at the source dock — adherence, minutes and volume per hub and per vendor, plus the ADM dock feed.</div>
+                </div>
+                <span class="m">MIDDLE-MILE · DOCK</span>
+            </div>
+            <div class="card p-3 mb-4 border-0 shadow-sm">
+                <div class="row g-2 align-items-end">
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted">Date From</label>
+                        <input type="date" id="dock-from" class="form-control form-control-sm" onchange="renderDockUtil()">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted">Date To</label>
+                        <input type="date" id="dock-to" class="form-control form-control-sm" onchange="renderDockUtil()">
+                    </div>
+                    <div class="col-12 col-md-4 d-flex align-items-end gap-2">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="resetDockFilters()"><i class="bi bi-arrow-counterclockwise"></i> Clear</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="reloadDockUtil()"><i class="bi bi-arrow-repeat"></i> Refresh</button>
+                    </div>
+                    <div class="col-12 col-md-4 text-md-end">
+                        <span class="small text-muted" id="dockMeta">—</span>
+                    </div>
+                </div>
+                <div class="small text-muted mt-2">
+                    Open → seal = minutes from dock open to seal applied (<code>Open_to_seal_in_Minutes</code>); adhered / not adhered come from the sheet's own <code>Open_to_seal_Adhrence</code>. The ADM sheet additionally carries <code>Dock_Adherence</code>.
+                </div>
+            </div>
+
+            <div class="sec-head"><span class="n">1</span>Open → seal · hub level <span class="hint">— LH adherence sheet, source hub</span></div>
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-geo-alt me-2 text-primary"></i>Source hub</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted" id="dkLhHubNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('dkLhHubTable','Dock utilization — open to seal by hub','dock_o2s_hub')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto" id="dkLhHubTable"></div>
+                <div class="pd-mf-legend mt-2">
+                    <i class="bi bi-clock-history me-1"></i>Every sealed trip in the range: trips, shipments, adhered vs not adhered (the sheet's <code>Open_to_seal_Adhrence</code>), share and average / worst open → seal minutes. Busiest hub first.
+                </div>
+            </div>
+
+            <div class="sec-head"><span class="n">2</span>Open → seal · vendor level <span class="hint">— the same sealed trips, by vendor</span></div>
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>Vendor</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted" id="dkLhVendorNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('dkLhVendorTable','Dock utilization — open to seal by vendor','dock_o2s_vendor')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto" id="dkLhVendorTable"></div>
+            </div>
+
+            <div class="sec-head"><span class="n">3</span>ADM dock · hub level <span class="hint">— ADM Dock sheet: open → seal + dock adherence</span></div>
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-building me-2 text-primary"></i>ADM source hub</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted" id="dkAdmHubNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('dkAdmHubTable','Dock utilization — ADM dock by hub','dock_adm_hub')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto" id="dkAdmHubTable"></div>
+                <div class="pd-mf-legend mt-2">
+                    <i class="bi bi-building me-1"></i>ADM Dock rows: <code>shipments</code>, <code>Open_to_seal_Adhrence</code>, <code>Open_to_seal_in_Minutes</code> and <code>Dock_Adherence</code>, rolled up per source hub.
+                </div>
+            </div>
+
+            <div class="sec-head"><span class="n">4</span>ADM dock · vendor level <span class="hint">— the same rows, by vendor</span></div>
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>ADM vendor</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted" id="dkAdmVendorNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('dkAdmVendorTable','Dock utilization — ADM dock by vendor','dock_adm_vendor')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto" id="dkAdmVendorTable"></div>
+            </div>
+        </div>
+
         <div class="tab-pane fade" id="page-pending">
             <div class="page-strip">
                 <div>
@@ -1705,6 +1795,36 @@ body.rail-collapsed { padding-left: 84px !important; }
                     <div style="overflow-x:auto" id="wrPivotTable"></div>
                     <div class="pd-mf-legend mt-2" id="wrPivotLegend">
                         <i class="bi bi-percent me-1"></i>Each cell shows the shipments and their share of everything received today; the row and column totals are the margins.
+                    </div>
+                </div>
+
+                <div class="sec-head"><span class="n">3</span>Bulky receiving <span class="hint">— the Bulky block of the same sheet (columns Q–U), pivoted by family</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-boxes me-2 text-primary"></i><span id="wrBulkyTitle">family</span></h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted" id="wrBulkyNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrBulkyTable','Bulky receiving — family × flag','wh_receiving_bulky')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto" id="wrBulkyTable"></div>
+                    <div class="pd-mf-legend mt-2" id="wrBulkyLegend">
+                        <i class="bi bi-boxes me-1"></i>Sum of the Bulky block's <code>total_Shipments</code> per <code>family</code> (and per <code>flag</code> when the block carries one), rows whose <code>unpack_date</code> is today.
+                    </div>
+                </div>
+
+                <div class="sec-head"><span class="n">4</span>Bulky by forward hub <span class="hint">— the same Bulky block (columns Q–U), pivoted by forward hub</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-diagram-3 me-2 text-primary"></i><span id="wrBulkyHubTitle">forward hub</span></h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted" id="wrBulkyHubNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrBulkyHubTable','Bulky receiving — forward hub × flag','wh_receiving_bulky_hub')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto" id="wrBulkyHubTable"></div>
+                    <div class="pd-mf-legend mt-2" id="wrBulkyHubLegend">
+                        <i class="bi bi-diagram-3 me-1"></i>Same rows as the family pivot, rolled up to <code>forward_hub</code>: sum of <code>total_Shipments</code> per <code>forward hub</code> and <code>flag</code>, biggest hub first.
                     </div>
                 </div>
                 </div><!-- /receiving reports -->
@@ -2169,7 +2289,7 @@ body.rail-collapsed { padding-left: 84px !important; }
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'V8';
+const BUILD = 'V16';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -4566,6 +4686,9 @@ function initApp(res, preserve){
     if(typeof initSnapshots === 'function'){
         try{ initSnapshots(); }catch(e){ console.warn('[initApp] initSnapshots failed:', e); }
     }
+    if (typeof bootDockUtil === 'function') {
+        try { bootDockUtil(); } catch(e){ console.warn('[initApp] bootDockUtil failed:', e); }
+    }
     console.log('[initApp] app shown with', rawTrips.length, 'trips');
     tabStatusFromCsv('page-dashboard', 'lh', 'Line haul', rawTrips.length, 'trips');
 }
@@ -4578,6 +4701,13 @@ function initApp(res, preserve){
    hide it. A hub stays on the page even on a day when the live feed has no rows
    for it (it renders a compact "no occurrences" card instead of vanishing). */
 const LIVE_SOURCE_HUBS = ['CAI-G1', 'CAI-G5', 'CAI-G6', 'CAI-Z2'];
+/* Reverse line-haul trips (governorates → Cairo) carry FLAG_HUBS = "LM reverse".
+   Their Source is the governorate hub, not one of the four depart hubs above,
+   so they are kept in scope by this flag and get their own board section. */
+const LIVE_REVERSE_FLAG = 'LM reverse';
+function liveIsReverseRow(t){
+    return String((t && t.flagHubs) || '').trim().toLowerCase() === LIVE_REVERSE_FLAG.toLowerCase();
+}
 
 function liveSourceHubUniverse(){
     return LIVE_SOURCE_HUBS.slice().sort();
@@ -4644,6 +4774,7 @@ function liveAdhClass(raw){
     const s = String(raw || '').trim().toLowerCase();
     if (!s)                    return 'na';
     if (s === 'extra')         return 'extra';
+    if (s.includes('pending') || s.includes('not arrived')) return 'pending';
     if (s.includes('late'))    return 'late';
     if (s === 'adhered' || s.includes('early')) return 'ok';
     return 'na';
@@ -4653,10 +4784,331 @@ function liveAdhChip(raw){
     const s = String(raw || '').trim().toLowerCase();
     if (cls === 'na')    return `<span class="score-pill adh-na">no data</span>`;
     if (cls === 'extra') return `<span class="score-pill adh-na">extra</span>`;
+    if (cls === 'pending') return `<span class="score-pill adh-pending">not arrived yet</span>`;
     if (cls === 'ok')    return s === 'adhered'
         ? `<span class="score-pill adh-good">adhered</span>`
         : `<span class="score-pill adh-good">early — adhered</span>`;
     return `<span class="score-pill adh-bad">not adhered late</span>`;
+}
+
+/* Arrival has not happened yet: the sheet writes "not arrived yet" in
+   Arriv_Time and "Pending" in Arrival_adherence. Shown as-is (never as a
+   late arrival, and never as "no data"). */
+function liveIsPendingArrival(t){
+    const raw = String((t && t.arrRaw) || '').trim().toLowerCase();
+    return raw.indexOf('not arrived') !== -1 || liveAdhClass(t && t.arrAdhRaw) === 'pending';
+}
+
+/* Occurrence grid — one row per destination (depart hubs) or per lane
+   (LM reverse trips), four columns per trip: Out_Time, Dispatch_adherence,
+   Arriv_Time, Arrival_adherence; trips ordered by plan time then sequence. */
+function liveOccTable(rowGroups, firstColLabel){
+    const groups = (rowGroups || []).map(function(g){
+        return { label: g.label, occ: (g.occ || []).slice().sort(function(a, b){
+            return (parseHhmm(a.planOutRaw) ?? parseHhmm(a.outRaw) ?? 0) - (parseHhmm(b.planOutRaw) ?? parseHhmm(b.outRaw) ?? 0) ||
+                seqRank(a.seq) - seqRank(b.seq);
+        }) };
+    });
+    const maxOcc = Math.max(1, ...groups.map(function(g){ return g.occ.length; }));
+    const head1 = `<tr><th rowspan="2" style="min-width:110px">${esc(firstColLabel)}</th>` +
+        Array.from({length:maxOcc}, function(_, i){ return `<th colspan="4" class="occ-head">${ordinal(i+1)}</th>`; }).join('') + `</tr>`;
+    const head2 = `<tr>` + Array.from({length:maxOcc}, function(){
+        return `<th>Out_Time</th><th>Dispatch_adherence</th><th>Arriv_Time</th><th>Arrival_adherence</th>`;
+    }).join('') + `</tr>`;
+    const body = groups.map(function(g){
+        let cells = '';
+        for (let i = 0; i < maxOcc; i++){
+            const t = g.occ[i];
+            if (!t) { cells += `<td colspan="4" class="text-muted">—</td>`; continue; }
+            const pending = liveIsPendingArrival(t);
+            cells += `
+                <td class="time-cell">${esc(String(t.outRaw || '').trim() || '—')}</td>
+                <td>${liveAdhChip(t.outAdhRaw)}</td>
+                <td class="time-cell">${pending ? '<span class="live-pending-arr">not arrived yet</span>' : esc(String(t.arrRaw || '').trim() || '—')}</td>
+                <td>${liveAdhChip(pending ? 'pending' : t.arrAdhRaw)}</td>`;
+        }
+        return `<tr><td class="dest-cell">${esc(g.label)}</td>${cells}</tr>`;
+    }).join('');
+    return `<div class="live-wrap"><table class="live-table"><thead>${head1}${head2}</thead><tbody>${body}</tbody></table></div>`;
+}
+
+/* ================================================================
+   DOCK UTILIZATION — open → seal (LH adherence) + ADM dock
+   Two feeds:
+   • the LH adherence sheet (Open_to_seal_in_Minutes /
+     Open_to_seal_Adhrence) — the same trips the dashboard uses;
+   • the ADM Dock tab of the same workbook (gid 65042295), which also
+     carries Dock_Adherence.
+   Both are reported per source hub and per vendor: trips, shipments,
+   adhered / not adhered, share, average and worst minutes.
+================================================================ */
+const ADM_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=65042295&single=true&output=csv';
+let admRows = [], admLoaded = false, admLoading = false, dockBooted = false;
+
+/* Open-to-seal adherence, read literally: "not adhered early" is a miss
+   here (unlike the live board, where a trip arriving early is fine). */
+function dockAdhKind(raw){
+    const s = String(raw || '').trim().toLowerCase();
+    if (!s) return 'na';
+    if (s === 'adhered') return 'ok';
+    if (s.indexOf('not adhered') !== -1) return 'fail';
+    if (s === 'extra') return 'extra';
+    if (s.indexOf('pending') !== -1 || s.indexOf('not arrived') !== -1) return 'pending';
+    return 'na';
+}
+
+function dockBucket(){
+    return { trips:0, shipments:0, ok:0, fail:0, other:0, minSum:0, minN:0, max:null,
+             dockOk:0, dockFail:0, dockOther:0, dockSum:0, dockN:0, dockMax:null };
+}
+function dockAdd(b, t){
+    if (!b || !t) return;
+    b.trips += 1;
+    b.shipments += Number(t.shipments) || 0;
+    const k = dockAdhKind(t.o2sAdh);
+    if (k === 'ok') b.ok += 1; else if (k === 'fail') b.fail += 1; else b.other += 1;
+    if (typeof t.o2sMin === 'number' && isFinite(t.o2sMin)){
+        b.minSum += t.o2sMin; b.minN += 1;
+        if (b.max === null || t.o2sMin > b.max) b.max = t.o2sMin;
+    }
+    if (String(t.dockAdh || '').trim() !== ''){
+        const d = dockAdhKind(t.dockAdh);
+        if (d === 'ok') b.dockOk += 1; else if (d === 'fail') b.dockFail += 1; else b.dockOther += 1;
+    }
+    if (typeof t.dockMin === 'number' && isFinite(t.dockMin)){
+        b.dockSum += t.dockMin; b.dockN += 1;
+        if (b.dockMax === null || t.dockMin > b.dockMax) b.dockMax = t.dockMin;
+    }
+}
+function dockPct(ok, fail){ const n = ok + fail; return n ? (ok / n) * 100 : null; }
+function dockAvg(sum, n){ return n ? sum / n : null; }
+
+/* One row of numbers per label, biggest shipment volume first. */
+function dockGroup(rows, keyFn){
+    const map = new Map();
+    (rows || []).forEach(function(t){
+        const k = (keyFn(t) || '').trim() || '(blank)';
+        if (!map.has(k)) map.set(k, dockBucket());
+        dockAdd(map.get(k), t);
+    });
+    const list = Array.from(map.entries()).map(function(e){
+        const b = e[1];
+        return { label: e[0], b: b, pct: dockPct(b.ok, b.fail), dockPct: dockPct(b.dockOk, b.dockFail),
+                 avg: dockAvg(b.minSum, b.minN), dockAvg: dockAvg(b.dockSum, b.dockN) };
+    });
+    list.sort(function(a, c){ return ((c.b.shipments - a.b.shipments) || String(a.label).localeCompare(String(c.label))); });
+    const tot = dockBucket();
+    (rows || []).forEach(function(t){ dockAdd(tot, t); });
+    return { list: list, total: tot, pct: dockPct(tot.ok, tot.fail), dockPct: dockPct(tot.dockOk, tot.dockFail),
+             avg: dockAvg(tot.minSum, tot.minN), dockAvg: dockAvg(tot.dockSum, tot.dockN) };
+}
+
+function dockNumCell(v, unit){
+    return v === null || v === undefined ? '—' : (Math.round(v) + (unit ? ' ' + unit : ''));
+}
+function dockTableHTML(g, labelHead, withDock){
+    const head = '<tr><th>' + esc(labelHead) + '</th>' +
+        '<th class="text-center">Trips</th><th class="text-center">Shipments</th>' +
+        '<th class="text-center">Adhered</th><th class="text-center">Not adhered</th>' +
+        '<th class="text-center">O→S %</th><th class="text-center">Avg min</th><th class="text-center">Max min</th>' +
+        (withDock ? '<th class="text-center">Dock adhered</th><th class="text-center">Dock not adh.</th><th class="text-center">Dock %</th>' : '') +
+        '</tr>';
+    const cellRow = function(o, label, cls){
+        return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td class="fw-bold">' + esc(label) + '</td>' +
+            '<td class="text-center">' + fmt(o.trips) + '</td>' +
+            '<td class="text-center">' + fmt(o.shipments) + '</td>' +
+            '<td class="text-center text-success fw-semibold">' + fmt(o.ok) + '</td>' +
+            '<td class="text-center text-danger fw-semibold">' + fmt(o.fail) + '</td>' +
+            '<td class="text-center">' + (o.pct === null ? '—' : pillHtml(o.pct)) + '</td>' +
+            '<td class="text-center">' + dockNumCell(o.avg, 'min') + '</td>' +
+            '<td class="text-center">' + dockNumCell(o.max, 'min') + '</td>' +
+            (withDock
+                ? '<td class="text-center text-success fw-semibold">' + fmt(o.dockOk) + '</td>' +
+                  '<td class="text-center text-danger fw-semibold">' + fmt(o.dockFail) + '</td>' +
+                  '<td class="text-center">' + (o.dockPct === null ? '—' : pillHtml(o.dockPct)) + '</td>'
+                : '') +
+            '</tr>';
+    };
+    const body = g.list.map(function(o){
+        return cellRow({ trips:o.b.trips, shipments:o.b.shipments, ok:o.b.ok, fail:o.b.fail, pct:o.pct,
+                         avg:o.avg, max:o.b.max, dockOk:o.b.dockOk, dockFail:o.b.dockFail, dockPct:o.dockPct }, o.label, '');
+    }).join('');
+    const tot = g.total;
+    const foot = cellRow({ trips:tot.trips, shipments:tot.shipments, ok:tot.ok, fail:tot.fail, pct:g.pct,
+                           avg:g.avg, max:tot.max, dockOk:tot.dockOk, dockFail:tot.dockFail, dockPct:g.dockPct }, 'Grand Total', 'table-light fw-bold');
+    return '<table class="table table-sm align-middle fs-7 mb-0"><thead class="table-light">' + head + '</thead><tbody>' + body + foot + '</tbody></table>';
+}
+function dockEmptyBox(msg){
+    return '<div class="text-center text-muted py-4 small">' + esc(msg) + '</div>';
+}
+function dockNoteText(g, withDock){
+    if (!g.list.length) return 'nothing in this range';
+    let s = fmt(g.total.trips) + ' trips · ' + fmt(g.total.shipments) + ' shipments';
+    if (g.pct !== null) s += ' · ' + Math.round(g.pct) + '% adhered · avg ' + dockNumCell(g.avg, 'min');
+    if (g.total.other) s += ' · ' + fmt(g.total.other) + ' without an adherence value';
+    if (withDock && g.dockPct !== null) s += ' · dock ' + Math.round(g.dockPct) + '%';
+    return s;
+}
+
+function dockRange(){
+    const f = document.getElementById('dock-from');
+    const t = document.getElementById('dock-to');
+    return { from: f ? f.value : '', to: t ? t.value : '' };
+}
+
+/* LH adherence side — only trips that actually reached a seal. */
+function dockLhTrips(){
+    const r = dockRange();
+    return (rawTrips || []).filter(function(t){
+        if (!t) return false;
+        if ((r.from || r.to) && !inDateRange(normDateKey(t.date), r.from, r.to)) return false;
+        return (typeof t.openToSealMin === 'number' && isFinite(t.openToSealMin)) || dockAdhKind(t.openToSealAdh) !== 'na';
+    }).map(function(t){
+        return { shipments: t.shipments, o2sAdh: t.openToSealAdh, o2sMin: t.openToSealMin, srcHub: t.srcHub, vendor: t.vendor };
+    });
+}
+
+/* ADM Dock side. The sheet is column-based rather than named, so the
+   header row drives the mapping and the observed order is the fallback. */
+function admNormKey(k){ return String(k || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''); }
+function admIndex(hdr, tests, fallback){
+    for (let i = 0; i < hdr.length; i++){
+        const k = admNormKey(hdr[i]);
+        if (!k) continue;
+        for (let j = 0; j < tests.length; j++){ if (tests[j].test(k)) return i; }
+    }
+    return fallback;
+}
+function admParse(text){
+    const p = Papa.parse(String(text || ''), { header:false, skipEmptyLines:true });
+    const data = (p.data || []).filter(function(r){ return r && r.length; });
+    if (!data.length) return [];
+    const hdr = data[0] || [];
+    const iDate   = admIndex(hdr, [/^date$/], 0);
+    const iSrc    = admIndex(hdr, [/src_hub/, /source_hub/, /^trip_seal$/], 1);
+    const iDst    = admIndex(hdr, [/dst_hub/, /trip_seal_dst/, /destination/], 2);
+    const iCode   = admIndex(hdr, [/trip_code/], 3);
+    const iVendor = admIndex(hdr, [/vendor/], 4);
+    const iShip   = admIndex(hdr, [/shipment/], 6);
+    const iO2sAdh = admIndex(hdr, [/open.*adh/, /seal.*adh/], 7);
+    const iO2sMin = admIndex(hdr, [/open.*minute/, /seal.*minute/], 8);
+    const iDockAdh = admIndex(hdr, [/dock.*adh/], 9);
+    const iDockMin = admIndex(hdr, [/dock.*minute/], -1);
+    const out = [];
+    for (let i = 1; i < data.length; i++){
+        const r = data[i];
+        if (!r || !String(r[iDate] || '').trim()) continue;
+        if (!normDateKey(String(r[iDate] || '').trim())) continue;
+        out.push({
+            date: String(r[iDate] || '').trim(),
+            srcHub: String(r[iSrc] || '').trim(),
+            dstHub: iDst >= 0 ? String(r[iDst] || '').trim() : '',
+            tripCode: String(r[iCode] || '').trim(),
+            vendor: String(r[iVendor] || '').trim(),
+            shipments: firstNumOrNull(r[iShip]),
+            o2sAdh: String(r[iO2sAdh] || '').trim(),
+            o2sMin: firstNumOrNull(r[iO2sMin]),
+            dockAdh: String(r[iDockAdh] || '').trim(),
+            dockMin: iDockMin >= 0 ? firstNumOrNull(r[iDockMin]) : null
+        });
+    }
+    return out;
+}
+function dockAdmTrips(){
+    const r = dockRange();
+    return (admRows || []).filter(function(t){
+        return !((r.from || r.to) && !inDateRange(normDateKey(t.date), r.from, r.to));
+    });
+}
+
+function renderDockUtil(){
+    if (!document.getElementById('dkLhHubTable')) return;
+    const lhTrips = dockLhTrips();
+    const hubG = dockGroup(lhTrips, function(t){ return t.srcHub; });
+    const venG = dockGroup(lhTrips, function(t){ return t.vendor; });
+
+    const hubHost = document.getElementById('dkLhHubTable');
+    const hubNote = document.getElementById('dkLhHubNote');
+    hubHost.innerHTML = hubG.list.length
+        ? dockTableHTML(hubG, 'Source hub', false)
+        : dockEmptyBox('No sealed trips in the LH sheet for this range.');
+    if (hubNote) hubNote.textContent = dockNoteText(hubG, false);
+
+    const venHost = document.getElementById('dkLhVendorTable');
+    const venNote = document.getElementById('dkLhVendorNote');
+    venHost.innerHTML = venG.list.length
+        ? dockTableHTML(venG, 'Vendor', false)
+        : dockEmptyBox('No sealed trips in the LH sheet for this range.');
+    if (venNote) venNote.textContent = dockNoteText(venG, false);
+
+    const admTrips = dockAdmTrips();
+    const admHubG = dockGroup(admTrips, function(t){ return t.srcHub; });
+    const admVenG = dockGroup(admTrips, function(t){ return t.vendor; });
+    const admMsg = admLoaded
+        ? (admTrips.length ? '' : 'No ADM dock rows for this range.')
+        : (admLoading ? 'Loading the ADM Dock sheet…' : 'The ADM Dock sheet has not answered yet — press Refresh, and publish that tab to the web if it stays empty.');
+
+    ['dkAdmHubTable', 'dkAdmVendorTable'].forEach(function(id){
+        const host = document.getElementById(id);
+        if (!host) return;
+        if (!admLoaded || !admTrips.length){ host.innerHTML = dockEmptyBox(admMsg); return; }
+        host.innerHTML = dockTableHTML(id === 'dkAdmHubTable' ? admHubG : admVenG, id === 'dkAdmHubTable' ? 'ADM source hub' : 'ADM vendor', true);
+    });
+    if (document.getElementById('dkAdmHubNote')) document.getElementById('dkAdmHubNote').textContent = admLoaded ? dockNoteText(admHubG, true) : '—';
+    if (document.getElementById('dkAdmVendorNote')) document.getElementById('dkAdmVendorNote').textContent = admLoaded ? dockNoteText(admVenG, true) : '—';
+
+    const meta = document.getElementById('dockMeta');
+    if (meta){
+        const r = dockRange();
+        const admDates = [...new Set(admRows.map(function(x){ return normDateKey(x.date); }).filter(Boolean))].sort();
+        const cover = admDates.length ? ' · ADM sheet covers ' + admDates[0] + ' → ' + admDates[admDates.length - 1] : '';
+        meta.textContent = (r.from || 'all') + ' → ' + (r.to || 'all') + ' · LH sealed trips: ' + fmt(lhTrips.length) +
+            ' · ADM rows: ' + (admLoaded ? fmt(admTrips.length) : 'not loaded') + cover;
+    }
+}
+
+async function loadAdmCsv(force){
+    if (admLoading || (admLoaded && !force)) return;
+    admLoading = true;
+    renderDockUtil();
+    try {
+        const text = await fetchSheetCsv(ADM_CSV_URL, 'adm', 20, null, !!force);
+        admRows = admParse(text);
+        admLoaded = true;
+        console.log('[Dock] ADM rows:', admRows.length);
+    } catch(e){
+        admLoaded = false;
+        console.warn('[Dock] ADM load failed:', e && e.message ? e.message : e);
+    } finally {
+        admLoading = false;
+        renderDockUtil();
+        if (typeof setTabStatus === 'function') setTabStatus('page-dock', admLoaded ? 'live' : 'idle',
+            admLoaded ? 'ADM dock loaded' : 'ADM dock sheet not published yet');
+    }
+}
+
+function bootDockUtil(){
+    if (dockBooted) return;
+    dockBooted = true;
+    const fromEl = document.getElementById('dock-from');
+    const toEl = document.getElementById('dock-to');
+    if (fromEl && toEl && !fromEl.value && !toEl.value){
+        const keys = [...new Set((rawTrips || []).map(function(t){ return normDateKey(t.date); }).filter(Boolean))].sort();
+        const pick = nearestDateKey(todayIso(), keys) || keys[keys.length - 1] || '';
+        if (pick){ fromEl.value = pick; toEl.value = pick; }
+    }
+    renderDockUtil();
+    loadAdmCsv();
+}
+function resetDockFilters(){
+    const f = document.getElementById('dock-from'), t = document.getElementById('dock-to');
+    if (f) f.value = '';
+    if (t) t.value = '';
+    renderDockUtil();
+}
+function reloadDockUtil(){
+    renderDockUtil();
+    loadAdmCsv(true);
 }
 
 function toggleAutoRefresh(){
@@ -4727,7 +5179,8 @@ function getLiveScopeRows(except){
     // rows from any other source hub are dropped before the filters run, so the
     // hub tables, adherence report, text summary and gap view all agree.
     const hubs = liveSourceHubUniverse();
-    if (hubs.length) rows = rows.filter(t => hubs.indexOf(String(t.srcHub || '').trim()) !== -1);
+    // LM reverse rows start at governorate hubs, so they are kept by flag.
+    if (hubs.length) rows = rows.filter(t => hubs.indexOf(String(t.srcHub || '').trim()) !== -1 || liveIsReverseRow(t));
     if (from || to) rows = rows.filter(t => inDateRange(normDateKey(t.dod), from, to));
     if (except !== 'src'    && srcSel.length)  rows = rows.filter(t => srcSel.includes(t.srcHub));
     if (except !== 'dst'    && dstSel.length)  rows = rows.filter(t => dstSel.includes(t.dstHub));
@@ -4862,7 +5315,8 @@ function renderLiveTracking(){
     // Summary KPIs (Extra rows have no plan → excluded from adherence)
     const planned  = rows.filter(t => String(t.outAdhRaw).trim() !== '' && String(t.outAdhRaw).trim().toLowerCase() !== 'extra');
     const dOk = planned.filter(t => liveAdhClass(t.outAdhRaw) === 'ok').length;
-    const plannedArr = rows.filter(t => String(t.arrAdhRaw).trim() !== '' && String(t.arrAdhRaw).trim().toLowerCase() !== 'extra');
+    // Pending = still en route ("not arrived yet"), so it cannot miss arrival adherence yet.
+    const plannedArr = rows.filter(t => String(t.arrAdhRaw).trim() !== '' && ['extra', 'pending'].indexOf(String(t.arrAdhRaw).trim().toLowerCase()) === -1);
     const aOk = plannedArr.filter(t => liveAdhClass(t.arrAdhRaw) === 'ok').length;
 
     document.getElementById('liveSummary').innerHTML = rows.length ? `
@@ -4875,6 +5329,9 @@ function renderLiveTracking(){
 
     // Group: source hub -> destination hub, occurrences ordered by Trip_Sequence
     const bySrc = groupBy(rows, t => t.srcHub || '—');
+    // Reverse line-haul trips have their own section, one row per lane.
+    const reverseRows = rows.filter(liveIsReverseRow);
+    const reverseByLane = groupBy(reverseRows, t => (t.srcHub || '—') + ' → ' + (t.dstHub || '—'));
     // One section per allowed hub: hubs with data first, then the allowed hubs the
     // live feed has no rows for in this scope (compact "no occurrences" card).
     const allHubs = liveSourceHubUniverse();
@@ -4907,32 +5364,10 @@ function renderLiveTracking(){
         const srcTrips = bySrc[src];
         const byDst = groupBy(srcTrips, t => t.dstHub || '—');
 
-        const dstRows = Object.keys(byDst).sort().map(dst => {
-            const occ = byDst[dst].slice().sort((a, b) =>
-                (parseHhmm(a.planOutRaw) ?? parseHhmm(a.outRaw) ?? 0) - (parseHhmm(b.planOutRaw) ?? parseHhmm(b.outRaw) ?? 0) ||
-                seqRank(a.seq) - seqRank(b.seq));
-            return { dst, occ };
-        });
-        const maxOcc = Math.max(...dstRows.map(r => r.occ.length));
-
-        const head1 = `<tr><th rowspan="2" style="min-width:110px">Destination</th>` +
-            Array.from({length:maxOcc}, (_,i)=>`<th colspan="4" class="occ-head">${ordinal(i+1)}</th>`).join('') + `</tr>`;
-        const head2 = `<tr>` + Array.from({length:maxOcc}, () =>
-            `<th>Out_Time</th><th>Dispatch_adherence</th><th>Arriv_Time</th><th>Arrival_adherence</th>`).join('') + `</tr>`;
-
-        const body = dstRows.map(r => {
-            let cells = '';
-            for (let i=0;i<maxOcc;i++){
-                const t = r.occ[i];
-                if (!t) { cells += `<td colspan="4" class="text-muted">—</td>`; continue; }
-                cells += `
-                    <td class="time-cell">${esc(String(t.outRaw || '').trim() || '—')}</td>
-                    <td>${liveAdhChip(t.outAdhRaw)}</td>
-                    <td class="time-cell">${esc(String(t.arrRaw || '').trim() || '—')}</td>
-                    <td>${liveAdhChip(t.arrAdhRaw)}</td>`;
-            }
-            return `<tr><td class="dest-cell">${esc(r.dst)}</td>${cells}</tr>`;
-        }).join('');
+        const dstRows = Object.keys(byDst).sort();
+        const grid = liveOccTable(
+            dstRows.map(function(dst){ return { label: dst, occ: byDst[dst] }; }),
+            'Destination');
 
         html.push(`
             <div class="table-container mb-4">
@@ -4941,12 +5376,7 @@ function renderLiveTracking(){
                     <span class="text-muted fs-7 ms-2">${esc(rangeLabel)}${dstSel.length?` • dst: ${esc(dstSel.join(', '))}`:''}${venSel.length?` • vendors: ${esc(venSel.join(', '))}`:''}</span></div>
                     <span class="badge text-bg-light border">${fmt(srcTrips.length)} occurrences • ${dstRows.length} destinations</span>
                 </div>
-                <div class="live-wrap">
-                    <table class="live-table">
-                        <thead>${head1}${head2}</thead>
-                        <tbody>${body}</tbody>
-                    </table>
-                </div>
+                ${grid}
             </div>`);
     });
 
@@ -4967,6 +5397,31 @@ function renderLiveTracking(){
             </div>`);
     });
 
+    // LM reverse trips last: governorates back to Cairo, one row per lane.
+    if (reverseRows.length){
+        const laneGroups = Object.keys(reverseByLane)
+            .map(function(lane){ return { label: lane, occ: reverseByLane[lane] }; })
+            .sort(function(a, b){ return (b.occ.length - a.occ.length) || a.label.localeCompare(b.label); });
+        html.push(`
+            <div class="table-container mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                    <div><span class="live-hub-title"><i class="bi bi-arrow-left-right text-warning me-1"></i>LM reverse trips</span>
+                        <span class="text-muted fs-7 ms-2">${esc(rangeLabel)} • FLAG_HUBS = LM reverse • biggest lane first</span></div>
+                    <span class="badge text-bg-light border">${fmt(reverseRows.length)} occurrences • ${laneGroups.length} lanes</span>
+                </div>
+                ${liveOccTable(laneGroups, 'Lane')}
+            </div>`);
+    } else {
+        html.push(`
+            <div class="table-container mb-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div><span class="live-hub-title"><i class="bi bi-arrow-left-right text-secondary me-1"></i>LM reverse trips</span>
+                        <span class="text-muted fs-7 ms-2">no occurrences in ${esc(rangeLabel)}</span></div>
+                    <span class="badge text-bg-light border">0 occurrences</span>
+                </div>
+            </div>`);
+    }
+
     wrap.innerHTML = html.join('');
     if (typeof initSnapshots === 'function') initSnapshots();   // re-add camera buttons to re-rendered tables
     renderLiveReport(rows);
@@ -4982,6 +5437,7 @@ function liveAdhState(raw){
     const cls = liveAdhClass(raw);
     if (cls === 'na')    return { cls:'adh-na', label:'no data' };
     if (cls === 'extra') return { cls:'adh-na', label:'extra' };
+    if (cls === 'pending') return { cls:'adh-pending', label:'not arrived yet' };
     if (cls === 'ok')    return { cls:'adh-good', label: String(raw||'').trim().toLowerCase() === 'adhered' ? 'adhered' : 'early (adhered)' };
     return { cls:'adh-bad', label:'not adhered late' };
 }
@@ -5047,7 +5503,7 @@ function renderLiveWeakVendors(rows){
         const g = by[v] || (by[v] = { vendor:v, occ:0, outOk:0, arrOk:0, late:0, lateOut:0, lateArr:0, mins:0, minsN:0 });
         const oc = liveAdhClass(t.outAdhRaw), ac = liveAdhClass(t.arrAdhRaw);
         const plannedOut = oc !== 'na' && oc !== 'extra';
-        const plannedArr = ac !== 'na' && ac !== 'extra';
+        const plannedArr = ac !== 'na' && ac !== 'extra' && ac !== 'pending';
         g.occ++;
         if (plannedOut) { g.outOk += oc === 'ok' ? 1 : 0; }
         if (plannedArr) { g.arrOk += ac === 'ok' ? 1 : 0; }
@@ -7918,7 +8374,7 @@ const WR_FACILITY_ORDER = ['CAI-Z2', 'CAI-Z5', 'EPX', 'directship_express', 'dir
                            'DS Bulky', 'directship_express Bulky', 'Drop off'];
 const WR_FLAG_ORDER = ['After Sales Warranty', 'Core NS', 'Core Sort', 'Core Bulky', 'Drop off', 'DS', 'DSE', 'DSE Bulky'];
 
-let wrRows = [], wrPivotRows = [], wrLoaded = false, wrLoading = false;
+let wrRows = [], wrPivotRows = [], wrBulkyRows = [], wrLoaded = false, wrLoading = false;
 let wrTodayLabel = '', wrNewestSeen = '';
 
 function wrNum(v){
@@ -7953,7 +8409,8 @@ function wrPill(plan, actual){
        flag it instead of printing an impossible percentage. */
     if (pct > 200) return '<span class="wr-pill na" title="Actual ' + fmt(actual) +
         ' against a plan of ' + fmt(plan) + ' — that plan cell looks wrong in the published sheet">plan?</span>';
-    const cls = pct >= 90 ? 'ok' : (pct >= 60 ? 'mid' : 'low');
+    /* 90–110% of plan is on target (green); below is light red, above is red. */
+    const cls = (pct >= 90 && pct <= 110) ? 'ok' : (pct > 110 ? 'high' : 'low');
     return '<span class="wr-pill ' + cls + '" title="' + fmt(actual) + ' of ' + fmt(plan) + ' planned">' +
         pct + '%</span>';
 }
@@ -8101,6 +8558,9 @@ function renderWhRecv(){
           new Set(wrPivotRows.map(function(r){ return r.hubFlag; })).size + ' hub groups · each cell is shipments + % of today'
         : '—';
 
+    renderWrBulky();
+    renderWrBulkyHub();
+
     if (badge){
         if (wrLoaded && wrRows.length){
             badge.className = 'badge text-bg-success';
@@ -8126,6 +8586,134 @@ function renderWhRecv(){
     pdTabMetaUpdate();
 }
 
+/* --- Bulky block (columns Q–W): family × flag -----------------------
+   The worksheet carries a third block to the right of the two receiving
+   blocks, already aggregated per forward hub / family / flag / day.
+   This report filters it to today and sums total_Shipments by family
+   (rows) and flag (columns), with a total column and a grand-total row —
+   the same shape as the sheet's own pivot. */
+function renderWrBulky(){
+    const host = document.getElementById('wrBulkyTable');
+    const note = document.getElementById('wrBulkyNote');
+    const rows = wrBulkyRows;
+    const total = rows.reduce(function(a, r){ return a + r.total; }, 0);
+    const families = new Set(rows.map(function(r){ return r.family || '(blank)'; }));
+    /* The block lost its flag column (Q–U now); a single "Bulky" column
+       keeps the pivot shape instead of printing a blank header. */
+    const flags = new Set(rows.map(function(r){ return r.flag || 'Bulky'; }));
+    if (note){
+        note.textContent = rows.length
+            ? fmt(total) + ' shipments · ' + fmt(families.size) + ' famil' + (families.size === 1 ? 'y' : 'ies') +
+              (flags.size && !(flags.size === 1 && flags.has('Bulky'))
+                  ? ' · ' + fmt(flags.size) + ' flag' + (flags.size === 1 ? '' : 's') : '')
+            : 'nothing dated today yet';
+    }
+    if (!host) return;
+    if (!rows.length){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">No Bulky rows dated today.</div>';
+        return;
+    }
+    const flagList = Array.from(flags).sort(function(a, b){
+        return (wrOrd(WR_FLAG_ORDER, a) - wrOrd(WR_FLAG_ORDER, b)) ||
+            String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
+    });
+    const cell = {}, rowTot = {}, colTot = {};
+    rows.forEach(function(r){
+        const fam = r.family || '(blank)', fl = r.flag || 'Bulky';
+        cell[fam + '\u0000' + fl] = (cell[fam + '\u0000' + fl] || 0) + r.total;
+        rowTot[fam] = (rowTot[fam] || 0) + r.total;
+        colTot[fl] = (colTot[fl] || 0) + r.total;
+    });
+    /* Biggest family first, like every other report on this page; a blank
+       family name goes last and ties fall back to alphabetical. */
+    const famList = Array.from(families).sort(function(a, b){
+        const ab = a === '(blank)', bb = b === '(blank)';
+        return ((rowTot[b] || 0) - (rowTot[a] || 0)) ||
+            (ab !== bb ? (ab ? 1 : -1) : 0) ||
+            String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    });
+    const body = famList.map(function(fam){
+        return '<tr><td class="fw-bold">' + esc(fam) + '</td>' +
+            flagList.map(function(fl){
+                const v = cell[fam + '\u0000' + fl] || 0;
+                return '<td class="text-center"' + (v
+                    ? ' title="' + fmt(v) + ' shipments · ' + (total ? ((v / total) * 100).toFixed(1) : 0) + '% of Bulky today"'
+                    : '') + '>' + (v ? fmt(v) : '') + '</td>';
+            }).join('') +
+            '<td class="text-center fw-bold">' + fmt(rowTot[fam] || 0) + '</td></tr>';
+    }).join('');
+    const foot = '<tr class="table-light fw-bold"><td>Grand Total</td>' +
+        flagList.map(function(fl){ return '<td class="text-center">' + fmt(colTot[fl] || 0) + '</td>'; }).join('') +
+        '<td class="text-center">' + fmt(total) + '</td></tr>';
+    host.innerHTML = '<table class="table table-sm align-middle fs-7 mb-0 mm-pivot">' +
+        '<thead class="table-light"><tr><th>family</th>' +
+        flagList.map(function(fl){ return '<th class="text-center">' + esc(fl) + '</th>'; }).join('') +
+        '<th class="text-center">Grand Total</th>' +
+        '</tr></thead><tbody>' + body + foot + '</tbody></table>';
+}
+
+/* --- Bulky block: forward hub × flag --------------------------------
+   The same rows as the family pivot, rolled up one level: one line per
+   receiving forward hub, one column per flag. Biggest hub first, with a
+   total column and a grand-total row, matching the family card. */
+function renderWrBulkyHub(){
+    const host = document.getElementById('wrBulkyHubTable');
+    const note = document.getElementById('wrBulkyHubNote');
+    const rows = wrBulkyRows;
+    const total = rows.reduce(function(a, r){ return a + r.total; }, 0);
+    const hubs = new Set(rows.map(function(r){ return r.hub || '(blank)'; }));
+    /* The block lost its flag column (Q–U now); a single "Bulky" column
+       keeps the pivot shape instead of printing a blank header. */
+    const flags = new Set(rows.map(function(r){ return r.flag || 'Bulky'; }));
+    if (note){
+        note.textContent = rows.length
+            ? fmt(total) + ' shipments · ' + fmt(hubs.size) + ' hub' + (hubs.size === 1 ? '' : 's') +
+              (flags.size && !(flags.size === 1 && flags.has('Bulky'))
+                  ? ' · ' + fmt(flags.size) + ' flag' + (flags.size === 1 ? '' : 's') : '')
+            : 'nothing dated today yet';
+    }
+    if (!host) return;
+    if (!rows.length){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">No Bulky rows dated today.</div>';
+        return;
+    }
+    const flagList = Array.from(flags).sort(function(a, b){
+        return (wrOrd(WR_FLAG_ORDER, a) - wrOrd(WR_FLAG_ORDER, b)) ||
+            String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
+    });
+    const cell = {}, rowTot = {}, colTot = {};
+    rows.forEach(function(r){
+        const hub = r.hub || '(blank)', fl = r.flag || 'Bulky';
+        cell[hub + '\u0000' + fl] = (cell[hub + '\u0000' + fl] || 0) + r.total;
+        rowTot[hub] = (rowTot[hub] || 0) + r.total;
+        colTot[fl] = (colTot[fl] || 0) + r.total;
+    });
+    const hubList = Array.from(hubs).sort(function(a, b){
+        const ab = a === '(blank)', bb = b === '(blank)';
+        return ((rowTot[b] || 0) - (rowTot[a] || 0)) ||
+            (ab !== bb ? (ab ? 1 : -1) : 0) ||
+            String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    });
+    const body = hubList.map(function(hub){
+        return '<tr><td class="fw-bold">' + esc(hub) + '</td>' +
+            flagList.map(function(fl){
+                const v = cell[hub + '\u0000' + fl] || 0;
+                return '<td class="text-center"' + (v
+                    ? ' title="' + fmt(v) + ' shipments · ' + (total ? ((v / total) * 100).toFixed(1) : 0) + '% of Bulky today"'
+                    : '') + '>' + (v ? fmt(v) : '') + '</td>';
+            }).join('') +
+            '<td class="text-center fw-bold">' + fmt(rowTot[hub] || 0) + '</td></tr>';
+    }).join('');
+    const foot = '<tr class="table-light fw-bold"><td>Grand Total</td>' +
+        flagList.map(function(fl){ return '<td class="text-center">' + fmt(colTot[fl] || 0) + '</td>'; }).join('') +
+        '<td class="text-center">' + fmt(total) + '</td></tr>';
+    host.innerHTML = '<table class="table table-sm align-middle fs-7 mb-0 mm-pivot">' +
+        '<thead class="table-light"><tr><th>forward hub</th>' +
+        flagList.map(function(fl){ return '<th class="text-center">' + esc(fl) + '</th>'; }).join('') +
+        '<th class="text-center">Grand Total</th>' +
+        '</tr></thead><tbody>' + body + foot + '</tbody></table>';
+}
+
 async function loadWhRecvCsv(force){
     if (wrLoading || (wrLoaded && !force)) return;
     wrLoading = true;
@@ -8142,12 +8730,13 @@ async function loadWhRecvCsv(force){
             if (body.length < 200 || /^loading\b/i.test(body)) continue;   // stub, try again
             parsed = Papa.parse(text, { header: false, skipEmptyLines: 'greedy' });
             data = (parsed.data || []).filter(function(r){
-                return r && r.length > 5 && (String(r[0] || '').trim() || String(r[8] || '').trim());
+                return r && r.length > 5 &&
+                    (String(r[0] || '').trim() || String(r[8] || '').trim() || String(r[16] || '').trim());
             });
         }
         if (!data.length) throw new Error('Google kept returning its "Loading…" placeholder for the receiving sheet.');
 
-        const A = new Map(), B = [], dates = [];
+        const A = new Map(), B = [], C = [], dates = [];
         data.forEach(function(r){
             const aw = String(r[0] || '').trim();
             if (aw){
@@ -8178,6 +8767,29 @@ async function loadWhRecvCsv(force){
                     total: wrNum(r[12])
                 });
             }
+            /* Third block, columns Q–U: the Bulky list — Wh_grouped,
+               forward_hub, family, total_Shipments, unpack_date (16–20).
+               Older copies of the sheet carried flag / forward_hub_flag
+               too (Q–W, date at 22), so locate the date column instead of
+               hard-coding one layout. */
+            const cw = String(r[16] || '').trim();
+            if (cw){
+                let dIdx = -1;
+                for (let i = 20; i <= 22; i++){
+                    if (wrDay(String(r[i] || '').trim())) { dIdx = i; break; }
+                }
+                if (dIdx < 0) dIdx = 20;
+                if (wrIsToday(String(r[dIdx] || '').trim())){
+                    C.push({
+                        wh: cw,
+                        hub: String(r[17] || '').trim(),
+                        family: String(r[18] || '').trim(),
+                        flag: dIdx >= 22 ? String(r[19] || '').trim() : '',
+                        hubFlag: dIdx >= 22 ? String(r[20] || '').trim() : '',
+                        total: wrNum(r[dIdx - 1])
+                    });
+                }
+            }
         });
 
         /* Newest day the sheet carries, for a helpful "nothing yet" message. */
@@ -8193,10 +8805,12 @@ async function loadWhRecvCsv(force){
 
         wrRows = Array.from(A.values());
         wrPivotRows = B;
+        wrBulkyRows = C;
         wrLoaded = true;
         renderWhRecv();
         console.log('[WhRecv] today:', wrRows.length, 'warehouse rows,', B.length,
-                    'hub rows,', wrRows.reduce(function(a, r){ return a + r.total; }, 0), 'shipments');
+                    'hub rows,', C.length, 'bulky rows,',
+                    wrRows.reduce(function(a, r){ return a + r.total; }, 0), 'shipments');
     } catch (e) {
         const m = (e && e.message) ? e.message : String(e);
         console.warn('[WhRecv] load failed:', e);
