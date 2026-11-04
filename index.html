@@ -1626,11 +1626,23 @@ body.rail-collapsed { padding-left: 84px !important; }
                         <label class="form-label fw-bold small text-muted">Date To</label>
                         <input type="date" id="dock-to" class="form-control form-control-sm" onchange="renderDockUtil()">
                     </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted">Src hub</label>
+                        <select id="dock-src" class="form-select form-select-sm" onchange="renderDockUtil()"><option value="">All src hubs</option></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted">Dst hub</label>
+                        <select id="dock-dst" class="form-select form-select-sm" onchange="renderDockUtil()"><option value="">All dst hubs</option></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted">Vendor</label>
+                        <select id="dock-vendor" class="form-select form-select-sm" onchange="renderDockUtil()"><option value="">All vendors</option></select>
+                    </div>
                     <div class="col-12 col-md-4 d-flex align-items-end gap-2">
                         <button class="btn btn-sm btn-outline-secondary" onclick="resetDockFilters()"><i class="bi bi-arrow-counterclockwise"></i> Clear</button>
                         <button class="btn btn-sm btn-outline-primary" onclick="reloadDockUtil()"><i class="bi bi-arrow-repeat"></i> Refresh</button>
                     </div>
-                    <div class="col-12 col-md-4 text-md-end">
+                    <div class="col-12 col-md-12 text-md-end">
                         <span class="small text-muted" id="dockMeta">—</span>
                     </div>
                 </div>
@@ -1639,10 +1651,10 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
             </div>
 
-            <div class="sec-head"><span class="n">1</span>Open → seal · hub level <span class="hint">— LH adherence sheet, source hub</span></div>
+            <div class="sec-head"><span class="n">1</span>Open → seal · hub level <span class="hint">— LH adherence sheet, source → destination hub</span></div>
             <div class="card p-3 border-0 shadow-sm mb-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <h6 class="fw-bold m-0"><i class="bi bi-geo-alt me-2 text-primary"></i>Source hub</h6>
+                    <h6 class="fw-bold m-0"><i class="bi bi-geo-alt me-2 text-primary"></i>Source → destination hub</h6>
                     <div class="d-flex align-items-center gap-2">
                         <span class="small text-muted" id="dkLhHubNote">—</span>
                         <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('dkLhHubTable','Dock utilization — open to seal by hub','dock_o2s_hub')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
@@ -1650,7 +1662,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
                 <div style="overflow-x:auto" id="dkLhHubTable"></div>
                 <div class="pd-mf-legend mt-2">
-                    <i class="bi bi-clock-history me-1"></i>Every sealed trip in the range: trips, shipments, adhered vs not adhered (the sheet's <code>Open_to_seal_Adhrence</code>), share and average / worst open → seal minutes. Busiest hub first.
+                    <i class="bi bi-clock-history me-1"></i>Every sealed trip in the range, one row per <strong>src → dst</strong> lane: trips, shipments, <code>Open_to_seal_Adhrence</code> adhered vs not adhered, the <strong>sum</strong> of <code>Open_to_seal_in_Minutes</code>, its average and its worst value. Busiest lane first.
                 </div>
             </div>
 
@@ -1669,7 +1681,7 @@ body.rail-collapsed { padding-left: 84px !important; }
             <div class="sec-head"><span class="n">3</span>ADM dock · hub level <span class="hint">— ADM Dock sheet: open → seal + dock adherence</span></div>
             <div class="card p-3 border-0 shadow-sm mb-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <h6 class="fw-bold m-0"><i class="bi bi-building me-2 text-primary"></i>ADM source hub</h6>
+                    <h6 class="fw-bold m-0"><i class="bi bi-building me-2 text-primary"></i>ADM source → destination hub</h6>
                     <div class="d-flex align-items-center gap-2">
                         <span class="small text-muted" id="dkAdmHubNote">—</span>
                         <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('dkAdmHubTable','Dock utilization — ADM dock by hub','dock_adm_hub')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
@@ -1677,7 +1689,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
                 <div style="overflow-x:auto" id="dkAdmHubTable"></div>
                 <div class="pd-mf-legend mt-2">
-                    <i class="bi bi-building me-1"></i>ADM Dock rows: <code>shipments</code>, <code>Open_to_seal_Adhrence</code>, <code>Open_to_seal_in_Minutes</code> and <code>Dock_Adherence</code>, rolled up per source hub.
+                    <i class="bi bi-building me-1"></i>ADM Dock rows: <code>shipments</code>, <code>Open_to_seal_Adhrence</code>, <code>Open_to_seal_in_Minutes</code> and <code>Dock_Adherence</code>, rolled up per <strong>src → dst</strong> lane.
                 </div>
             </div>
 
@@ -2289,7 +2301,7 @@ body.rail-collapsed { padding-left: 84px !important; }
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'V16';
+const BUILD = 'V19';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -4906,36 +4918,48 @@ function dockGroup(rows, keyFn){
 function dockNumCell(v, unit){
     return v === null || v === undefined ? '—' : (Math.round(v) + (unit ? ' ' + unit : ''));
 }
-function dockTableHTML(g, labelHead, withDock){
-    const head = '<tr><th>' + esc(labelHead) + '</th>' +
+/* opts = { lane:true, label:'Vendor', withDock:true }
+   Hub cards list one row per src → dst lane (two columns); vendor cards
+   keep a single label column. Adherence columns are named for open → seal
+   so they are not read as the dock figures next to them. */
+function dockTableHTML(g, opts){
+    const o = opts || {};
+    const lane = !!o.lane, withDock = !!o.withDock;
+    const head = '<tr>' + (lane ? '<th>Src hub</th><th>Dst hub</th>' : '<th>' + esc(o.label || '') + '</th>') +
         '<th class="text-center">Trips</th><th class="text-center">Shipments</th>' +
-        '<th class="text-center">Adhered</th><th class="text-center">Not adhered</th>' +
-        '<th class="text-center">O→S %</th><th class="text-center">Avg min</th><th class="text-center">Max min</th>' +
+        '<th class="text-center">O→S adhered</th><th class="text-center">O→S not adhered</th>' +
+        '<th class="text-center">Sum min</th><th class="text-center">Avg min</th><th class="text-center">Max min</th>' +
         (withDock ? '<th class="text-center">Dock adhered</th><th class="text-center">Dock not adh.</th><th class="text-center">Dock %</th>' : '') +
         '</tr>';
-    const cellRow = function(o, label, cls){
-        return '<tr' + (cls ? ' class="' + cls + '"' : '') + '><td class="fw-bold">' + esc(label) + '</td>' +
-            '<td class="text-center">' + fmt(o.trips) + '</td>' +
-            '<td class="text-center">' + fmt(o.shipments) + '</td>' +
-            '<td class="text-center text-success fw-semibold">' + fmt(o.ok) + '</td>' +
-            '<td class="text-center text-danger fw-semibold">' + fmt(o.fail) + '</td>' +
-            '<td class="text-center">' + (o.pct === null ? '—' : pillHtml(o.pct)) + '</td>' +
-            '<td class="text-center">' + dockNumCell(o.avg, 'min') + '</td>' +
-            '<td class="text-center">' + dockNumCell(o.max, 'min') + '</td>' +
-            (withDock
-                ? '<td class="text-center text-success fw-semibold">' + fmt(o.dockOk) + '</td>' +
-                  '<td class="text-center text-danger fw-semibold">' + fmt(o.dockFail) + '</td>' +
-                  '<td class="text-center">' + (o.dockPct === null ? '—' : pillHtml(o.dockPct)) + '</td>'
-                : '') +
-            '</tr>';
+    const lead = function(label, total){
+        if (!lane) return '<td class="fw-bold">' + esc(label) + '</td>';
+        if (total) return '<td class="fw-bold">Grand Total</td><td></td>';
+        const p = String(label).split('\u0000');
+        return '<td class="fw-bold">' + esc(p[0] || '(blank)') + '</td><td>' + esc(p[1] || '(blank)') + '</td>';
     };
-    const body = g.list.map(function(o){
-        return cellRow({ trips:o.b.trips, shipments:o.b.shipments, ok:o.b.ok, fail:o.b.fail, pct:o.pct,
-                         avg:o.avg, max:o.b.max, dockOk:o.b.dockOk, dockFail:o.b.dockFail, dockPct:o.dockPct }, o.label, '');
+    const nums = function(v){
+        return '<td class="text-center">' + fmt(v.trips) + '</td>' +
+            '<td class="text-center">' + fmt(v.shipments) + '</td>' +
+            '<td class="text-center text-success fw-semibold">' + fmt(v.ok) + '</td>' +
+            '<td class="text-center text-danger fw-semibold">' + fmt(v.fail) + '</td>' +
+            '<td class="text-center fw-semibold">' + (v.sumN ? fmt(v.sumMin) : '—') + '</td>' +
+            '<td class="text-center">' + dockNumCell(v.avg, 'min') + '</td>' +
+            '<td class="text-center">' + dockNumCell(v.max, 'min') + '</td>' +
+            (withDock
+                ? '<td class="text-center text-success fw-semibold">' + fmt(v.dockOk) + '</td>' +
+                  '<td class="text-center text-danger fw-semibold">' + fmt(v.dockFail) + '</td>' +
+                  '<td class="text-center">' + (v.dockPct === null ? '—' : pillHtml(v.dockPct)) + '</td>'
+                : '');
+    };
+    const body = g.list.map(function(x){
+        return '<tr>' + lead(x.label) + nums({ trips:x.b.trips, shipments:x.b.shipments, ok:x.b.ok, fail:x.b.fail,
+            sumMin:x.b.minSum, sumN:x.b.minN, avg:x.avg, max:x.b.max,
+            dockOk:x.b.dockOk, dockFail:x.b.dockFail, dockPct:x.dockPct }) + '</tr>';
     }).join('');
     const tot = g.total;
-    const foot = cellRow({ trips:tot.trips, shipments:tot.shipments, ok:tot.ok, fail:tot.fail, pct:g.pct,
-                           avg:g.avg, max:tot.max, dockOk:tot.dockOk, dockFail:tot.dockFail, dockPct:g.dockPct }, 'Grand Total', 'table-light fw-bold');
+    const foot = '<tr class="table-light fw-bold">' + lead('Grand Total', true) +
+        nums({ trips:tot.trips, shipments:tot.shipments, ok:tot.ok, fail:tot.fail, sumMin:tot.minSum, sumN:tot.minN,
+               avg:g.avg, max:tot.max, dockOk:tot.dockOk, dockFail:tot.dockFail, dockPct:g.dockPct }) + '</tr>';
     return '<table class="table table-sm align-middle fs-7 mb-0"><thead class="table-light">' + head + '</thead><tbody>' + body + foot + '</tbody></table>';
 }
 function dockEmptyBox(msg){
@@ -4944,10 +4968,49 @@ function dockEmptyBox(msg){
 function dockNoteText(g, withDock){
     if (!g.list.length) return 'nothing in this range';
     let s = fmt(g.total.trips) + ' trips · ' + fmt(g.total.shipments) + ' shipments';
-    if (g.pct !== null) s += ' · ' + Math.round(g.pct) + '% adhered · avg ' + dockNumCell(g.avg, 'min');
+    if (g.pct !== null) s += ' · ' + Math.round(g.pct) + '% O→S adhered';
+    if (g.total.minN) s += ' · ' + fmt(g.total.minSum) + ' min total · avg ' + dockNumCell(g.avg, 'min');
     if (g.total.other) s += ' · ' + fmt(g.total.other) + ' without an adherence value';
     if (withDock && g.dockPct !== null) s += ' · dock ' + Math.round(g.dockPct) + '%';
     return s;
+}
+
+/* ── filters: one src hub, one dst hub, one vendor — both feeds read them ── */
+function dockPick(id){
+    const el = document.getElementById(id);
+    return el ? String(el.value || '').trim() : '';
+}
+function dockMatch(t){
+    const s = dockPick('dock-src'), d = dockPick('dock-dst'), v = dockPick('dock-vendor');
+    if (s && String(t.srcHub || '').trim() !== s) return false;
+    if (d && String(t.dstHub || '').trim() !== d) return false;
+    if (v && String(t.vendor || '').trim() !== v) return false;
+    return true;
+}
+function fillDockSelect(id, values, allLabel){
+    const el = document.getElementById(id);
+    if (!el) return;
+    const prev = String(el.value || '');
+    const list = Array.from(values).filter(Boolean).sort(function(a, b){ return String(a).localeCompare(String(b)); });
+    el.innerHTML = '<option value="">' + esc(allLabel) + '</option>' +
+        list.map(function(v){ return '<option value="' + esc(v) + '">' + esc(v) + '</option>'; }).join('');
+    el.value = list.indexOf(prev) !== -1 ? prev : '';
+}
+/* Options come from the whole sheet (not the filtered view), so a choice
+   never disappears just because the current range has no rows for it. */
+function populateDockFilters(){
+    const src = new Set(), dst = new Set(), ven = new Set();
+    const add = function(t){
+        if (!t) return;
+        if (t.srcHub) src.add(t.srcHub);
+        if (t.dstHub) dst.add(t.dstHub);
+        if (t.vendor) ven.add(t.vendor);
+    };
+    (rawTrips || []).forEach(add);
+    (admRows || []).forEach(add);
+    fillDockSelect('dock-src', src, 'All src hubs');
+    fillDockSelect('dock-dst', dst, 'All dst hubs');
+    fillDockSelect('dock-vendor', ven, 'All vendors');
 }
 
 function dockRange(){
@@ -4962,9 +5025,11 @@ function dockLhTrips(){
     return (rawTrips || []).filter(function(t){
         if (!t) return false;
         if ((r.from || r.to) && !inDateRange(normDateKey(t.date), r.from, r.to)) return false;
+        if (!dockMatch(t)) return false;
         return (typeof t.openToSealMin === 'number' && isFinite(t.openToSealMin)) || dockAdhKind(t.openToSealAdh) !== 'na';
     }).map(function(t){
-        return { shipments: t.shipments, o2sAdh: t.openToSealAdh, o2sMin: t.openToSealMin, srcHub: t.srcHub, vendor: t.vendor };
+        return { shipments: t.shipments, o2sAdh: t.openToSealAdh, o2sMin: t.openToSealMin,
+                 srcHub: t.srcHub, dstHub: t.dstHub, vendor: t.vendor };
     });
 }
 
@@ -5017,32 +5082,33 @@ function admParse(text){
 function dockAdmTrips(){
     const r = dockRange();
     return (admRows || []).filter(function(t){
-        return !((r.from || r.to) && !inDateRange(normDateKey(t.date), r.from, r.to));
+        if ((r.from || r.to) && !inDateRange(normDateKey(t.date), r.from, r.to)) return false;
+        return dockMatch(t);
     });
 }
 
 function renderDockUtil(){
     if (!document.getElementById('dkLhHubTable')) return;
     const lhTrips = dockLhTrips();
-    const hubG = dockGroup(lhTrips, function(t){ return t.srcHub; });
+    const hubG = dockGroup(lhTrips, function(t){ return t.srcHub + '\u0000' + t.dstHub; });
     const venG = dockGroup(lhTrips, function(t){ return t.vendor; });
 
     const hubHost = document.getElementById('dkLhHubTable');
     const hubNote = document.getElementById('dkLhHubNote');
     hubHost.innerHTML = hubG.list.length
-        ? dockTableHTML(hubG, 'Source hub', false)
+        ? dockTableHTML(hubG, { lane: true })
         : dockEmptyBox('No sealed trips in the LH sheet for this range.');
     if (hubNote) hubNote.textContent = dockNoteText(hubG, false);
 
     const venHost = document.getElementById('dkLhVendorTable');
     const venNote = document.getElementById('dkLhVendorNote');
     venHost.innerHTML = venG.list.length
-        ? dockTableHTML(venG, 'Vendor', false)
+        ? dockTableHTML(venG, { label: 'Vendor' })
         : dockEmptyBox('No sealed trips in the LH sheet for this range.');
     if (venNote) venNote.textContent = dockNoteText(venG, false);
 
     const admTrips = dockAdmTrips();
-    const admHubG = dockGroup(admTrips, function(t){ return t.srcHub; });
+    const admHubG = dockGroup(admTrips, function(t){ return t.srcHub + '\u0000' + t.dstHub; });
     const admVenG = dockGroup(admTrips, function(t){ return t.vendor; });
     const admMsg = admLoaded
         ? (admTrips.length ? '' : 'No ADM dock rows for this range.')
@@ -5052,7 +5118,8 @@ function renderDockUtil(){
         const host = document.getElementById(id);
         if (!host) return;
         if (!admLoaded || !admTrips.length){ host.innerHTML = dockEmptyBox(admMsg); return; }
-        host.innerHTML = dockTableHTML(id === 'dkAdmHubTable' ? admHubG : admVenG, id === 'dkAdmHubTable' ? 'ADM source hub' : 'ADM vendor', true);
+        host.innerHTML = dockTableHTML(id === 'dkAdmHubTable' ? admHubG : admVenG,
+            id === 'dkAdmHubTable' ? { lane: true, withDock: true } : { label: 'ADM vendor', withDock: true });
     });
     if (document.getElementById('dkAdmHubNote')) document.getElementById('dkAdmHubNote').textContent = admLoaded ? dockNoteText(admHubG, true) : '—';
     if (document.getElementById('dkAdmVendorNote')) document.getElementById('dkAdmVendorNote').textContent = admLoaded ? dockNoteText(admVenG, true) : '—';
@@ -5062,14 +5129,22 @@ function renderDockUtil(){
         const r = dockRange();
         const admDates = [...new Set(admRows.map(function(x){ return normDateKey(x.date); }).filter(Boolean))].sort();
         const cover = admDates.length ? ' · ADM sheet covers ' + admDates[0] + ' → ' + admDates[admDates.length - 1] : '';
+        const picks = [];
+        if (dockPick('dock-src')) picks.push('src ' + dockPick('dock-src'));
+        if (dockPick('dock-dst')) picks.push('dst ' + dockPick('dock-dst'));
+        if (dockPick('dock-vendor')) picks.push('vendor ' + dockPick('dock-vendor'));
         meta.textContent = (r.from || 'all') + ' → ' + (r.to || 'all') + ' · LH sealed trips: ' + fmt(lhTrips.length) +
-            ' · ADM rows: ' + (admLoaded ? fmt(admTrips.length) : 'not loaded') + cover;
+            ' · ADM rows: ' + (admLoaded ? fmt(admTrips.length) : 'not loaded') + cover +
+            (picks.length ? ' · ' + picks.join(' · ') : '');
     }
 }
 
 async function loadAdmCsv(force){
     if (admLoading || (admLoaded && !force)) return;
     admLoading = true;
+    /* Same tab-dot language as every other tab: pulsing "loading" while the
+       sheet is in flight, green "ok" once it lands, red when it never answers. */
+    if (typeof setTabStatus === 'function') setTabStatus('page-dock', 'loading', 'Loading the ADM Dock sheet…');
     renderDockUtil();
     try {
         const text = await fetchSheetCsv(ADM_CSV_URL, 'adm', 20, null, !!force);
@@ -5081,15 +5156,20 @@ async function loadAdmCsv(force){
         console.warn('[Dock] ADM load failed:', e && e.message ? e.message : e);
     } finally {
         admLoading = false;
+        populateDockFilters();
         renderDockUtil();
-        if (typeof setTabStatus === 'function') setTabStatus('page-dock', admLoaded ? 'live' : 'idle',
-            admLoaded ? 'ADM dock loaded' : 'ADM dock sheet not published yet');
+        if (typeof setTabStatus === 'function'){
+            const when = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            if (admLoaded) setTabStatus('page-dock', 'ok', fmt(admRows.length) + ' ADM rows + LH open → seal · read from sheet ' + when);
+            else setTabStatus('page-dock', 'err', 'ADM Dock sheet did not answer — LH open → seal is loaded');
+        }
     }
 }
 
 function bootDockUtil(){
     if (dockBooted) return;
     dockBooted = true;
+    if (typeof setTabStatus === 'function') setTabStatus('page-dock', 'loading', 'Loading dock utilisation…');
     const fromEl = document.getElementById('dock-from');
     const toEl = document.getElementById('dock-to');
     if (fromEl && toEl && !fromEl.value && !toEl.value){
@@ -5097,6 +5177,7 @@ function bootDockUtil(){
         const pick = nearestDateKey(todayIso(), keys) || keys[keys.length - 1] || '';
         if (pick){ fromEl.value = pick; toEl.value = pick; }
     }
+    populateDockFilters();
     renderDockUtil();
     loadAdmCsv();
 }
@@ -5104,6 +5185,10 @@ function resetDockFilters(){
     const f = document.getElementById('dock-from'), t = document.getElementById('dock-to');
     if (f) f.value = '';
     if (t) t.value = '';
+    ['dock-src', 'dock-dst', 'dock-vendor'].forEach(function(id){
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
     renderDockUtil();
 }
 function reloadDockUtil(){
