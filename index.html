@@ -1271,7 +1271,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                     <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Week off</div><div class="val text-warning" id="mp-k-wo">—</div><div class="sub">planned off</div></div></div>
                     <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">On leave</div><div class="val text-primary" id="mp-k-leave">—</div><div class="sub" id="mp-k-leave-sub">all leave types</div></div></div>
                     <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">No show</div><div class="val text-danger" id="mp-k-ns">—</div><div class="sub">unplanned gap</div></div></div>
-                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Avg aging</div><div class="val text-primary" id="mp-k-aging">—</div><div class="sub">days worked in 9 months</div></div></div>
+                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Avg aging</div><div class="val text-primary" id="mp-k-aging">-</div><div class="sub" id="mp-k-aging-sub">days worked in 9 months</div></div></div>
                     <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">New — 0 days</div><div class="val text-warning" id="mp-k-new">—</div><div class="sub">no work in the 9m window</div></div></div>
                 </div>
 
@@ -1296,14 +1296,14 @@ body.rail-collapsed { padding-left: 84px !important; }
                             <span class="tx"><span class="ttl">Insource</span><span class="sml" id="pva-cnt-in">Associate · Senior Associate</span></span>
                             <span class="tick"><i class="bi bi-check2-circle"></i></span>
                         </button>
-                        <button type="button" class="pva-mode m-all" id="pva-sec-backend" onclick="pvaSetSection('backend')" title="Everyone on the roster (insource + outsource) against the combined plan">
+                        <button type="button" class="pva-mode m-all" id="pva-sec-backend" onclick="pvaSetSection('backend')" title="Core Colleague + Associate / Senior Associate against the combined plan">
                             <span class="ic"><i class="bi bi-people"></i></span>
-                            <span class="tx"><span class="ttl">Backend</span><span class="sml" id="pva-cnt-backend">for all — insource + outsource</span></span>
+                            <span class="tx"><span class="ttl">Backend</span><span class="sml" id="pva-cnt-backend">Core CC + Associates - insource + outsource</span></span>
                             <span class="tick"><i class="bi bi-check2-circle"></i></span>
                         </button>
                     </div>
                     <div class="pva-hint" id="pvaModeHint">
-                        <strong>Outsource</strong> = Core Colleague (outsource plan) · <strong>Insource</strong> = Associate / Senior Associate (insource plan) · <strong>Backend</strong> = everyone on the roster against the combined plan. <strong>Var = Plan − Actual</strong> (positive = short of plan, negative = above plan). Hub / leg / title / vendor / day filters narrow Actual only.
+                        <strong>Outsource</strong> = Core Colleague (outsource plan) · <strong>Insource</strong> = Associate / Senior Associate (insource plan) · <strong>Backend</strong> = Core Colleague + Associate / Senior Associate against the combined plan. <strong>Var = Plan − Actual</strong> (positive = short of plan, negative = above plan). Hub / leg / title / vendor / day filters narrow Actual only.
                     </div>
                     <div class="row g-3">
                         <div class="col-lg-7">
@@ -6945,8 +6945,9 @@ function renderMpAging(rows, dayCols){
     if (note) note.textContent = !va.length ? '' : (
         (mpState.cat.length
             ? 'Counting only ' + mpState.cat.map(s => String(s).toLowerCase()).join(' / ') +
-              ' people on ' + mpRangeLabel() + ' — '
-            : 'Counting everyone on the roster for ' + mpRangeLabel() + ' (present, week off, leave, no show) - pick Status = Present for working people only. ') +
+              ' people with a Present day on ' + mpRangeLabel() + ' — '
+            : 'Counting employees with at least one Present day in ' + mpRangeLabel() +
+              ' — people with no present day in the range stay out. ') +
         'Resigned / Terminated days are marked RS / TR and count as neither present nor leave; '
         + 'the employee still counts on every day worked before leaving'
         + (isHub ? '.' : '.')
@@ -7072,10 +7073,15 @@ function renderManpower(){
     set('mp-k-leave', fmt(c.leave)); set('mp-k-leave-sub', isMonth ? 'leave-days' : 'all leave types');
     set('mp-k-ns', fmt(c.noshow));
 
-    const aged = scoped.filter(t => t.aging !== null);
+    /* Aging follows Present, not the roster: only employees with at least
+       one Present day inside the selected range feed the aging KPIs, the
+       vendor/hub pivot, its share table and the chart. */
+    const presentOnly = gridded.filter(t => dayCols.some(d => t.days[d] && t.days[d].bucket === 'present'));
+    const aged = presentOnly.filter(t => t.aging !== null);
     const avgAging = aged.length ? Math.round(aged.reduce((s, t) => s + t.aging, 0) / aged.length) : null;
     set('mp-k-aging', avgAging === null ? '—' : avgAging + 'd');
-    set('mp-k-new', fmt(scoped.filter(t => t.aging === 0).length));
+    set('mp-k-aging-sub', 'present people only');
+    set('mp-k-new', fmt(presentOnly.filter(t => t.aging === 0).length));
 
     const hubRows = mpBreakRows(active, t => t.hub, dayCols);
     document.getElementById('mpHubBody').innerHTML = hubRows.length
@@ -7091,8 +7097,8 @@ function renderManpower(){
        grid is filled again below — same synchronous render, so no visible gap. */
     const gridBody = document.getElementById('mpGridBody');
     if (gridBody) gridBody.innerHTML = '';
-    mpAgingScope = { rows: gridded, dayCols: dayCols };   // lets the vendor/hub switch redraw without a full re-render
-    renderMpAging(gridded, dayCols);
+    mpAgingScope = { rows: presentOnly, dayCols: dayCols };   // lets the vendor/hub switch redraw without a full re-render
+    renderMpAging(presentOnly, dayCols);
     renderMpGrid(gridded, dayCols);
     renderMpPlanVsActual();
     refreshMpCounts();
@@ -8428,8 +8434,9 @@ function pvaAvgTable(cfg){
 
     let html = '', sP = 0, sA = 0;
     const legAgg = {};
-    /* One-decimal display that never prints "-0.0". */
-    const n1 = x => (Math.abs(x) < 0.05 ? 0 : x).toFixed(1);
+    /* Whole-number display that never prints "-0" — averages round to the
+       nearest head. */
+    const n1 = x => fmt(Math.round(Math.abs(x) < 0.05 ? 0 : x));
     hubList.forEach(h => {
         const hasPlan = Object.prototype.hasOwnProperty.call(cfg.planByHub, h);
         const p = cfg.planByHub[h] || 0;
@@ -8562,9 +8569,11 @@ function renderPvaV2(hubBody, facBody, note){
         });
     });
 
-    /* Range totals for the three scope cards (present-days in the selection). */
+    /* Range totals for the three scope cards (present-days in the selection).
+       Backend now counts only plan-covered titles, so the unplanned bucket
+       (Team Leaders, supervisors…) is left out of its card. */
     const pvSecSum = sec => Object.keys(rangeT[sec]).reduce((a, k) => a + rangeT[sec][k], 0);
-    const pvBackendSum  = pvSecSum('out') + pvSecSum('in') + pvSecSum('none');
+    const pvBackendSum  = pvSecSum('out') + pvSecSum('in');
     const pvInsourceSum = pvSecSum('in');
 
     const selDods = dayCols.map((c, i) => ({ c: c, i: i, d: planIx[c] })).filter(o => o.d > 0);
@@ -8659,7 +8668,7 @@ function renderPvaV2(hubBody, facBody, note){
                         const def  = plan ? Math.ceil(plan - av) : 0;
                         const pct  = plan ? av / plan * 100 : null;
                         gAgg.plan += plan; gAgg.att += att;
-                        gAgg.max  += mx;   gAgg.avg += av;
+                        gAgg.max  += mx;   gAgg.avg += av;   gAgg.def += def;
                         const hasPlan = !!plan;
                         rowsHtml += '<tr' + (hasPlan ? '' : ' class="table-warning"') + '>' +
                             '<td class="fw-bold">' + esc(h) + (hasPlan ? '' : ' <span class="small text-muted">no plan row</span>') + '</td>' +
@@ -8667,7 +8676,7 @@ function renderPvaV2(hubBody, facBody, note){
                             '<td class="text-center fw-bold">' + fmt(att) + '</td>' +
                             '<td class="text-center ' + pvaVarCls(plan - att) + '">' + fmt(plan - att) + '</td>' +
                             '<td class="text-center">' + fmt(mx) + '</td>' +
-                            '<td class="text-center">' + fmt(av) + '</td>' +
+                            '<td class="text-center">' + fmt(Math.round(av)) + '</td>' +
                             '<td class="text-center ' + (plan && plan - av > 0 ? 'text-danger' : 'text-info') + '">' + fmt(def) + '</td>' +
                             '<td class="text-center small ' + pv2FulCls(pct) + '">' + (pct === null ? '—' : pct.toFixed(2) + '%') + '</td></tr>';
                     });
@@ -8679,13 +8688,22 @@ function renderPvaV2(hubBody, facBody, note){
                         '<td class="text-center">' + fmt(gAgg.att) + '</td>' +
                         '<td class="text-center ' + pvaVarCls(gAgg.plan - gAgg.att) + '">' + fmt(gAgg.plan - gAgg.att) + '</td>' +
                         '<td class="text-center">' + fmt(gAgg.max) + '</td>' +
-                        '<td class="text-center">' + fmt(gAgg.avg) + '</td>' +
+                        '<td class="text-center">' + fmt(Math.round(gAgg.avg)) + '</td>' +
                         '<td class="text-center ' + (gdef > 0 ? 'text-danger' : 'text-info') + '">' + fmt(gdef) + '</td>' +
                         '<td class="text-center small ' + pv2FulCls(gpct) + '">' + (gpct === null ? '—' : gpct.toFixed(2) + '%') + '</td></tr>'; html += rowsHtml;
-                    tot.plan += gAgg.plan; tot.cnt += hubs.length;
+                    tot.plan += gAgg.plan; tot.att += gAgg.att; tot.max += gAgg.max;
+                    tot.avg += gAgg.avg;   tot.def += gAgg.def; tot.cnt += hubs.length;
                 });
-                html += '<tr class="table-secondary fw-bold"><td>Overall planned CC</td>' +
-                    '<td class="text-center">' + fmt(tot.plan) + '</td><td colspan="6" class="small text-muted">hubs: ' + tot.cnt + '</td></tr>';
+                const tdef = Math.ceil(tot.plan - tot.avg);
+                const tpct = tot.plan ? tot.avg / tot.plan * 100 : null;
+                html += '<tr class="table-secondary fw-bold"><td>Overall planned CC <span class="small fw-normal text-muted">(hubs: ' + tot.cnt + ')</span></td>' +
+                    '<td class="text-center">' + fmt(tot.plan) + '</td>' +
+                    '<td class="text-center">' + fmt(tot.att) + '</td>' +
+                    '<td class="text-center ' + pvaVarCls(tot.plan - tot.att) + '">' + fmt(tot.plan - tot.att) + '</td>' +
+                    '<td class="text-center">' + fmt(tot.max) + '</td>' +
+                    '<td class="text-center">' + fmt(Math.round(tot.avg)) + '</td>' +
+                    '<td class="text-center ' + (tdef > 0 ? 'text-danger' : 'text-info') + '">' + fmt(tdef) + '</td>' +
+                    '<td class="text-center small ' + pv2FulCls(tpct) + '">' + (tpct === null ? '—' : tpct.toFixed(2) + '%') + '</td></tr>';
             });
             hubBody.innerHTML = html;
         }
@@ -8733,10 +8751,13 @@ function renderPvaV2(hubBody, facBody, note){
         return;
     }
 
-    /* ---------- BACKEND: everyone vs the combined plan ---------------- */
+    /* ---------- BACKEND: outsource + insource titles vs the combined plan -- */
     if (pvaSection === 'backend'){
-        // Insource + outsource plan on one side, every person on the
-        // roster on the other, averaged over the active days in range.
+        // Insource + outsource plan on one side; on the other, only the
+        // people the plan covers — Core Colleague (outsource) and
+        // Associate / Senior Associate (insource). Team Leaders,
+        // supervisors, cleaners and every other title stay out, exactly
+        // like the Outsource and Insource cards above.
         const activeDays = Math.max(1, dayCols.filter(c => pvReal(c)).length);
         const planByHub = {};
         ['out', 'in'].forEach(sec => Object.keys(pvaV2Plan[sec] || {}).forEach(h => {
@@ -8744,13 +8765,17 @@ function renderPvaV2(hubBody, facBody, note){
         }));
         const presentByHub = {}, legOfHub = {};
         mpAll.filter(t => mpMatch(t, false, true)).forEach(t => {
+            const tit    = String(t.title || '').trim().toLowerCase();
+            const isCore = tit === PVA_CORE.toLowerCase();
+            const isAsso = PVA_INSOURCE_TITLES.indexOf(tit) !== -1;
+            if (!isCore && !isAsso) return;               // plan-covered titles only
             const hub = String(t.hub || '').trim() || '—';
             if (!legOfHub[hub]) legOfHub[hub] = String(t.leg || '').trim() || '—';
             const n = dayCols.filter(c => pvaIsPresent(t, c)).length;
             if (n) presentByHub[hub] = (presentByHub[hub] || 0) + n;
         });
         pvaAvgTable({
-            title: 'Backend — everyone vs the combined plan',
+            title: 'Backend — Core Colleague + Associate / Senior Associate vs the combined plan',
             leftNote: '— Plan = insource + outsource headcount · Actual = average present per active day · Var = Plan − Actual',
             planHead: 'Plan (in + out)', actHead: 'Actual present',
             planByHub: planByHub, presentByHub: presentByHub, legOfHub: legOfHub,
@@ -8758,7 +8783,8 @@ function renderPvaV2(hubBody, facBody, note){
         });
         note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
             'Plan = insource plan (Associate / Senior Associate) + outsource plan (Core Colleague) per hub · ' +
-            'Actual = average present per active day in ' + esc(mpRangeLabel()) + ' (' + activeDays + ' active day' + (activeDays === 1 ? '' : 's') + ') for everyone on the roster, all filters apply · ' +
+            'Actual = average present per active day in ' + esc(mpRangeLabel()) + ' (' + activeDays + ' active day' + (activeDays === 1 ? '' : 's') + ') — ' +
+            'Outsource = Core Colleague, Insource = Associate / Senior Associate; other titles are not counted. All filters apply · ' +
             '<strong>Var = Plan − Actual</strong> (positive = short of plan, negative = above plan).';
         pvaUpdateModeCounts(pvBackendSum, pvInsourceSum);
         return;
