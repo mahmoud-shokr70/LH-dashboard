@@ -6518,7 +6518,7 @@ async function loadManpowerCsv(force){
         /* Google answers a big published sheet with a 10-byte "Loading..." stub
            while it regenerates. That parses into zero employees, which used to
            leave the page blank with no error, so retry until real CSV arrives. */
-        let parsed = null, rows = [];
+        let parsed = null, rows = [], headerArr = [];
         const tStart = Date.now();
         let tFetched = 0, tParsed = 0;
         for (let attempt = 0; attempt < 3 && !rows.length; attempt++){
@@ -6531,19 +6531,36 @@ async function loadManpowerCsv(force){
             const body = String(text || '').trim();
             if (body.length < 200 || /^loading\b/i.test(body)) continue;   // stub, try again
             tParsed = Date.now();
-            parsed = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: false });
+            /* header:false + a positional lookup. The sheet's header row
+               carries blank cells between the day grid and the summary
+               columns; Papa's header mode collapses those into one renamed
+               field, and every value after them (aging included) drifts into
+               __parsed_extra — which is how the Aging table once showed all
+               zeros while the roster itself looked fine. Reading by column
+               index cannot drift, no matter what the header row looks like. */
+            parsed = Papa.parse(text, { header: false, skipEmptyLines: 'greedy', dynamicTyping: false });
             tParsed = Date.now() - tParsed;
-            rows = (parsed.data || []).filter(r => r && (r.Name || r.Hub));
+            const grid = (parsed.data || []).filter(r => r && r.some(function(v){
+                return String(v === null || v === undefined ? '' : v).trim() !== '';
+            }));
+            if (!grid.length) continue;
+            headerArr = grid[0].map(h => String(h === null || h === undefined ? '' : h).trim());
+            const H0 = Object.create(null);
+            headerArr.forEach((h, i) => { if (h && H0[h.toLowerCase()] === undefined) H0[h.toLowerCase()] = i; });
+            rows = grid.slice(1).filter(r => r &&
+                ((H0.name !== undefined && String(r[H0.name] || '').trim()) ||
+                 (H0.hub  !== undefined && String(r[H0.hub]  || '').trim())));
         }
         if (!rows.length) throw new Error('Google kept returning its "Loading…" placeholder. The published sheet was still generating — press Load roster again in a moment.');
 
-        const fields = (parsed.meta && parsed.meta.fields) ? parsed.meta.fields : Object.keys(rows[0] || {});
+        const fields = headerArr;
         mpCols = fields.filter(h => /^\s*\d{1,2}\s*-\s*[A-Za-z]{3,}\s*$/.test(String(h || '')));
 
         /* Header lookup built once: the old mpVal() re-scanned all 146 headers
-           for every field of every row. */
+           for every field of every row. Key = column INDEX, so the broken
+           header row cannot shift values into the wrong field. */
         const H = Object.create(null);
-        fields.forEach(f => { H[String(f).trim().toLowerCase()] = f; });
+        fields.forEach((f, i) => { const k = String(f).trim().toLowerCase(); if (k && H[k] === undefined) H[k] = i; });
         const pick = function(r, names){
             for (let i = 0; i < names.length; i++){
                 const key = H[String(names[i]).trim().toLowerCase()];
@@ -6557,6 +6574,7 @@ async function loadManpowerCsv(force){
 
         const statusCount = new Map();
         const days = mpCols;
+        const dayIdx = days.map(c => fields.indexOf(c));
         const list = [];
         for (let ri = 0; ri < rows.length; ri++){
             const r = rows[ri];
@@ -6584,8 +6602,9 @@ async function loadManpowerCsv(force){
                attendance mark and is never counted as leave. */
             const rowStatus = new Map();
             for (let ci = 0; ci < days.length; ci++){
+                const cell = r[dayIdx[ci]];
+                const raw = String(cell === null || cell === undefined ? '' : cell).trim();
                 const c = days[ci];
-                const raw = String(r[c] === null || r[c] === undefined ? '' : r[c]).trim();
                 if (!raw) continue;
                 const info = mpCellInfo(raw);                  // cached per phrase
                 t.days[c] = info;
