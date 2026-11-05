@@ -1628,15 +1628,15 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted">Src hub</label>
-                        <select id="dock-src" class="form-select form-select-sm" onchange="renderDockUtil()"><option value="">All src hubs</option></select>
+                        <select id="dock-src" class="form-select form-select-sm" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted">Dst hub</label>
-                        <select id="dock-dst" class="form-select form-select-sm" onchange="renderDockUtil()"><option value="">All dst hubs</option></select>
+                        <select id="dock-dst" class="form-select form-select-sm" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted">Vendor</label>
-                        <select id="dock-vendor" class="form-select form-select-sm" onchange="renderDockUtil()"><option value="">All vendors</option></select>
+                        <select id="dock-vendor" class="form-select form-select-sm" multiple="multiple"></select>
                     </div>
                     <div class="col-12 col-md-4 d-flex align-items-end gap-2">
                         <button class="btn btn-sm btn-outline-secondary" onclick="resetDockFilters()"><i class="bi bi-arrow-counterclockwise"></i> Clear</button>
@@ -1647,7 +1647,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                 </div>
                 <div class="small text-muted mt-2">
-                    Open → seal = minutes from dock open to seal applied (<code>Open_to_seal_in_Minutes</code>); adhered / not adhered come from the sheet's own <code>Open_to_seal_Adhrence</code>. The ADM sheet additionally carries <code>Dock_Adherence</code>.
+                    Open → seal = minutes from dock open to seal applied (<code>Open_to_seal_in_Minutes</code>), shown as min / avg / max. The LH cards report open → seal adherence from the sheet's own <code>Open_to_seal_Adhrence</code>; the ADM cards report <code>Dock_Adherence</code> (adhered / not adhered) instead.
                 </div>
             </div>
 
@@ -1662,7 +1662,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
                 <div style="overflow-x:auto" id="dkLhHubTable"></div>
                 <div class="pd-mf-legend mt-2">
-                    <i class="bi bi-clock-history me-1"></i>Every sealed trip in the range, one row per <strong>src → dst</strong> lane: trips, shipments, <code>Open_to_seal_Adhrence</code> adhered vs not adhered, the <strong>sum</strong> of <code>Open_to_seal_in_Minutes</code>, its average and its worst value. Busiest lane first.
+                    <i class="bi bi-clock-history me-1"></i>Every sealed trip in the range, one row per <strong>src → dst</strong> lane: trips, shipments, <code>Open_to_seal_Adhrence</code> adhered vs not adhered, then the <strong>min</strong>, average and <strong>max</strong> of <code>Open_to_seal_in_Minutes</code>. Busiest lane first.
                 </div>
             </div>
 
@@ -1689,7 +1689,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
                 <div style="overflow-x:auto" id="dkAdmHubTable"></div>
                 <div class="pd-mf-legend mt-2">
-                    <i class="bi bi-building me-1"></i>ADM Dock rows: <code>shipments</code>, <code>Open_to_seal_Adhrence</code>, <code>Open_to_seal_in_Minutes</code> and <code>Dock_Adherence</code>, rolled up per <strong>src → dst</strong> lane.
+                    <i class="bi bi-building me-1"></i>ADM Dock rows: <code>shipments</code>, <code>Open_to_seal_in_Minutes</code> (min / avg / max) and <code>Dock_Adherence</code> adhered vs not adhered, rolled up per <strong>src → dst</strong> lane.
                 </div>
             </div>
 
@@ -1703,6 +1703,21 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                 </div>
                 <div style="overflow-x:auto" id="dkAdmVendorTable"></div>
+            </div>
+
+            <div class="sec-head"><span class="n">5</span>Vendor dock plan vs actual <span class="hint">— the plan block on the ADM Dock tab (columns T–Y) against the dock time actually used</span></div>
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-stopwatch me-2 text-primary"></i>Planned window vs dock time used</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted" id="dkPlanNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('dkPlanTable','Dock utilization — vendor plan vs actual','dock_vendor_plan')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto" id="dkPlanTable"></div>
+                <div class="pd-mf-legend mt-2">
+                    <i class="bi bi-stopwatch me-1"></i>Plan comes from the <code>From / Vendor / Duration / Volume / HUB</code> block. Each trip is matched to its vendor's window for its destination hub (nearest window by dispatch hour when a vendor has several). <strong>Dock uses</strong> = trips, <strong>Dock min</strong> = sum of <code>Open_to_seal_in_Minutes</code>. A window is <strong>not adhered</strong> when that time exceeds the window or trips sealed outside it — the reason names which.
+                </div>
             </div>
         </div>
 
@@ -1731,7 +1746,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge text-bg-warning" id="pdBadge">No data yet</span>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="loadPendingCsv(true);loadWhRecvCsv(true)" title="Reload the Pending sheet"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadPendingCsv(true);loadWhRecvCsv(true);loadJtCsv(true)" title="Reload the Pending sheet"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
                     </div>
                 </div>
             </div>
@@ -1810,33 +1825,37 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                 </div>
 
-                <div class="sec-head"><span class="n">3</span>Bulky receiving <span class="hint">— the Bulky block of the same sheet (columns Q–U), pivoted by family</span></div>
-                <div class="card p-3 border-0 shadow-sm mb-4">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                        <h6 class="fw-bold m-0"><i class="bi bi-boxes me-2 text-primary"></i><span id="wrBulkyTitle">family</span></h6>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="small text-muted" id="wrBulkyNote">—</span>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrBulkyTable','Bulky receiving — family × flag','wh_receiving_bulky')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                <div class="sec-head"><span class="n">3</span>Bulky receiving <span class="hint">— the Bulky block of the same sheet (columns Q–W), family on the rows of both tables</span></div>
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-xl-6">
+                        <div class="card p-3 border-0 shadow-sm h-100">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                                <h6 class="fw-bold m-0"><i class="bi bi-boxes me-2 text-primary"></i>family × WH Type</h6>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="small text-muted" id="wrBulkyNote">—</span>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrBulkyTable','Bulky receiving — family × WH Type','wh_receiving_bulky_whtype')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                                </div>
+                            </div>
+                            <div style="overflow-x:auto" id="wrBulkyTable"></div>
+                            <div class="pd-mf-legend mt-2" id="wrBulkyLegend">
+                                <i class="bi bi-boxes me-1"></i>Sum of the Bulky block's <code>total_Shipments</code> per <code>family</code> (rows) and <code>WH Type</code> (columns), rows whose <code>unpack_date</code> is today. Biggest family first, biggest WH Type first.
+                            </div>
                         </div>
                     </div>
-                    <div style="overflow-x:auto" id="wrBulkyTable"></div>
-                    <div class="pd-mf-legend mt-2" id="wrBulkyLegend">
-                        <i class="bi bi-boxes me-1"></i>Sum of the Bulky block's <code>total_Shipments</code> per <code>family</code> (and per <code>flag</code> when the block carries one), rows whose <code>unpack_date</code> is today.
-                    </div>
-                </div>
-
-                <div class="sec-head"><span class="n">4</span>Bulky by forward hub <span class="hint">— the same Bulky block (columns Q–U), pivoted by forward hub</span></div>
-                <div class="card p-3 border-0 shadow-sm mb-4">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                        <h6 class="fw-bold m-0"><i class="bi bi-diagram-3 me-2 text-primary"></i><span id="wrBulkyHubTitle">forward hub</span></h6>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="small text-muted" id="wrBulkyHubNote">—</span>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrBulkyHubTable','Bulky receiving — forward hub × flag','wh_receiving_bulky_hub')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    <div class="col-12 col-xl-6">
+                        <div class="card p-3 border-0 shadow-sm h-100">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                                <h6 class="fw-bold m-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>family × forward hub</h6>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="small text-muted" id="wrBulkyHubNote">—</span>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrBulkyHubTable','Bulky receiving — family × forward hub','wh_receiving_bulky_hub')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                                </div>
+                            </div>
+                            <div style="overflow-x:auto" id="wrBulkyHubTable"></div>
+                            <div class="pd-mf-legend mt-2" id="wrBulkyHubLegend">
+                                <i class="bi bi-diagram-3 me-1"></i>The same rows cut by destination: <code>family</code> (rows) against <code>forward_hub</code> (columns), sum of <code>total_Shipments</code>. Biggest family first, biggest hub first.
+                            </div>
                         </div>
-                    </div>
-                    <div style="overflow-x:auto" id="wrBulkyHubTable"></div>
-                    <div class="pd-mf-legend mt-2" id="wrBulkyHubLegend">
-                        <i class="bi bi-diagram-3 me-1"></i>Same rows as the family pivot, rolled up to <code>forward_hub</code>: sum of <code>total_Shipments</code> per <code>forward hub</code> and <code>flag</code>, biggest hub first.
                     </div>
                 </div>
                 </div><!-- /receiving reports -->
@@ -1887,6 +1906,22 @@ body.rail-collapsed { padding-left: 84px !important; }
                     <div style="overflow:auto;max-height:480px" id="pdDetailTable"></div>
                     <div class="pd-mf-legend mt-2">
                         <i class="bi bi-info-circle me-1"></i>Oldest aging first. Both buttons download a UTF-8 CSV (BOM included) that opens straight in Excel.
+                    </div>
+                </div>
+
+                <div class="sec-head"><span class="n">4</span>J&amp;T pending <span class="hint">— the J&amp;T pending tab: aging range on the rows, PDD aging across the columns</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>Aging_Range × PDD_Aging</h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted" id="jtNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadJtCsv(true)" title="Reload the J&amp;T pending sheet"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('jtTable','J&amp;T pending — aging × PDD aging','jt_pending_aging')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto" id="jtTable"><div class="text-center text-muted py-4 small">Reading the J&amp;T pending sheet…</div></div>
+                    <div class="pd-mf-legend mt-2">
+                        <i class="bi bi-hourglass-split me-1"></i>Every AWB on the <strong>J&amp;T pending</strong> tab, counted once per cell: rows = the sheet's <code>Aging_Range</code> (0–12 Hrs first, “more than 72” last), columns = <code>PDD_Aging</code> (Old PDD → PDD-1 → Current PDD → PDD+1 → Future PDD). Row and column totals are the margins.
                     </div>
                 </div>
                 </div><!-- /pending reports -->            </div>
@@ -2301,7 +2336,7 @@ body.rail-collapsed { padding-left: 84px !important; }
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'V19';
+const BUILD = 'V25';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -3860,6 +3895,7 @@ function bootApp() {
     if (pdTab) pdTab.addEventListener('shown.bs.tab', function(){
         if (typeof loadPendingCsv === 'function') loadPendingCsv(false);
         if (typeof loadWhRecvCsv === 'function') loadWhRecvCsv(false);
+        if (typeof loadJtCsv === 'function') loadJtCsv(false);
     });
 
     loadDataFromCSV();
@@ -4632,6 +4668,7 @@ function refreshData(silent){
     try{ if (mmLoaded && typeof loadMmCsv === 'function') loadMmCsv(true); }catch(e){ console.error('[refreshData] loadMmCsv threw:', e); }
     try{ if (pdLoaded && typeof loadPendingCsv === 'function') loadPendingCsv(true); }catch(e){ console.error('[refreshData] loadPendingCsv threw:', e); }
     try{ if (wrLoaded && typeof loadWhRecvCsv === 'function') loadWhRecvCsv(true); }catch(e){ console.error('[refreshData] loadWhRecvCsv threw:', e); }
+    try{ if (jtLoaded && typeof loadJtCsv === 'function') loadJtCsv(true); }catch(e){ console.error('[refreshData] loadJtCsv threw:', e); }
 
     if(btn){
         setTimeout(function(){ btn.disabled = false; }, 2000);
@@ -4870,7 +4907,7 @@ function dockAdhKind(raw){
 }
 
 function dockBucket(){
-    return { trips:0, shipments:0, ok:0, fail:0, other:0, minSum:0, minN:0, max:null,
+    return { trips:0, shipments:0, ok:0, fail:0, other:0, minSum:0, minN:0, min:null, max:null,
              dockOk:0, dockFail:0, dockOther:0, dockSum:0, dockN:0, dockMax:null };
 }
 function dockAdd(b, t){
@@ -4881,6 +4918,7 @@ function dockAdd(b, t){
     if (k === 'ok') b.ok += 1; else if (k === 'fail') b.fail += 1; else b.other += 1;
     if (typeof t.o2sMin === 'number' && isFinite(t.o2sMin)){
         b.minSum += t.o2sMin; b.minN += 1;
+        if (b.min === null || t.o2sMin < b.min) b.min = t.o2sMin;
         if (b.max === null || t.o2sMin > b.max) b.max = t.o2sMin;
     }
     if (String(t.dockAdh || '').trim() !== ''){
@@ -4918,17 +4956,17 @@ function dockGroup(rows, keyFn){
 function dockNumCell(v, unit){
     return v === null || v === undefined ? '—' : (Math.round(v) + (unit ? ' ' + unit : ''));
 }
-/* opts = { lane:true, label:'Vendor', withDock:true }
+/* opts = { lane:true, label:'Vendor', withDock:true, withO2s:false }
    Hub cards list one row per src → dst lane (two columns); vendor cards
-   keep a single label column. Adherence columns are named for open → seal
-   so they are not read as the dock figures next to them. */
+   keep a single label column. The LH cards report open → seal adherence;
+   the ADM cards drop those two columns and carry Dock_Adherence instead. */
 function dockTableHTML(g, opts){
     const o = opts || {};
-    const lane = !!o.lane, withDock = !!o.withDock;
+    const lane = !!o.lane, withDock = !!o.withDock, withO2s = o.withO2s !== false;
     const head = '<tr>' + (lane ? '<th>Src hub</th><th>Dst hub</th>' : '<th>' + esc(o.label || '') + '</th>') +
         '<th class="text-center">Trips</th><th class="text-center">Shipments</th>' +
-        '<th class="text-center">O→S adhered</th><th class="text-center">O→S not adhered</th>' +
-        '<th class="text-center">Sum min</th><th class="text-center">Avg min</th><th class="text-center">Max min</th>' +
+        (withO2s ? '<th class="text-center">O→S adhered</th><th class="text-center">O→S not adhered</th>' : '') +
+        '<th class="text-center">Min min</th><th class="text-center">Avg min</th><th class="text-center">Max min</th>' +
         (withDock ? '<th class="text-center">Dock adhered</th><th class="text-center">Dock not adh.</th><th class="text-center">Dock %</th>' : '') +
         '</tr>';
     const lead = function(label, total){
@@ -4940,9 +4978,11 @@ function dockTableHTML(g, opts){
     const nums = function(v){
         return '<td class="text-center">' + fmt(v.trips) + '</td>' +
             '<td class="text-center">' + fmt(v.shipments) + '</td>' +
-            '<td class="text-center text-success fw-semibold">' + fmt(v.ok) + '</td>' +
-            '<td class="text-center text-danger fw-semibold">' + fmt(v.fail) + '</td>' +
-            '<td class="text-center fw-semibold">' + (v.sumN ? fmt(v.sumMin) : '—') + '</td>' +
+            (withO2s
+                ? '<td class="text-center text-success fw-semibold">' + fmt(v.ok) + '</td>' +
+                  '<td class="text-center text-danger fw-semibold">' + fmt(v.fail) + '</td>'
+                : '') +
+            '<td class="text-center fw-semibold">' + dockNumCell(v.min, 'min') + '</td>' +
             '<td class="text-center">' + dockNumCell(v.avg, 'min') + '</td>' +
             '<td class="text-center">' + dockNumCell(v.max, 'min') + '</td>' +
             (withDock
@@ -4953,48 +4993,55 @@ function dockTableHTML(g, opts){
     };
     const body = g.list.map(function(x){
         return '<tr>' + lead(x.label) + nums({ trips:x.b.trips, shipments:x.b.shipments, ok:x.b.ok, fail:x.b.fail,
-            sumMin:x.b.minSum, sumN:x.b.minN, avg:x.avg, max:x.b.max,
+            min:x.b.min, avg:x.avg, max:x.b.max,
             dockOk:x.b.dockOk, dockFail:x.b.dockFail, dockPct:x.dockPct }) + '</tr>';
     }).join('');
     const tot = g.total;
     const foot = '<tr class="table-light fw-bold">' + lead('Grand Total', true) +
-        nums({ trips:tot.trips, shipments:tot.shipments, ok:tot.ok, fail:tot.fail, sumMin:tot.minSum, sumN:tot.minN,
-               avg:g.avg, max:tot.max, dockOk:tot.dockOk, dockFail:tot.dockFail, dockPct:g.dockPct }) + '</tr>';
+        nums({ trips:tot.trips, shipments:tot.shipments, ok:tot.ok, fail:tot.fail,
+               min:tot.min, avg:g.avg, max:tot.max, dockOk:tot.dockOk, dockFail:tot.dockFail, dockPct:g.dockPct }) + '</tr>';
     return '<table class="table table-sm align-middle fs-7 mb-0"><thead class="table-light">' + head + '</thead><tbody>' + body + foot + '</tbody></table>';
 }
 function dockEmptyBox(msg){
     return '<div class="text-center text-muted py-4 small">' + esc(msg) + '</div>';
 }
-function dockNoteText(g, withDock){
+function dockNoteText(g, withDock, withO2s){
     if (!g.list.length) return 'nothing in this range';
     let s = fmt(g.total.trips) + ' trips · ' + fmt(g.total.shipments) + ' shipments';
-    if (g.pct !== null) s += ' · ' + Math.round(g.pct) + '% O→S adhered';
-    if (g.total.minN) s += ' · ' + fmt(g.total.minSum) + ' min total · avg ' + dockNumCell(g.avg, 'min');
-    if (g.total.other) s += ' · ' + fmt(g.total.other) + ' without an adherence value';
+    if (withO2s !== false && g.pct !== null) s += ' · ' + Math.round(g.pct) + '% O→S adhered';
+    if (g.total.minN) s += ' · min ' + dockNumCell(g.total.min, 'min') + ' · avg ' + dockNumCell(g.avg, 'min') +
+        ' · max ' + dockNumCell(g.total.max, 'min');
+    if (withO2s !== false && g.total.other) s += ' · ' + fmt(g.total.other) + ' without an adherence value';
     if (withDock && g.dockPct !== null) s += ' · dock ' + Math.round(g.dockPct) + '%';
     return s;
 }
 
-/* ── filters: one src hub, one dst hub, one vendor — both feeds read them ── */
+/* ── filters: any number of src hubs, dst hubs and vendors ─────────────
+   The three <select multiple> are the single source of truth (like the
+   dashboard's filters); the checkbox panel on screen is only a view of
+   them, so every report keeps reading plain option values. */
 function dockPick(id){
     const el = document.getElementById(id);
-    return el ? String(el.value || '').trim() : '';
+    if (!el) return [];
+    return Array.prototype.slice.call(el.options)
+        .filter(function(o){ return o.selected && o.value !== ''; })
+        .map(function(o){ return String(o.value).trim(); });
 }
 function dockMatch(t){
     const s = dockPick('dock-src'), d = dockPick('dock-dst'), v = dockPick('dock-vendor');
-    if (s && String(t.srcHub || '').trim() !== s) return false;
-    if (d && String(t.dstHub || '').trim() !== d) return false;
-    if (v && String(t.vendor || '').trim() !== v) return false;
+    if (s.length && s.indexOf(String(t.srcHub || '').trim()) === -1) return false;
+    if (d.length && d.indexOf(String(t.dstHub || '').trim()) === -1) return false;
+    if (v.length && v.indexOf(String(t.vendor || '').trim()) === -1) return false;
     return true;
 }
-function fillDockSelect(id, values, allLabel){
+function fillDockSelect(id, values){
     const el = document.getElementById(id);
     if (!el) return;
-    const prev = String(el.value || '');
+    const prev = dockPick(id);
     const list = Array.from(values).filter(Boolean).sort(function(a, b){ return String(a).localeCompare(String(b)); });
-    el.innerHTML = '<option value="">' + esc(allLabel) + '</option>' +
-        list.map(function(v){ return '<option value="' + esc(v) + '">' + esc(v) + '</option>'; }).join('');
-    el.value = list.indexOf(prev) !== -1 ? prev : '';
+    el.innerHTML = list.map(function(v){ return '<option value="' + esc(v) + '">' + esc(v) + '</option>'; }).join('');
+    Array.prototype.slice.call(el.options).forEach(function(o){ o.selected = prev.indexOf(o.value) !== -1; });
+    if (el.__mcs) mcsSync(el);
 }
 /* Options come from the whole sheet (not the filtered view), so a choice
    never disappears just because the current range has no rows for it. */
@@ -5008,9 +5055,9 @@ function populateDockFilters(){
     };
     (rawTrips || []).forEach(add);
     (admRows || []).forEach(add);
-    fillDockSelect('dock-src', src, 'All src hubs');
-    fillDockSelect('dock-dst', dst, 'All dst hubs');
-    fillDockSelect('dock-vendor', ven, 'All vendors');
+    fillDockSelect('dock-src', src);
+    fillDockSelect('dock-dst', dst);
+    fillDockSelect('dock-vendor', ven);
 }
 
 function dockRange(){
@@ -5059,6 +5106,14 @@ function admParse(text){
     const iO2sMin = admIndex(hdr, [/open.*minute/, /seal.*minute/], 8);
     const iDockAdh = admIndex(hdr, [/dock.*adh/], 9);
     const iDockMin = admIndex(hdr, [/dock.*minute/], -1);
+    const iHour   = admIndex(hdr, [/hour.*dispatch/, /^hour$/], 5);
+    /* Plan block to the right of the trips (cols T–Y): From, Vendor,
+       Duration (start), (end), Volume, HUB. */
+    const iFrom  = admIndex(hdr, [/^from$/], 19);
+    const iPVen  = admIndex(hdr, [/^vendor$/], 20);
+    const iDur   = admIndex(hdr, [/^duration$/], 21);
+    const iVol   = admIndex(hdr, [/^volume$/], 23);
+    const iHub   = admIndex(hdr, [/^hub$/], 24);
     const out = [];
     for (let i = 1; i < data.length; i++){
         const r = data[i];
@@ -5066,6 +5121,7 @@ function admParse(text){
         if (!normDateKey(String(r[iDate] || '').trim())) continue;
         out.push({
             date: String(r[iDate] || '').trim(),
+            dispatch: String(r[iHour] || '').trim(),
             srcHub: String(r[iSrc] || '').trim(),
             dstHub: iDst >= 0 ? String(r[iDst] || '').trim() : '',
             tripCode: String(r[iCode] || '').trim(),
@@ -5077,8 +5133,190 @@ function admParse(text){
             dockMin: iDockMin >= 0 ? firstNumOrNull(r[iDockMin]) : null
         });
     }
+
+    /* The plan block lives on the same rows, so read it separately and dedupe:
+       the same window repeats down every trip row it happens to sit beside. */
+    if (iFrom >= 0 && iPVen >= 0 && iDur >= 0){
+        const seen = Object.create(null), plan = [];
+        for (let i = 1; i < data.length; i++){
+            const r = data[i] || [];
+            const from = String(r[iFrom] || '').trim();
+            const ven  = String(r[iPVen] || '').trim();
+            const start = dockTimeMin(r[iDur]);
+            if (!from || !ven || start === null) continue;
+            /* The end time sits in the column right after Duration. */
+            let end = null;
+            for (let k = iDur + 1; k <= iDur + 3 && k < r.length; k++){
+                end = dockTimeMin(r[k]);
+                if (end !== null) break;
+            }
+            if (end === null) continue;
+            const hubs = iHub >= 0
+                ? String(r[iHub] || '').split(',').map(function(x){ return x.trim(); }).filter(Boolean)
+                : [];
+            const key = from.toLowerCase() + '|' + ven.toLowerCase() + '|' + start + '|' + end + '|' + hubs.join(',');
+            if (seen[key]) continue;
+            seen[key] = 1;
+            plan.push({ src: from, vendor: ven, start: start, end: end,
+                        volume: iVol >= 0 ? firstNumOrNull(r[iVol]) : null, hubs: hubs });
+        }
+        admPlan = plan;
+    }
     return out;
 }
+/* ================================================================
+   VENDOR DOCK PLAN VS ACTUAL
+   The ADM Dock tab carries a plan block beside the trips: From (source
+   hub), Vendor, Duration (window start), the end time, Volume and HUB
+   (the destination hubs that window covers). A trip is matched to its
+   vendor's window — preferring one that lists its destination hub, then
+   one that contains its dispatch hour, then the nearest start — and the
+   dock time it used (Open_to_seal_in_Minutes) is compared with the
+   length of that window.
+================================================================ */
+let admPlan = [];
+function dockTimeMin(v){
+    const m = String(v === null || v === undefined ? '' : v).trim().match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return null;
+    const h = +m[1], mi = +m[2];
+    if (h > 23 || mi > 59) return null;
+    return h * 60 + mi;
+}
+function dockHhmm(min){
+    if (min === null || min === undefined) return '—';
+    const m = ((Math.round(min) % 1440) + 1440) % 1440;
+    return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+}
+/* Window length in minutes; 12:00 → 02:00 counts as crossing midnight. */
+function dockWindowLen(p){
+    if (!p || p.start === null || p.end === null) return null;
+    let d = p.end - p.start;
+    if (d <= 0) d += 1440;
+    return d;
+}
+function dockInWindow(disp, p){
+    if (disp === null || !p || p.start === null || p.end === null) return null;
+    let rel = disp - p.start;
+    if (rel < 0) rel += 1440;
+    return rel <= dockWindowLen(p);
+}
+function dockPlanFor(t){
+    const v = String(t.vendor || '').trim().toLowerCase();
+    const s = String(t.srcHub || '').trim().toLowerCase();
+    const d = String(t.dstHub || '').trim().toLowerCase();
+    let cands = admPlan.filter(function(p){
+        return p.vendor.toLowerCase() === v && (!p.src || p.src.toLowerCase() === s);
+    });
+    if (!cands.length) return null;
+    const hubMatch = cands.filter(function(p){
+        return p.hubs.length && p.hubs.some(function(h){ return h.toLowerCase() === d; });
+    });
+    if (hubMatch.length) cands = hubMatch;
+    const disp = dockTimeMin(t.dispatch);
+    if (disp === null) return cands[0];
+    const inside = cands.filter(function(p){ return dockInWindow(disp, p) === true; });
+    if (inside.length) return inside[0];
+    return cands.slice().sort(function(a, b){
+        const da = Math.abs(disp - a.start), db = Math.abs(disp - b.start);
+        return Math.min(da, 1440 - da) - Math.min(db, 1440 - db);
+    })[0];
+}
+
+function renderDockPlan(trips){
+    const host = document.getElementById('dkPlanTable');
+    const note = document.getElementById('dkPlanNote');
+    if (!host) return;
+    if (!admLoaded){
+        host.innerHTML = dockEmptyBox('The ADM Dock sheet has not answered yet.');
+        if (note) note.textContent = '—';
+        return;
+    }
+    if (!trips.length){
+        host.innerHTML = dockEmptyBox('No ADM dock rows for this range.');
+        if (note) note.textContent = '—';
+        return;
+    }
+    const map = new Map();
+    trips.forEach(function(t){
+        const p = dockPlanFor(t);
+        const key = p
+            ? ('P\u0000' + p.src + '\u0000' + p.vendor + '\u0000' + p.start + '\u0000' + p.end + '\u0000' + p.hubs.join(','))
+            : ('N\u0000' + (t.vendor || '(blank)'));
+        if (!map.has(key)) map.set(key, { p: p, vendor: t.vendor || '(blank)', src: t.srcHub || '',
+                                          trips: 0, shipments: 0, dockSum: 0, dockN: 0, outside: 0 });
+        const g = map.get(key);
+        g.trips += 1;
+        g.shipments += Number(t.shipments) || 0;
+        if (typeof t.o2sMin === 'number' && isFinite(t.o2sMin)){ g.dockSum += t.o2sMin; g.dockN += 1; }
+        if (p && dockInWindow(dockTimeMin(t.dispatch), p) === false) g.outside += 1;
+    });
+    const list = Array.from(map.values()).map(function(g){
+        const pMin = g.p ? dockWindowLen(g.p) : null;
+        const diff = pMin === null ? null : g.dockSum - pMin;
+        return { g: g, pMin: pMin, diff: diff, over: diff !== null && diff > 0,
+                 bad: (diff !== null && diff > 0) || g.outside > 0 };
+    });
+    list.sort(function(a, b){
+        return ((a.g.p ? 0 : 1) - (b.g.p ? 0 : 1)) || ((b.diff || 0) - (a.diff || 0)) || (b.g.trips - a.g.trips);
+    });
+
+    const body = list.map(function(x){
+        const g = x.g, p = g.p;
+        const reasons = [];
+        if (!p){
+            reasons.push('no plan window for this vendor');
+        } else {
+            if (x.over) reasons.push('used ' + fmt(g.dockSum) + ' min of a ' + fmt(x.pMin) + ' min window (over by ' + fmt(x.diff) + ' min)');
+            if (g.outside) reasons.push(fmt(g.outside) + ' trip' + (g.outside === 1 ? '' : 's') +
+                ' sealed outside ' + dockHhmm(p.start) + '–' + dockHhmm(p.end));
+            if (!reasons.length) reasons.push('within the ' + fmt(x.pMin) + ' min window');
+            if (p.volume && g.shipments > p.volume) reasons.push(fmt(g.shipments) + ' shipments over the planned ' + fmt(p.volume));
+        }
+        const diffTxt = x.diff === null ? '—'
+            : (x.diff > 0 ? '+' + fmt(x.diff) : (x.diff === 0 ? '0' : '−' + fmt(-x.diff)));
+        const status = !p ? '<span class="wr-pill na">No plan</span>'
+            : (x.bad ? '<span class="wr-pill low">Not adhered</span>' : '<span class="wr-pill ok">Adhered</span>');
+        const win = p
+            ? '<strong>' + dockHhmm(p.start) + '–' + dockHhmm(p.end) + '</strong>' +
+              (p.hubs.length ? '<div class="small text-muted">' + esc(p.hubs.slice(0, 4).join(', ')) +
+                  (p.hubs.length > 4 ? ' +' + (p.hubs.length - 4) : '') + '</div>' : '')
+            : '—';
+        return '<tr>' +
+            '<td class="fw-bold">' + esc(g.vendor) + '</td>' +
+            '<td>' + esc(g.src || '—') + '</td>' +
+            '<td>' + win + '</td>' +
+            '<td class="text-center">' + (x.pMin === null ? '—' : fmt(x.pMin)) + '</td>' +
+            '<td class="text-center">' + fmt(g.trips) + '</td>' +
+            '<td class="text-center">' + fmt(g.shipments) + '</td>' +
+            '<td class="text-center fw-semibold">' + (g.dockN ? fmt(g.dockSum) : '—') + '</td>' +
+            '<td class="text-center' + (x.over ? ' text-danger fw-bold' : '') + '">' + diffTxt + '</td>' +
+            '<td class="text-center">' + status + '</td>' +
+            '<td class="small text-muted">' + esc(reasons.join(' · ')) + '</td>' +
+        '</tr>';
+    }).join('');
+
+    host.innerHTML = '<table class="table table-sm align-middle fs-7 mb-0">' +
+        '<thead class="table-light"><tr>' +
+        '<th>Vendor</th><th>Src</th><th>Plan window</th><th class="text-center">Plan min</th>' +
+        '<th class="text-center">Dock uses</th><th class="text-center">Shipments</th>' +
+        '<th class="text-center">Dock min</th><th class="text-center">Diff</th>' +
+        '<th class="text-center">Status</th><th>Reason</th>' +
+        '</tr></thead><tbody>' + body + '</tbody></table>';
+
+    if (note){
+        const withPlan = list.filter(function(x){ return x.g.p; });
+        const bad = withPlan.filter(function(x){ return x.bad; }).length;
+        const unmatched = list.filter(function(x){ return !x.g.p; });
+        let s = fmt(trips.length) + ' trips · ' + fmt(withPlan.length) + ' plan window' + (withPlan.length === 1 ? '' : 's') +
+                ' · ' + fmt(bad) + ' not adhered';
+        if (unmatched.length){
+            const n = unmatched.reduce(function(a, x){ return a + x.g.trips; }, 0);
+            s += ' · ' + fmt(n) + ' trip' + (n === 1 ? '' : 's') + ' without a plan';
+        }
+        note.textContent = s;
+    }
+}
+
 function dockAdmTrips(){
     const r = dockRange();
     return (admRows || []).filter(function(t){
@@ -5107,7 +5345,18 @@ function renderDockUtil(){
         : dockEmptyBox('No sealed trips in the LH sheet for this range.');
     if (venNote) venNote.textContent = dockNoteText(venG, false);
 
-    const admTrips = dockAdmTrips();
+    /* The ADM tab is filled a day behind the LH sheet. When the chosen range
+       holds no ADM rows, show the newest ADM day there is and label it — an
+       empty card beside full LH tables reads like a broken feed. */
+    let admTrips = dockAdmTrips();
+    let admFallback = '';
+    if (!admTrips.length && admLoaded && admRows.length){
+        const last = [...new Set(admRows.map(function(x){ return normDateKey(x.date); }).filter(Boolean))].sort().pop();
+        if (last && last !== normDateKey(dockRange().from)){
+            admFallback = last;
+            admTrips = admRows.filter(function(t){ return normDateKey(t.date) === last && dockMatch(t); });
+        }
+    }
     const admHubG = dockGroup(admTrips, function(t){ return t.srcHub + '\u0000' + t.dstHub; });
     const admVenG = dockGroup(admTrips, function(t){ return t.vendor; });
     const admMsg = admLoaded
@@ -5119,10 +5368,15 @@ function renderDockUtil(){
         if (!host) return;
         if (!admLoaded || !admTrips.length){ host.innerHTML = dockEmptyBox(admMsg); return; }
         host.innerHTML = dockTableHTML(id === 'dkAdmHubTable' ? admHubG : admVenG,
-            id === 'dkAdmHubTable' ? { lane: true, withDock: true } : { label: 'ADM vendor', withDock: true });
+            id === 'dkAdmHubTable' ? { lane: true, withDock: true, withO2s: false }
+                                  : { label: 'ADM vendor', withDock: true, withO2s: false });
     });
-    if (document.getElementById('dkAdmHubNote')) document.getElementById('dkAdmHubNote').textContent = admLoaded ? dockNoteText(admHubG, true) : '—';
-    if (document.getElementById('dkAdmVendorNote')) document.getElementById('dkAdmVendorNote').textContent = admLoaded ? dockNoteText(admVenG, true) : '—';
+    const admSuffix = admFallback
+        ? ' · showing ' + admFallback + ', the newest ADM day — the tab has no rows in the selected range'
+        : '';
+    if (document.getElementById('dkAdmHubNote')) document.getElementById('dkAdmHubNote').textContent = admLoaded ? dockNoteText(admHubG, true, false) + admSuffix : '—';
+    if (document.getElementById('dkAdmVendorNote')) document.getElementById('dkAdmVendorNote').textContent = admLoaded ? dockNoteText(admVenG, true, false) + admSuffix : '—';
+    renderDockPlan(admTrips);
 
     const meta = document.getElementById('dockMeta');
     if (meta){
@@ -5130,9 +5384,10 @@ function renderDockUtil(){
         const admDates = [...new Set(admRows.map(function(x){ return normDateKey(x.date); }).filter(Boolean))].sort();
         const cover = admDates.length ? ' · ADM sheet covers ' + admDates[0] + ' → ' + admDates[admDates.length - 1] : '';
         const picks = [];
-        if (dockPick('dock-src')) picks.push('src ' + dockPick('dock-src'));
-        if (dockPick('dock-dst')) picks.push('dst ' + dockPick('dock-dst'));
-        if (dockPick('dock-vendor')) picks.push('vendor ' + dockPick('dock-vendor'));
+        [['dock-src', 'src'], ['dock-dst', 'dst'], ['dock-vendor', 'vendor']].forEach(function(p){
+            const v = dockPick(p[0]);
+            if (v.length) picks.push(p[1] + ' ' + v.join(', '));
+        });
         meta.textContent = (r.from || 'all') + ' → ' + (r.to || 'all') + ' · LH sealed trips: ' + fmt(lhTrips.length) +
             ' · ADM rows: ' + (admLoaded ? fmt(admTrips.length) : 'not loaded') + cover +
             (picks.length ? ' · ' + picks.join(' · ') : '');
@@ -5177,6 +5432,10 @@ function bootDockUtil(){
         const pick = nearestDateKey(todayIso(), keys) || keys[keys.length - 1] || '';
         if (pick){ fromEl.value = pick; toEl.value = pick; }
     }
+    ['dock-src', 'dock-dst', 'dock-vendor'].forEach(function(id){
+        const el = document.getElementById(id);
+        if (el) mcsInit(el, renderDockUtil);
+    });
     populateDockFilters();
     renderDockUtil();
     loadAdmCsv();
@@ -5187,7 +5446,9 @@ function resetDockFilters(){
     if (t) t.value = '';
     ['dock-src', 'dock-dst', 'dock-vendor'].forEach(function(id){
         const el = document.getElementById(id);
-        if (el) el.value = '';
+        if (!el) return;
+        Array.prototype.slice.call(el.options).forEach(function(o){ o.selected = false; });
+        if (el.__mcs) mcsSync(el);
     });
     renderDockUtil();
 }
@@ -5218,6 +5479,7 @@ function autoRefreshBoth(){
     try{ if (mmLoaded && typeof loadMmCsv === 'function') loadMmCsv(true); }catch(e){ console.error('[autoRefresh] mm threw:', e); }
     try{ if (pdLoaded && typeof loadPendingCsv === 'function') loadPendingCsv(true); }catch(e){ console.error('[autoRefresh] pending threw:', e); }
     try{ if (wrLoaded && typeof loadWhRecvCsv === 'function') loadWhRecvCsv(true); }catch(e){ console.error('[autoRefresh] whrecv threw:', e); }
+    try{ if (jtLoaded && typeof loadJtCsv === 'function') loadJtCsv(true); }catch(e){ console.error('[autoRefresh] jt threw:', e); }
 }
 
 /* Global header auto-refresh. mins = 0 turns it off. */
@@ -8442,6 +8704,148 @@ async function loadPendingCsv(force){
 }
 
 /* ================================================================
+   J&T PENDING — aging range × PDD aging (inside Pending reports)
+   The "J&T pending" tab of the same spreadsheet, one row per AWB:
+   date, awb_nr, loc_type, current_location, pdd, current_hub,
+   dst_hub, Aging_Range, PDD_Aging. AWBs are counted, not summed.
+================================================================ */
+const JT_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=1973781542&single=true&output=csv';
+let jtRows = [], jtLoaded = false, jtLoading = false;
+
+/* Rows run by age: 0 To 12 Hrs, 12 To 24 Hrs, 24 To 48 Hrs, 48 To 72 Hrs,
+   then "more than 72". Columns run by PDD position: overdue first
+   (Old PDD, PDD-3 … PDD-1), then Current PDD, then PDD+1 … PDD+3, then
+   Future PDD. Unknown labels fall to the end, A→Z. */
+function jtAgingRank(label){
+    const s = String(label || '').toLowerCase().trim();
+    if (!s) return 1e9;
+    if (/more\s*than/.test(s)) return 1e6;                 // "More than 72 Hrs" is the tail
+    const m = s.match(/(\d+(?:\.\d+)?)/);
+    return m ? parseFloat(m[1]) : 1e8;
+}
+function jtPddRank(label){
+    const s = String(label || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!s) return 1e9;
+    if (/^old/.test(s)) return -100;                       // already past its PDD
+    if (/^future/.test(s)) return 100;                     // far ahead of its PDD
+    const m = s.match(/pdd\s*([+-])\s*(\d+)/);
+    if (m) return (m[1] === '-' ? -1 : 1) * parseFloat(m[2]);
+    if (/current|today|due/.test(s)) return 0;             // due today
+    const n = s.match(/(\d+)/);
+    return n ? parseFloat(n[1]) : 1e8;
+}
+function renderJtPending(){
+    const host = document.getElementById('jtTable');
+    const note = document.getElementById('jtNote');
+    const rows = jtRows;
+    if (note){
+        const ages = new Set(rows.map(function(r){ return r.aging || '(blank)'; }));
+        const pdds = new Set(rows.map(function(r){ return r.pddAge || '(blank)'; }));
+        note.textContent = rows.length
+            ? fmt(rows.length) + ' AWBs · ' + fmt(ages.size) + ' aging range' + (ages.size === 1 ? '' : 's') +
+              ' · ' + fmt(pdds.size) + ' PDD aging' + (pdds.size === 1 ? '' : 's')
+            : (jtLoaded ? 'nothing on the J&T pending sheet' : 'loading…');
+    }
+    if (!host) return;
+    if (!rows.length){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">' +
+            (jtLoaded ? 'The J&amp;T pending sheet is empty.' : 'Reading the J&amp;T pending sheet…') + '</div>';
+        return;
+    }
+    const cell = {}, rowTot = {}, colTot = {};
+    rows.forEach(function(r){
+        const a = r.aging || '(blank)', p = r.pddAge || '(blank)';
+        cell[a + '\u0000' + p] = (cell[a + '\u0000' + p] || 0) + 1;
+        rowTot[a] = (rowTot[a] || 0) + 1;
+        colTot[p] = (colTot[p] || 0) + 1;
+    });
+    const rowList = Object.keys(rowTot).sort(function(a, b){
+        return (jtAgingRank(a) - jtAgingRank(b)) ||
+            String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    });
+    const colList = Object.keys(colTot).sort(function(a, b){
+        return (jtPddRank(a) - jtPddRank(b)) ||
+            String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    });
+    const total = rows.length;
+    const body = rowList.map(function(a){
+        return '<tr><td class="fw-bold">' + esc(a) + '</td>' +
+            colList.map(function(p){
+                const v = cell[a + '\u0000' + p] || 0;
+                return '<td class="text-center"' + (v
+                    ? ' title="' + fmt(v) + ' AWBs · ' + ((v / total) * 100).toFixed(1) + '% of J&T pending"'
+                    : '') + '>' + (v ? fmt(v) : '') + '</td>';
+            }).join('') +
+            '<td class="text-center fw-bold">' + fmt(rowTot[a]) + '</td></tr>';
+    }).join('');
+    const foot = '<tr class="table-light fw-bold"><td>Grand Total</td>' +
+        colList.map(function(p){ return '<td class="text-center">' + fmt(colTot[p]) + '</td>'; }).join('') +
+        '<td class="text-center">' + fmt(total) + '</td></tr>';
+    host.innerHTML = '<table class="table table-sm align-middle fs-7 mb-0 mm-pivot">' +
+        '<thead class="table-light"><tr><th>Aging range</th>' +
+        colList.map(function(p){ return '<th class="text-center">' + esc(p) + '</th>'; }).join('') +
+        '<th class="text-center">Grand Total</th></tr></thead><tbody>' + body + foot + '</tbody></table>';
+}
+
+async function loadJtCsv(force){
+    if (jtLoading || (jtLoaded && !force)) return;
+    jtLoading = true;
+    const note = document.getElementById('jtNote');
+    if (note) note.textContent = 'loading…';
+    try {
+        csvOnHeal('jt', function(){ loadJtCsv(true); });
+        let text = '';
+        for (let attempt = 0; attempt < 3 && !text; attempt++){
+            if (attempt) await sleep(1200 * attempt);
+            text = String(await fetchSheetCsv(JT_CSV_URL, 'jt', 20, null, !!force) || '').trim();
+            if (text.length < 120 || /^loading\b/i.test(text)) text = '';   // stub, try again
+        }
+        if (!text) throw new Error('Google kept returning its "Loading…" placeholder for the J&T pending sheet.');
+
+        const parsed = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: false });
+        const fields = (parsed.meta && parsed.meta.fields) ? parsed.meta.fields : [];
+        const H = Object.create(null);
+        fields.forEach(function(f){ H[String(f).trim().toLowerCase()] = f; });
+        const pick = function(r, names){
+            for (let i = 0; i < names.length; i++){
+                const key = H[String(names[i]).trim().toLowerCase()];
+                if (key !== undefined){
+                    const v = r[key];
+                    return v === null || v === undefined ? '' : String(v).trim();
+                }
+            }
+            return '';
+        };
+        jtRows = (parsed.data || []).filter(function(r){
+            return r && (pick(r, ['awb_nr', 'awb']) || pick(r, ['current_location']));
+        }).map(function(r){
+            return {
+                date:   pick(r, ['date']),
+                awb:    pick(r, ['awb_nr', 'awb']),
+                aging:  pick(r, ['Aging_Range', 'aging_range']),
+                pddAge: pick(r, ['PDD_Aging', 'pdd_aging']),
+                pdd:    pick(r, ['pdd']),
+                hub:    pick(r, ['current_hub']),
+                dst:    pick(r, ['dst_hub'])
+            };
+        });
+        jtLoaded = true;
+        renderJtPending();
+        console.log('[J&T] pending rows:', jtRows.length);
+    } catch (e) {
+        const m = (e && e.message) ? e.message : String(e);
+        console.warn('[J&T] load failed:', e);
+        if (note) note.textContent = 'J&T sheet did not answer — press Reload';
+        const host = document.getElementById('jtTable');
+        if (host) host.innerHTML = '<div class="text-center text-muted py-4 small">' + esc(m) +
+            ' <button class="btn btn-sm btn-outline-secondary mt-2" onclick="loadJtCsv(true)">' +
+            '<i class="bi bi-arrow-repeat me-1"></i>Retry</button></div>';
+    } finally {
+        jtLoading = false;
+    }
+}
+
+/* ================================================================
    WH RECEIVING — plan vs actual, TODAY ONLY
    The published sheet (gid 115783227) carries two blocks side by side
    on the same worksheet:
@@ -8671,26 +9075,24 @@ function renderWhRecv(){
     pdTabMetaUpdate();
 }
 
-/* --- Bulky block (columns Q–W): family × flag -----------------------
+/* --- Bulky block (columns Q–W): family × WH Type ---------------------
    The worksheet carries a third block to the right of the two receiving
-   blocks, already aggregated per forward hub / family / flag / day.
-   This report filters it to today and sums total_Shipments by family
-   (rows) and flag (columns), with a total column and a grand-total row —
-   the same shape as the sheet's own pivot. */
+   blocks, already aggregated per forward hub / family / WH type / day:
+   Wh_grouped, forward_hub, family, total_Shipments, unpack_date,
+   Facility Receiving, WH Type. This report filters it to today and sums
+   total_Shipments by family (rows) and WH Type (columns), with a total
+   column and a grand-total row — the same shape as the sheet's own pivot. */
 function renderWrBulky(){
     const host = document.getElementById('wrBulkyTable');
     const note = document.getElementById('wrBulkyNote');
     const rows = wrBulkyRows;
     const total = rows.reduce(function(a, r){ return a + r.total; }, 0);
     const families = new Set(rows.map(function(r){ return r.family || '(blank)'; }));
-    /* The block lost its flag column (Q–U now); a single "Bulky" column
-       keeps the pivot shape instead of printing a blank header. */
-    const flags = new Set(rows.map(function(r){ return r.flag || 'Bulky'; }));
+    const types = new Set(rows.map(function(r){ return r.whType || '(blank)'; }));
     if (note){
         note.textContent = rows.length
             ? fmt(total) + ' shipments · ' + fmt(families.size) + ' famil' + (families.size === 1 ? 'y' : 'ies') +
-              (flags.size && !(flags.size === 1 && flags.has('Bulky'))
-                  ? ' · ' + fmt(flags.size) + ' flag' + (flags.size === 1 ? '' : 's') : '')
+              ' · ' + fmt(types.size) + ' WH type' + (types.size === 1 ? '' : 's')
             : 'nothing dated today yet';
     }
     if (!host) return;
@@ -8698,19 +9100,21 @@ function renderWrBulky(){
         host.innerHTML = '<div class="text-center text-muted py-4 small">No Bulky rows dated today.</div>';
         return;
     }
-    const flagList = Array.from(flags).sort(function(a, b){
-        return (wrOrd(WR_FLAG_ORDER, a) - wrOrd(WR_FLAG_ORDER, b)) ||
-            String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
-    });
     const cell = {}, rowTot = {}, colTot = {};
     rows.forEach(function(r){
-        const fam = r.family || '(blank)', fl = r.flag || 'Bulky';
-        cell[fam + '\u0000' + fl] = (cell[fam + '\u0000' + fl] || 0) + r.total;
+        const fam = r.family || '(blank)', ty = r.whType || '(blank)';
+        cell[fam + '\u0000' + ty] = (cell[fam + '\u0000' + ty] || 0) + r.total;
         rowTot[fam] = (rowTot[fam] || 0) + r.total;
-        colTot[fl] = (colTot[fl] || 0) + r.total;
+        colTot[ty] = (colTot[ty] || 0) + r.total;
     });
-    /* Biggest family first, like every other report on this page; a blank
-       family name goes last and ties fall back to alphabetical. */
+    /* Biggest family first, biggest WH type first, like every report here;
+       a blank label goes last and ties fall back to alphabetical. */
+    const typeList = Array.from(types).sort(function(a, b){
+        const ab = a === '(blank)', bb = b === '(blank)';
+        return ((colTot[b] || 0) - (colTot[a] || 0)) ||
+            (ab !== bb ? (ab ? 1 : -1) : 0) ||
+            String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    });
     const famList = Array.from(families).sort(function(a, b){
         const ab = a === '(blank)', bb = b === '(blank)';
         return ((rowTot[b] || 0) - (rowTot[a] || 0)) ||
@@ -8719,8 +9123,8 @@ function renderWrBulky(){
     });
     const body = famList.map(function(fam){
         return '<tr><td class="fw-bold">' + esc(fam) + '</td>' +
-            flagList.map(function(fl){
-                const v = cell[fam + '\u0000' + fl] || 0;
+            typeList.map(function(ty){
+                const v = cell[fam + '\u0000' + ty] || 0;
                 return '<td class="text-center"' + (v
                     ? ' title="' + fmt(v) + ' shipments · ' + (total ? ((v / total) * 100).toFixed(1) : 0) + '% of Bulky today"'
                     : '') + '>' + (v ? fmt(v) : '') + '</td>';
@@ -8728,33 +9132,30 @@ function renderWrBulky(){
             '<td class="text-center fw-bold">' + fmt(rowTot[fam] || 0) + '</td></tr>';
     }).join('');
     const foot = '<tr class="table-light fw-bold"><td>Grand Total</td>' +
-        flagList.map(function(fl){ return '<td class="text-center">' + fmt(colTot[fl] || 0) + '</td>'; }).join('') +
+        typeList.map(function(ty){ return '<td class="text-center">' + fmt(colTot[ty] || 0) + '</td>'; }).join('') +
         '<td class="text-center">' + fmt(total) + '</td></tr>';
     host.innerHTML = '<table class="table table-sm align-middle fs-7 mb-0 mm-pivot">' +
         '<thead class="table-light"><tr><th>family</th>' +
-        flagList.map(function(fl){ return '<th class="text-center">' + esc(fl) + '</th>'; }).join('') +
+        typeList.map(function(ty){ return '<th class="text-center">' + esc(ty) + '</th>'; }).join('') +
         '<th class="text-center">Grand Total</th>' +
         '</tr></thead><tbody>' + body + foot + '</tbody></table>';
 }
 
-/* --- Bulky block: forward hub × flag --------------------------------
-   The same rows as the family pivot, rolled up one level: one line per
-   receiving forward hub, one column per flag. Biggest hub first, with a
-   total column and a grand-total row, matching the family card. */
+/* --- Bulky block: family × forward hub ------------------------------
+   The same rows, the other cut: family on the rows, forward hub across
+   the columns, so the two cards answer "which family, in which WH type"
+   and "which family, to which hub" side by side. */
 function renderWrBulkyHub(){
     const host = document.getElementById('wrBulkyHubTable');
     const note = document.getElementById('wrBulkyHubNote');
     const rows = wrBulkyRows;
     const total = rows.reduce(function(a, r){ return a + r.total; }, 0);
+    const families = new Set(rows.map(function(r){ return r.family || '(blank)'; }));
     const hubs = new Set(rows.map(function(r){ return r.hub || '(blank)'; }));
-    /* The block lost its flag column (Q–U now); a single "Bulky" column
-       keeps the pivot shape instead of printing a blank header. */
-    const flags = new Set(rows.map(function(r){ return r.flag || 'Bulky'; }));
     if (note){
         note.textContent = rows.length
-            ? fmt(total) + ' shipments · ' + fmt(hubs.size) + ' hub' + (hubs.size === 1 ? '' : 's') +
-              (flags.size && !(flags.size === 1 && flags.has('Bulky'))
-                  ? ' · ' + fmt(flags.size) + ' flag' + (flags.size === 1 ? '' : 's') : '')
+            ? fmt(total) + ' shipments · ' + fmt(families.size) + ' famil' + (families.size === 1 ? 'y' : 'ies') +
+              ' · ' + fmt(hubs.size) + ' hub' + (hubs.size === 1 ? '' : 's')
             : 'nothing dated today yet';
     }
     if (!host) return;
@@ -8762,39 +9163,41 @@ function renderWrBulkyHub(){
         host.innerHTML = '<div class="text-center text-muted py-4 small">No Bulky rows dated today.</div>';
         return;
     }
-    const flagList = Array.from(flags).sort(function(a, b){
-        return (wrOrd(WR_FLAG_ORDER, a) - wrOrd(WR_FLAG_ORDER, b)) ||
-            String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
-    });
     const cell = {}, rowTot = {}, colTot = {};
     rows.forEach(function(r){
-        const hub = r.hub || '(blank)', fl = r.flag || 'Bulky';
-        cell[hub + '\u0000' + fl] = (cell[hub + '\u0000' + fl] || 0) + r.total;
-        rowTot[hub] = (rowTot[hub] || 0) + r.total;
-        colTot[fl] = (colTot[fl] || 0) + r.total;
+        const fam = r.family || '(blank)', hb = r.hub || '(blank)';
+        cell[fam + '\u0000' + hb] = (cell[fam + '\u0000' + hb] || 0) + r.total;
+        rowTot[fam] = (rowTot[fam] || 0) + r.total;
+        colTot[hb] = (colTot[hb] || 0) + r.total;
     });
-    const hubList = Array.from(hubs).sort(function(a, b){
+    const flagList = Array.from(hubs).sort(function(a, b){
+        const ab = a === '(blank)', bb = b === '(blank)';
+        return ((colTot[b] || 0) - (colTot[a] || 0)) ||
+            (ab !== bb ? (ab ? 1 : -1) : 0) ||
+            String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    });
+    const hubList = Array.from(families).sort(function(a, b){
         const ab = a === '(blank)', bb = b === '(blank)';
         return ((rowTot[b] || 0) - (rowTot[a] || 0)) ||
             (ab !== bb ? (ab ? 1 : -1) : 0) ||
             String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
     });
-    const body = hubList.map(function(hub){
-        return '<tr><td class="fw-bold">' + esc(hub) + '</td>' +
-            flagList.map(function(fl){
-                const v = cell[hub + '\u0000' + fl] || 0;
+    const body = hubList.map(function(fam){
+        return '<tr><td class="fw-bold">' + esc(fam) + '</td>' +
+            flagList.map(function(hb){
+                const v = cell[fam + '\u0000' + hb] || 0;
                 return '<td class="text-center"' + (v
                     ? ' title="' + fmt(v) + ' shipments · ' + (total ? ((v / total) * 100).toFixed(1) : 0) + '% of Bulky today"'
                     : '') + '>' + (v ? fmt(v) : '') + '</td>';
             }).join('') +
-            '<td class="text-center fw-bold">' + fmt(rowTot[hub] || 0) + '</td></tr>';
+            '<td class="text-center fw-bold">' + fmt(rowTot[fam] || 0) + '</td></tr>';
     }).join('');
     const foot = '<tr class="table-light fw-bold"><td>Grand Total</td>' +
-        flagList.map(function(fl){ return '<td class="text-center">' + fmt(colTot[fl] || 0) + '</td>'; }).join('') +
+        flagList.map(function(hb){ return '<td class="text-center">' + fmt(colTot[hb] || 0) + '</td>'; }).join('') +
         '<td class="text-center">' + fmt(total) + '</td></tr>';
     host.innerHTML = '<table class="table table-sm align-middle fs-7 mb-0 mm-pivot">' +
-        '<thead class="table-light"><tr><th>forward hub</th>' +
-        flagList.map(function(fl){ return '<th class="text-center">' + esc(fl) + '</th>'; }).join('') +
+        '<thead class="table-light"><tr><th>family</th>' +
+        flagList.map(function(hb){ return '<th class="text-center">' + esc(hb) + '</th>'; }).join('') +
         '<th class="text-center">Grand Total</th>' +
         '</tr></thead><tbody>' + body + foot + '</tbody></table>';
 }
@@ -8869,6 +9272,11 @@ async function loadWhRecvCsv(force){
                         wh: cw,
                         hub: String(r[17] || '').trim(),
                         family: String(r[18] || '').trim(),
+                        /* The date is followed by Facility Receiving and
+                           WH Type (Q–W layout); older copies put flag /
+                           forward_hub_flag before the date instead. */
+                        facility: String(r[dIdx + 1] || '').trim(),
+                        whType: String(r[dIdx + 2] || '').trim(),
                         flag: dIdx >= 22 ? String(r[19] || '').trim() : '',
                         hubFlag: dIdx >= 22 ? String(r[20] || '').trim() : '',
                         total: wrNum(r[dIdx - 1])
