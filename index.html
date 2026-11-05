@@ -5272,12 +5272,20 @@ function dockInWindow(disp, p){
     if (rel < 0) rel += 1440;
     return rel <= dockWindowLen(p);
 }
+/* Vendor spellings that mean the same supplier. The ADM plan block writes
+   "YFS" while the trip rows write "YFS Logistics" — without this the truck
+   work looked unplanned. Keys are lower-cased with whitespace collapsed. */
+const DOCK_VENDOR_ALIASES = { 'yfs logistics': 'yfs' };
+function dockVendorKey(v){
+    const key = String(v === null || v === undefined ? '' : v).trim().toLowerCase().replace(/\s+/g, ' ');
+    return DOCK_VENDOR_ALIASES[key] || key;
+}
 function dockPlanFor(t){
-    const v = String(t.vendor || '').trim().toLowerCase();
+    const v = dockVendorKey(t.vendor);
     const s = String(t.srcHub || '').trim().toLowerCase();
     const d = String(t.dstHub || '').trim().toLowerCase();
     let cands = admPlan.filter(function(p){
-        return p.vendor.toLowerCase() === v && (!p.src || p.src.toLowerCase() === s);
+        return dockVendorKey(p.vendor) === v && (!p.src || p.src.toLowerCase() === s);
     });
     if (!cands.length) return null;
     const hubMatch = cands.filter(function(p){
