@@ -82,20 +82,27 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
     color: #D9D2BE; letter-spacing: 1.2px; text-transform: uppercase; }
 .side-navbar .brand-slogan b { color: var(--noon); }
 
-/* Live sync status card */
+/* Sheet sync status — a single icon: cloud-check when the last read came
+   from the sheet, cloud-slash when nothing is loaded, a spinner while a
+   read is in flight, amber for a saved copy, red when the last read failed. */
 .rail-status { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.10);
     border-radius: 14px; padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; }
-.rail-status .rail-dot { width: 9px; height: 9px; flex: 0 0 9px; margin-top: 4px; border-radius: 99px;
-    background: #2BD576; animation: railPulse 2.2s ease-out infinite; }
-@keyframes railPulse {
-    0%   { box-shadow: 0 0 0 0 rgba(43,213,118,.50); }
-    70%  { box-shadow: 0 0 0 8px rgba(43,213,118,0); }
-    100% { box-shadow: 0 0 0 0 rgba(43,213,118,0); }
-}
+.rail-status .rail-sync { width: 28px; height: 28px; flex: 0 0 28px; border-radius: 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+    color: #8B8574; font-size: .9rem; transition: color .2s, background .2s, border-color .2s; }
+.rail-status[data-state="loading"] .rail-sync { color: #38bdf8; border-color: rgba(56,189,248,.35); }
+.rail-status[data-state="loading"] .rail-sync i { animation: syncSpin 1s linear infinite; }
+.rail-status[data-state="ok"] .rail-sync { color: #2BD576; background: rgba(43,213,118,.12); border-color: rgba(43,213,118,.45); }
+.rail-status[data-state="ok"] .rail-cap { color: #7BE3A8; }
+.rail-status[data-state="cache"] .rail-sync { color: #F59E0B; background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.45); }
+.rail-status[data-state="cache"] .rail-cap { color: #F8C471; }
+.rail-status[data-state="err"] .rail-sync { color: #EF4444; background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.45); }
+.rail-status[data-state="err"] .rail-cap { color: #FF8A8A; }
+@keyframes syncSpin { to { transform: rotate(360deg); } }
 .rail-status .rail-cap { font-family: var(--font-head); font-size: .58rem; font-weight: 800;
     letter-spacing: 1.8px; text-transform: uppercase; color: #E9E3D2; }
 .rail-status .meta-line { font-size: .62rem; line-height: 1.55; color: #CFC9B8; word-break: break-word; }
-.rail-status .build-tag { margin-top: 6px; }
 
 /* Section micro-labels */
 .rail-label { font-family: var(--font-head); font-size: .58rem; font-weight: 800; letter-spacing: 2.4px;
@@ -105,12 +112,6 @@ h1, h2, h3, h4, h5, h6, .fw-bold { font-family: var(--font-head); font-weight: 7
     border-radius: 13px; background: var(--noon); color:#16171B; font-family: var(--font-head); font-weight:900;
     font-size: 1.05rem; letter-spacing:-.5px; box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 3px rgba(254,238,0,.18); }
 .meta-line { font-size: .68rem; color: #cfcabc; font-family: var(--font-num); word-break: break-word; }    .demo-pill { background:#f59e0b; color:#0f172a; font-size:.65rem; font-weight:800; border-radius:999px; padding:2px 8px; }
-    /* Build stamp — tells you at a glance whether the browser is running the
-       latest file. It is filled in by JS, so the placeholder text below means
-       the script never ran (stale copy / blocked CDN). */
-    .build-tag { display:inline-block; margin-top:4px; font-family: var(--font-num); font-size:.6rem; font-weight:700;
-        background:#f59e0b; color:#1b1b1b; border-radius:999px; padding:1px 8px; }
-
 /* Content shifts right to clear the fixed rail */
 body { padding-left: 244px !important; }
 
@@ -121,12 +122,13 @@ body { padding-left: 244px !important; }
 #pageTabs .nav-item { width: 100%; }
 #pageTabs .nav-link { position: relative; display: flex; align-items: center; text-align: left; width: 100%;
     background: transparent; border: 1px solid transparent; border-radius: 14px;
-    font-family: var(--font-head); font-weight: 800; font-size: .8rem; color: #C9C3B2;
-    padding: .55rem .7rem; margin-bottom: 3px; z-index: 1;
+    font-family: var(--font-head); font-weight: 800; font-size: .7rem; color: #C9C3B2;
+    padding: .55rem .4rem .55rem .5rem; margin-bottom: 3px; z-index: 1;
     transition: background .15s ease, color .15s ease; }
+#pageTabs .nav-link .nl-txt { white-space: nowrap; }
 #pageTabs .nav-link i { width: 30px; height: 30px; flex: 0 0 30px; display: inline-flex; align-items: center;
     justify-content: center; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.10);
-    border-radius: 10px; margin-right: 10px; font-size: .95rem; color: #E9DFB8;
+    border-radius: 10px; margin-right: 9px; font-size: .95rem; color: #E9DFB8;
     transition: background .15s ease, border-color .15s ease, color .15s ease; }
 #pageTabs .nav-link:hover:not(.active) { color: #fff; background: rgba(255,255,255,.06); }
 #pageTabs .nav-link:hover:not(.active) i { background: rgba(254,238,0,.14); border-color: rgba(254,238,0,.4); color: var(--noon); }
@@ -181,14 +183,26 @@ body.rail-collapsed #btnRefresh span { display: none; }
 body.rail-collapsed #autoRefreshBtn { width: 44px; margin: 0 auto; padding: .375rem 0; }
 body.rail-collapsed #autoRefreshLabel { display: none; }
 body.rail-collapsed { padding-left: 84px !important; }
-/* Per-tab data status dot (see setTabStatus). */
-#pageTabs .tab-dot { display: inline-block; width: 7px; height: 7px; border-radius: 99px;
-    background: #6b7280; margin-left: 5px; vertical-align: middle; flex: 0 0 7px; transition: background .2s; }
-#pageTabs .tab-dot[data-state="loading"] { background: #38bdf8; animation: tabDotPulse 1s ease-in-out infinite; }
-#pageTabs .tab-dot[data-state="ok"] { background: #22c55e; box-shadow: 0 0 0 2px rgba(34,197,94,.18); }
-#pageTabs .tab-dot[data-state="cache"] { background: #f59e0b; box-shadow: 0 0 0 2px rgba(245,158,11,.18); }
-#pageTabs .tab-dot[data-state="err"] { background: #ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,.2); }
-@keyframes tabDotPulse { 0%,100% { opacity: .3 } 50% { opacity: 1 } }
+/* Per-tab refresh state (see setTabStatus): a small sync icon plus the
+   clock time of the last finished read, inside the tab. */
+#pageTabs .tab-state { display: inline-flex; align-items: center; gap: 2px;
+    margin-left: auto; padding-left: 3px; flex: 0 0 auto;
+    color: #6b7280; transition: color .2s; }
+#pageTabs .tab-state .tab-time { font-family: var(--font-num); font-size: .47rem;
+    font-weight: 700; letter-spacing: 0; opacity: .95; }
+#pageTabs .tab-state[data-state="loading"] { color: #38bdf8; }
+#pageTabs .tab-state[data-state="loading"] i { animation: syncSpin 1s linear infinite; }
+#pageTabs .tab-state[data-state="ok"] { color: #22c55e; }
+#pageTabs .tab-state[data-state="cache"] { color: #f59e0b; }
+#pageTabs .tab-state[data-state="err"] { color: #ef4444; }
+/* Undo the square nav-icon chip for the status glyph only. */
+#pageTabs .nav-link .tab-state i { width: auto; height: auto; flex: 0 0 auto; min-width: 0;
+    background: none; border: 0; border-radius: 0; margin: 0; padding: 0;
+    font-size: .58rem; color: inherit; }
+#pageTabs .nav-link.active .tab-state i { background: none; border: 0; color: inherit; }
+body.rail-collapsed #pageTabs .nav-link .tab-state { position: absolute; top: 3px; right: 3px;
+    margin: 0; padding: 0; }
+body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 @media (max-width: 900px) {
     .rail-toggle { display: none; }
     body { padding-left: 0 !important; }
@@ -521,6 +535,9 @@ body.rail-collapsed { padding-left: 84px !important; }
         font-weight: 700; line-height: 1.4; padding: 0 5px; border-radius: 4px;
         background: #F5F3EA; border: 1px solid #E7E2D2; color: #6B6549; letter-spacing: .02em; cursor: help; }
     .pd-mf-legend { font-size: .7rem; color: #8A8468; }
+/* Info lines under the tables are hidden on request — card titles and the
+   counters beside them still describe each table. */
+.pd-mf-legend { display: none !important; }
     /* Row-level manifest detail: aging chips */
     .pd-age { display: inline-block; font-family: var(--font-num); font-size: .62rem; font-weight: 800;
         padding: 1px 7px; border-radius: 999px; white-space: nowrap;
@@ -709,22 +726,21 @@ body.rail-collapsed { padding-left: 84px !important; }
             <div class="brand-slogan">We <b>Build</b>, Guide, Excel &amp; Control.</div>
         </div>
     </div>
-    <div class="rail-status">
-        <span class="rail-dot"></span>
+    <div class="rail-status" id="railStatus" data-state="idle" title="Waiting for the first sheet read">
+        <span class="rail-sync" id="railSyncIcon"><i class="bi bi-cloud-slash"></i></span>
         <div>
-            <div class="rail-cap">Sheet Sync — Live</div>
-            <div class="meta-line" id="sheetMeta">Connecting to sheet…</div>
-            <div class="build-tag" id="buildTag">script not running — this is an older copy of the file</div>
+            <div class="rail-cap" id="railSyncLabel">Not synced</div>
+            <div class="meta-line" id="sheetMeta">Waiting for the first sheet…</div>
         </div>
     </div>
     <div class="rail-label">Navigate</div>
     <ul class="nav nav-pills" id="pageTabs">
-        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard" title="LH Adherence"><i class="bi bi-speedometer2"></i> <span class="nl-txt">LH Adherence</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live" title="LH Live Tracking"><i class="bi bi-broadcast"></i> <span class="nl-txt">LH Live Tracking</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-dock" title="Dock Utilization"><i class="bi bi-box-seam"></i> <span class="nl-txt">Dock Utilization</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn" title="Manpower"><i class="bi bi-people"></i> <span class="nl-txt">Manpower</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mm" id="mmTabBtn" title="MM Pendency"><i class="bi bi-box-seam"></i> <span class="nl-txt">MM Pendency</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-pending" id="pdTabBtn" title="Live WH Receiving"><i class="bi bi-box-arrow-in-down"></i> <span class="nl-txt">Live WH Receiving</span><span class="tab-dot" data-state="idle" title="Not loaded yet"></span></button></li>
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#page-dashboard" title="LH Adherence"><i class="bi bi-speedometer2"></i> <span class="nl-txt">LH Adherence</span><span class="tab-state" data-state="idle" title="Not loaded yet"><i class="bi bi-cloud-slash"></i><span class="tab-time"></span></span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-live" title="LH Live Tracking"><i class="bi bi-broadcast"></i> <span class="nl-txt">LH Live Tracking</span><span class="tab-state" data-state="idle" title="Not loaded yet"><i class="bi bi-cloud-slash"></i><span class="tab-time"></span></span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-dock" title="Dock Utilization"><i class="bi bi-box-seam"></i> <span class="nl-txt">Dock Utilization</span><span class="tab-state" data-state="idle" title="Not loaded yet"><i class="bi bi-cloud-slash"></i><span class="tab-time"></span></span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn" title="Manpower"><i class="bi bi-people"></i> <span class="nl-txt">Manpower</span><span class="tab-state" data-state="idle" title="Not loaded yet"><i class="bi bi-cloud-slash"></i><span class="tab-time"></span></span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mm" id="mmTabBtn" title="MM Pendency"><i class="bi bi-box-seam"></i> <span class="nl-txt">MM Pendency</span><span class="tab-state" data-state="idle" title="Not loaded yet"><i class="bi bi-cloud-slash"></i><span class="tab-time"></span></span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-pending" id="pdTabBtn" title="Live WH Receiving"><i class="bi bi-box-arrow-in-down"></i> <span class="nl-txt">Live WH Receiving</span><span class="tab-state" data-state="idle" title="Not loaded yet"><i class="bi bi-cloud-slash"></i><span class="tab-time"></span></span></button></li>
         <!-- Trip Log & RCA is reached from the report cards / welcome screen, not the rail -->
         <li class="nav-item d-none"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-rca" id="rcaTabBtn" tabindex="-1" aria-hidden="true"></button></li>
     </ul>
@@ -1651,7 +1667,46 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
             </div>
 
-            <div class="sec-head"><span class="n">1</span>Open → seal · hub level <span class="hint">— LH adherence sheet, source → destination hub</span></div>
+            <div class="sec-head"><span class="n">1</span>Open → seal · vendor level <span class="hint">— the same sealed trips, by vendor</span></div>
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>Vendor</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted" id="dkLhVendorNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('dkLhVendorTable','Dock utilization — open to seal by vendor','dock_o2s_vendor')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto" id="dkLhVendorTable"></div>
+            </div>
+
+            <div class="sec-head"><span class="n">2</span>ADM dock · vendor level <span class="hint">— the same rows, by vendor</span></div>
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>ADM vendor</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted" id="dkAdmVendorNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('dkAdmVendorTable','Dock utilization — ADM dock by vendor','dock_adm_vendor')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto" id="dkAdmVendorTable"></div>
+            </div>
+
+            <div class="sec-head"><span class="n">3</span>Vendor dock plan vs actual <span class="hint">— the plan block on the ADM Dock tab (columns T–Y) against the dock time actually used</span></div>
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-stopwatch me-2 text-primary"></i>Planned window vs dock time used</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted" id="dkPlanNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('dkPlanTable','Dock utilization — vendor plan vs actual','dock_vendor_plan')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto" id="dkPlanTable"></div>
+                <div class="pd-mf-legend mt-2">
+                    <i class="bi bi-stopwatch me-1"></i>Plan comes from the <code>From / Vendor / Duration / Volume / HUB</code> block. Each trip is matched to its vendor's window for its destination hub (nearest window by dispatch hour when a vendor has several). <strong>Dock uses</strong> = trips, <strong>Dock min</strong> = sum of <code>Open_to_seal_in_Minutes</code>. A window is <strong>not adhered</strong> when that time exceeds the window or trips sealed outside it — the reason names which.
+                </div>
+            </div>
+
+            <div class="sec-head"><span class="n">4</span>Open → seal · hub level <span class="hint">— LH adherence sheet, source → destination hub</span></div>
             <div class="card p-3 border-0 shadow-sm mb-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                     <h6 class="fw-bold m-0"><i class="bi bi-geo-alt me-2 text-primary"></i>Source → destination hub</h6>
@@ -1666,19 +1721,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div>
             </div>
 
-            <div class="sec-head"><span class="n">2</span>Open → seal · vendor level <span class="hint">— the same sealed trips, by vendor</span></div>
-            <div class="card p-3 border-0 shadow-sm mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>Vendor</h6>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="small text-muted" id="dkLhVendorNote">—</span>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('dkLhVendorTable','Dock utilization — open to seal by vendor','dock_o2s_vendor')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
-                    </div>
-                </div>
-                <div style="overflow-x:auto" id="dkLhVendorTable"></div>
-            </div>
-
-            <div class="sec-head"><span class="n">3</span>ADM dock · hub level <span class="hint">— ADM Dock sheet: open → seal + dock adherence</span></div>
+            <div class="sec-head"><span class="n">5</span>ADM dock · hub level <span class="hint">— ADM Dock sheet: open → seal + dock adherence</span></div>
             <div class="card p-3 border-0 shadow-sm mb-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                     <h6 class="fw-bold m-0"><i class="bi bi-building me-2 text-primary"></i>ADM source → destination hub</h6>
@@ -1690,33 +1733,6 @@ body.rail-collapsed { padding-left: 84px !important; }
                 <div style="overflow-x:auto" id="dkAdmHubTable"></div>
                 <div class="pd-mf-legend mt-2">
                     <i class="bi bi-building me-1"></i>ADM Dock rows: <code>shipments</code>, <code>Open_to_seal_in_Minutes</code> (min / avg / max) and <code>Dock_Adherence</code> adhered vs not adhered, rolled up per <strong>src → dst</strong> lane.
-                </div>
-            </div>
-
-            <div class="sec-head"><span class="n">4</span>ADM dock · vendor level <span class="hint">— the same rows, by vendor</span></div>
-            <div class="card p-3 border-0 shadow-sm mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>ADM vendor</h6>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="small text-muted" id="dkAdmVendorNote">—</span>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('dkAdmVendorTable','Dock utilization — ADM dock by vendor','dock_adm_vendor')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
-                    </div>
-                </div>
-                <div style="overflow-x:auto" id="dkAdmVendorTable"></div>
-            </div>
-
-            <div class="sec-head"><span class="n">5</span>Vendor dock plan vs actual <span class="hint">— the plan block on the ADM Dock tab (columns T–Y) against the dock time actually used</span></div>
-            <div class="card p-3 border-0 shadow-sm mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <h6 class="fw-bold m-0"><i class="bi bi-stopwatch me-2 text-primary"></i>Planned window vs dock time used</h6>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="small text-muted" id="dkPlanNote">—</span>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('dkPlanTable','Dock utilization — vendor plan vs actual','dock_vendor_plan')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
-                    </div>
-                </div>
-                <div style="overflow-x:auto" id="dkPlanTable"></div>
-                <div class="pd-mf-legend mt-2">
-                    <i class="bi bi-stopwatch me-1"></i>Plan comes from the <code>From / Vendor / Duration / Volume / HUB</code> block. Each trip is matched to its vendor's window for its destination hub (nearest window by dispatch hour when a vendor has several). <strong>Dock uses</strong> = trips, <strong>Dock min</strong> = sum of <code>Open_to_seal_in_Minutes</code>. A window is <strong>not adhered</strong> when that time exceeds the window or trips sealed outside it — the reason names which.
                 </div>
             </div>
         </div>
@@ -1861,7 +1877,22 @@ body.rail-collapsed { padding-left: 84px !important; }
                 </div><!-- /receiving reports -->
 
                 <div data-view="pending" class="iview-hidden">
-                <div class="sec-head"><span class="n">1</span>Pipeline pending WH <span class="hint">— the warehouse created the shipment and has not created a manifest for it</span></div>
+                <div class="sec-head"><span class="n">1</span>J&amp;T pending <span class="hint">— the J&amp;T pending tab: aging range on the rows, PDD aging across the columns</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>Aging_Range × PDD_Aging</h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted" id="jtNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadJtCsv(true)" title="Reload the J&amp;T pending sheet"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('jtTable','J&amp;T pending — aging × PDD aging','jt_pending_aging')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto" id="jtTable"><div class="text-center text-muted py-4 small">Reading the J&amp;T pending sheet…</div></div>
+                    <div class="pd-mf-legend mt-2">
+                        <i class="bi bi-hourglass-split me-1"></i>Every AWB on the <strong>J&amp;T pending</strong> tab, counted once per cell: rows = the sheet's <code>Aging_Range</code> (0–12 Hrs first, “more than 72” last), columns = <code>PDD_Aging</code> (Old PDD → PDD-1 → Current PDD → PDD+1 → Future PDD). Row and column totals are the margins.
+                    </div>
+                </div>
+                <div class="sec-head"><span class="n">2</span>Pipeline pending WH <span class="hint">— the warehouse created the shipment and has not created a manifest for it</span></div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>Pipeline pending WH</h6>
@@ -1873,7 +1904,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                     <div style="overflow-x:auto" id="pdPipeTable"></div>
                 </div>
 
-                <div class="sec-head"><span class="n">2</span>Pending MF <span class="hint">— the MF exists, but the shipment has not been unpacked on it</span></div>
+                <div class="sec-head"><span class="n">3</span>Pending MF <span class="hint">— the MF exists, but the shipment has not been unpacked on it</span></div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-box-seam me-2 text-primary"></i>Pending MF</h6>
@@ -1888,7 +1919,7 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                 </div>
 
-                <div class="sec-head"><span class="n">3</span>MF pending details <span class="hint">— one row per shipment that already sits on a manifest · click a manifest number to copy it</span></div>
+                <div class="sec-head"><span class="n">4</span>MF pending details <span class="hint">— one row per shipment that already sits on a manifest · click a manifest number to copy it</span></div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-table me-2 text-primary"></i>Manifest number, warehouse and aging</h6>
@@ -1909,21 +1940,6 @@ body.rail-collapsed { padding-left: 84px !important; }
                     </div>
                 </div>
 
-                <div class="sec-head"><span class="n">4</span>J&amp;T pending <span class="hint">— the J&amp;T pending tab: aging range on the rows, PDD aging across the columns</span></div>
-                <div class="card p-3 border-0 shadow-sm mb-4">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                        <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>Aging_Range × PDD_Aging</h6>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="small text-muted" id="jtNote">—</span>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadJtCsv(true)" title="Reload the J&amp;T pending sheet"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('jtTable','J&amp;T pending — aging × PDD aging','jt_pending_aging')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
-                        </div>
-                    </div>
-                    <div style="overflow-x:auto" id="jtTable"><div class="text-center text-muted py-4 small">Reading the J&amp;T pending sheet…</div></div>
-                    <div class="pd-mf-legend mt-2">
-                        <i class="bi bi-hourglass-split me-1"></i>Every AWB on the <strong>J&amp;T pending</strong> tab, counted once per cell: rows = the sheet's <code>Aging_Range</code> (0–12 Hrs first, “more than 72” last), columns = <code>PDD_Aging</code> (Old PDD → PDD-1 → Current PDD → PDD+1 → Future PDD). Row and column totals are the margins.
-                    </div>
-                </div>
                 </div><!-- /pending reports -->            </div>
 
             <div id="pdEmpty" class="card p-5 border-0 shadow-sm text-center mb-4">
@@ -3190,24 +3206,83 @@ function showToast(msg, type='success'){
     el.addEventListener('hidden.bs.toast',()=>el.remove());
 }
 
+/* ---- sheet sync status (left rail) -------------------------------
+   One icon answers "is the dashboard reading the sheet right now?":
+     grey  nothing loaded yet      blue spinner  reading
+     green synced from the sheet   amber  saved copy
+     red   the last read failed
+   The line under it carries the short source and the time of the read. */
+function setSheetSync(state, detail){
+    const box = document.getElementById('railStatus');
+    if (!box) return;
+    const st = state || 'idle';
+    box.setAttribute('data-state', st);
+    const ICONS = {
+        idle: 'bi-cloud-slash',
+        loading: 'bi-arrow-repeat',
+        ok: 'bi-cloud-check',
+        cache: 'bi-cloud-arrow-down',
+        err: 'bi-cloud-slash'
+    };
+    const LABELS = {
+        idle: 'Not synced',
+        loading: 'Syncing…',
+        ok: 'Synced',
+        cache: 'Saved copy',
+        err: 'Not synced · failed'
+    };
+    const ic = document.getElementById('railSyncIcon');
+    if (ic) ic.innerHTML = '<i class="bi ' + (ICONS[st] || ICONS.idle) + '"></i>';
+    const lb = document.getElementById('railSyncLabel');
+    if (lb) lb.textContent = LABELS[st] || LABELS.idle;
+    const meta = document.getElementById('sheetMeta');
+    if (meta){
+        let txt = detail || '';
+        if (st === 'ok' || st === 'cache'){
+            const when = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            txt = (txt ? txt + ' · ' : '') + when;
+        }
+        meta.textContent = txt;
+    }
+    box.title = (LABELS[st] || LABELS.idle) + (detail ? ' — ' + detail : '');
+}
+
 /* ---- per-tab data status ----------------------------------------
-   A dot on each tab so an operator can see, at a glance, whether that
-   page has data and how old it is:
-     grey  not loaded yet   blue  downloading
+   A sync icon + the clock time of the last finished read sits inside
+   each tab, so an operator can see, at a glance, whether that page is
+   fresh, saved, still loading or failed:
+     grey  not loaded yet   blue spinner  downloading
      green fresh from the sheet   amber saved/partial copy   red failed
-   Hovering the dot shows the row count and the time it was read. */
-function setTabStatus(pane, state, text){
+   Hovering the icon (or the tab) shows the row count and the source. */
+function setTabStatus(pane, state, text, at){
     const link = document.querySelector('#pageTabs .nav-link[data-bs-target="#' + pane + '"]');
     if (!link) return;
-    let dot = link.querySelector('.tab-dot');
-    if (!dot){
-        dot = document.createElement('span');
-        dot.className = 'tab-dot';
-        link.appendChild(dot);
+    let box = link.querySelector('.tab-state');
+    if (!box){
+        box = document.createElement('span');
+        box.className = 'tab-state';
+        box.innerHTML = '<i class="bi bi-cloud-slash"></i><span class="tab-time"></span>';
+        link.appendChild(box);
     }
-    dot.setAttribute('data-state', state || 'idle');
-    dot.title = text || '';
-    dot.style.cursor = 'help';
+    const st = state || 'idle';
+    box.setAttribute('data-state', st);
+    const ICONS = {
+        idle: 'bi-cloud-slash',
+        loading: 'bi-arrow-repeat',
+        ok: 'bi-cloud-check',
+        cache: 'bi-cloud-arrow-down',
+        err: 'bi-cloud-slash'
+    };
+    const ic = box.querySelector('i');
+    if (ic) ic.className = 'bi ' + (ICONS[st] || ICONS.idle);
+    /* Only a finished read has a meaningful clock time. */
+    const when = (st === 'ok' || st === 'cache' || st === 'err')
+        ? new Date(at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+        : '';
+    const tm = box.querySelector('.tab-time');
+    if (tm) tm.textContent = when;
+    box.title = text || '';
+    box.style.cursor = 'help';
     /* Mirror the state on the tab itself, minus the state word, so hovering
        anywhere on the tab explains it. */
     const base = link.getAttribute('data-base-title') || link.getAttribute('title') || '';
@@ -3217,10 +3292,10 @@ function setTabStatus(pane, state, text){
 function tabStatusFromCsv(pane, name, label, count, unit){
     const st = csvState[name];
     if (!st) return;
-    const when = new Date(st.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const when = new Date(st.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     const text = fmt(count) + ' ' + unit + ' · ' + (st.from === 'cache' ? 'saved copy' : 'read from sheet') +
                  ' ' + when + (st.partial ? ' · partial, retrying' : '');
-    setTabStatus(pane, st.from === 'cache' ? 'cache' : (st.partial ? 'cache' : 'ok'), text);
+    setTabStatus(pane, st.from === 'cache' ? 'cache' : (st.partial ? 'cache' : 'ok'), text, st.at);
 }
 
 /* ================================================================
@@ -3856,9 +3931,6 @@ function bootApp() {
     if (window.__ctBooted) return;
     window.__ctBooted = true;
 
-    const bt = document.getElementById('buildTag');
-    if (bt) bt.innerText = 'build ' + BUILD;
-
     const missing = diagnoseLibs();
     if (missing.length) { showBootDiagnostics(missing); return; }
 
@@ -4131,7 +4203,7 @@ function loadLiveCsv(force) {
     };
     const appVisible = appIsUp();
     if (!appVisible) setLoadingState(loader, 'Downloading the Live Tracking sheet…');
-    if(meta) meta.innerText = appVisible ? 'Refreshing live board…' : 'Connecting to sheet…';
+    if(meta) setSheetSync('loading', appVisible ? 'Refreshing the live board…' : 'Connecting to the sheet…');
 
     /* min 100 lines: a partially generated file used to arrive as a handful of
        rows and leave the board looking empty. */
@@ -4170,9 +4242,7 @@ function loadLiveCsv(force) {
             console.log('[loadLiveCsv] liveRows mapped:', liveRows.length);
             tabStatusFromCsv('page-live', 'live', 'Live board', liveRows.length, 'occurrences');
 
-            if(meta){
-                meta.innerText = 'Source: Line Haul Live DB • ' + fmt(rawTrips.length) + ' trips • Live occurrences: ' + fmt(liveRows.length) + ' • Synced at ' + new Date().toLocaleString();
-            }
+            setSheetSync('ok', 'Line Haul Live DB · ' + fmt(rawTrips.length) + ' trips · ' + fmt(liveRows.length) + ' live rows');
 
             if(typeof populateLiveFilters === 'function'){
                 try{ populateLiveFilters(); }catch(e){ console.warn('[loadLiveCsv] populateLiveFilters failed:', e); }
@@ -4202,6 +4272,7 @@ function loadLiveCsv(force) {
             const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error');
             console.error('[loadLiveCsv] failed:', msg);
             setTabStatus('page-live', 'err', 'Live Tracking sheet failed: ' + msg);
+            setSheetSync('err', 'Live Tracking sheet failed: ' + msg);
             if (appIsUp()) { loader.style.display = 'none'; loader.innerHTML = ''; }
             showToast('Live Tracking sheet could not be loaded: ' + msg, 'danger');
             const box = document.getElementById('liveTables');
@@ -4462,7 +4533,7 @@ function loadDataFromCSV(force) {
     // to the header line and a toast instead.
     const appVisible = document.getElementById('appPages') && document.getElementById('appPages').style.display === 'block';
     if (!appVisible) setLoadingState(loader, 'Downloading the Line Haul sheet… 0s');
-    if(meta) meta.innerText = appVisible ? 'Refreshing from sheet…' : 'Connecting to sheet…';
+    if(meta) setSheetSync('loading', appVisible ? 'Refreshing from the sheet…' : 'Connecting to the sheet…');
 
     // Visible heartbeat: the file is ~3 MB, so the spinner alone looks frozen.
     const ticker = appVisible ? null : setInterval(function(){
@@ -4640,6 +4711,7 @@ function loadDataFromCSV(force) {
             stopTicker();
             console.error('[loadDataFromCSV] failed:', err);
             setTabStatus('page-dashboard', 'err', 'Line Haul sheet failed: ' + (err && err.message ? err.message : err));
+            setSheetSync('err', 'Line Haul sheet failed: ' + (err && err.message ? err.message : err));
             showLoadError(err instanceof Error ? err.message : String(err ?? 'Unknown load error'));
         });
 }
@@ -4657,7 +4729,7 @@ function refreshData(silent){
         setLoadingState(loader, 'Reloading from Google Sheets…');
     }
     const meta = document.getElementById('sheetMeta');
-    if(meta) meta.innerText = 'Connecting to sheet…';
+    if(meta) setSheetSync('loading', 'Refreshing every sheet…');
 
     /* force = skip the cache-first shortcut: a manual Refresh must actually
        re-read the sheets, not serve the copy saved minutes ago. */
@@ -4705,14 +4777,14 @@ function initApp(res, preserve){
 
     if(!rawTrips.length){
         console.warn('[initApp] received 0 usable trips; will retry.');
-        if(meta) meta.innerText = 'Connecting to sheet…';
+        if(meta) setSheetSync('loading', 'Waiting for the first trip rows…');
         showLoadError('Loaded 0 trip rows. Retrying data fetch…');
         setTimeout(function(){ try{ refreshData(); }catch(e){ loadDataFromCSV && loadDataFromCSV(); } }, 2000);
         return;
     }
 
     if(meta){
-        meta.innerText = 'Source: ' + (res.sheetName || 'Sheet') + ' • ' + fmt(rawTrips.length) + ' trips • Synced at ' + (res.generatedAt || new Date().toLocaleString());
+        setSheetSync('ok', (res.sheetName || 'Line Haul') + ' · ' + fmt(rawTrips.length) + ' trips');
     }
 
     applyGlobalFilters && applyGlobalFilters();
@@ -5397,7 +5469,7 @@ function renderDockUtil(){
 async function loadAdmCsv(force){
     if (admLoading || (admLoaded && !force)) return;
     admLoading = true;
-    /* Same tab-dot language as every other tab: pulsing "loading" while the
+    /* Same tab status language as every other tab: pulsing "loading" while the
        sheet is in flight, green "ok" once it lands, red when it never answers. */
     if (typeof setTabStatus === 'function') setTabStatus('page-dock', 'loading', 'Loading the ADM Dock sheet…');
     renderDockUtil();
