@@ -641,6 +641,35 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
     .wr-mtd tbody td { font-family: var(--font-num); text-align: right; }
     .wr-mtd tbody td.wr-dod-type, .wr-mtd tbody td.wr-dod-name { font-family: var(--font-head); text-align: left; }
     .wr-mtd .wr-dod-pct { text-align: center; }
+    /* PDD profile — the AJ:AM block, laid out like the sheet's pivot:
+       WH_name down the rows, PDD dates across (newest first), Grand Total. */
+    .wr-pdd { border-collapse: separate; border-spacing: 0; width: 100%; font-size: .74rem; }
+    .wr-pdd th, .wr-pdd td { border-right: 1px solid #E7E2D2; border-bottom: 1px solid #E7E2D2;
+        padding: 3px 9px; white-space: nowrap; background: #fff; }
+    .wr-pdd thead { position: sticky; top: 0; z-index: 5; }
+    .wr-pdd thead th { background: #16171B; color: var(--brand-yellow3); text-align: center; vertical-align: middle;
+        font-family: var(--font-head); font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .3px; }
+    .wr-pdd thead th:first-child { text-align: left; position: sticky; left: 0; z-index: 6; }
+    .wr-pdd thead th.wr-pdd-tot { color: #FEEE00; border-left: 2px solid #4A4A44; }
+    .wr-pdd tbody td { text-align: right; font-family: var(--font-num); }
+    .wr-pdd tbody td:first-child { text-align: left; font-family: var(--font-head); font-weight: 700;
+        position: sticky; left: 0; z-index: 3; background: #FFFDF2; }
+    .wr-pdd tbody tr:hover > td { background: #FFFAE6; }
+    .wr-pdd tbody tr:hover > td:first-child { background: #FFF7DC; }
+    .wr-pdd tbody td.wr-pdd-tot { font-weight: 800; border-left: 2px solid #E9DFB8; }
+    .wr-pdd tbody td.wr-pdd-zero { color: #C9C3AE; }
+    .wr-pdd tfoot td { background: #FBF8EE; font-weight: 800; font-family: var(--font-head); font-size: .72rem;
+        text-align: right; border-top: 2px solid #16171B; }
+    .wr-pdd tfoot td:first-child { text-align: left; position: sticky; left: 0; z-index: 3; }
+    .wr-pdd tfoot td.wr-pdd-tot { border-left: 2px solid #E9DFB8; }
+    /* PDD filter dropdown — the dates as a tick-list */
+    #wrPddFilterMenu .pdd-f-head { display: flex; justify-content: space-between; align-items: center;
+        gap: 8px; padding: 2px 4px 6px; border-bottom: 1px solid #EFEAD8; margin-bottom: 4px; }
+    #wrPddFilterMenu .pdd-f-title { font-family: var(--font-head); font-size: .62rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: .4px; color: #6B6549; }
+    #wrPddFilterMenu .form-check { margin: 0; padding-left: 1.7em; }
+    #wrPddFilterMenu .form-check-label { font-size: .76rem; font-weight: 600; cursor: pointer; }
+    #wrPddFilterMenu .form-check-input { cursor: pointer; }
     /* hub × flag pivot: % / Shipments switch */
     /* Hub × flag cell: count on top, share of today underneath (like the MF badge) */
     .wr-pv-p { display: inline-block; margin-top: 2px; font-family: var(--font-num); font-size: .6rem;
@@ -1882,12 +1911,10 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                         <div class="col-6 col-md" data-view="dod"><div class="kpi-mini">
                             <div class="lbl">DOD days</div>
                             <div class="val" id="k-dod-days">0</div>
-                            <div class="sub">in the AA–AD block</div>
                         </div></div>
                         <div class="col-6 col-md" data-view="dod"><div class="kpi-mini">
                             <div class="lbl">Plan</div>
                             <div class="val" id="k-dod-plan">0</div>
-                            <div class="sub">sum across those days</div>
                         </div></div>
                         <div class="col-6 col-md" data-view="dod"><div class="kpi-mini">
                             <div class="lbl">Received</div>
@@ -1963,6 +1990,31 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                         </div>
                     </div>
                 </div>
+
+                <div class="sec-head"><span class="n">4</span>PDD profile <span class="hint">— the AJ:AM block of the same sheet: shipments per warehouse against their PDD</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-calendar2-week me-2 text-primary"></i>PDD profile
+                            <span class="text-muted fw-normal" style="font-size:.78rem" id="wrPddDateNote"></span></h6>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="dropdown">
+                                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" id="wrPddFilterBtn"
+                                        data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
+                                        title="Pick which PDD dates appear as columns">
+                                    <i class="bi bi-funnel me-1"></i>PDD filter <span class="badge text-bg-secondary" id="wrPddFilterCount">all</span>
+                                </button>
+                                <div class="dropdown-menu p-2" id="wrPddFilterMenu" style="min-width:250px;max-height:340px;overflow:auto"></div>
+                            </div>
+                            <span class="small text-muted" id="wrPddNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrPddTable','PDD profile','wh_receiving_pdd_profile')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                            <span class="badge text-bg-secondary" id="wrPddBadge">No data yet</span>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto" id="wrPddTable"></div>
+                    <div class="pd-mf-legend mt-2" id="wrPddLegend">
+                        <i class="bi bi-calendar2-week me-1"></i>Columns <code>AJ–AM</code> of the <strong>WH Receiving live</strong> sheet: <code>WH_name</code> on the rows, <code>PDD</code> on the columns, sum of <code>total_Shipments</code>. The <strong>PDD filter</strong> hides date columns; Grand Total follows the days left visible.
+                    </div>
+                </div>
                 </div><!-- /receiving reports -->
 
                 <div data-view="dod" class="iview-hidden">
@@ -2004,6 +2056,27 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     <div style="overflow-x:auto" id="wrMtdTable"></div>
                     <div class="pd-mf-legend mt-2" id="wrMtdLegend">
                         <i class="bi bi-calculator me-1"></i>Sum of <code>SUM of total_Shipments</code> and <code>Plan</code> over every day in the From–To range. <strong>Var = Actual − Plan</strong>: above plan dark red, short of plan light red.
+                    </div>
+                </div>
+
+                <div class="sec-head"><span class="n">3</span>Gateway receiving <span class="hint">— the gateway receiving tab: shipments per LM Hub, day by day, with the leg type behind them</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>GW Receiving
+                            <span class="text-muted fw-normal" style="font-size:.78rem" id="wrGwDateNote"></span></h6>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Rows">
+                                <button type="button" class="btn btn-outline-secondary active" id="wrGwModeHub" onclick="wrGwSetMode(false)" title="One row per LM Hub">Hub</button>
+                                <button type="button" class="btn btn-outline-secondary" id="wrGwModeLeg" onclick="wrGwSetMode(true)" title="Split every hub by its leg type">Hub + leg&nbsp;type</button>
+                            </div>
+                            <span class="small text-muted" id="wrGwNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrGwTable','GW Receiving','gateway_receiving')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                            <span class="badge text-bg-secondary" id="wrGwBadge">No data yet</span>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto" id="wrGwTable"></div>
+                    <div class="pd-mf-legend mt-2" id="wrGwLegend">
+                        <i class="bi bi-truck me-1"></i>The <strong>gateway receiving</strong> tab: <code>LM_Hub</code> on the rows, <code>Rec_Date</code> on the columns, sum of <code>sh_count</code>. Use <strong>Hub + leg type</strong> to split each hub by <code>leg_type</code> (Delivery / RTO / Dropoff).
                     </div>
                 </div>
                 </div><!-- /WH receiving DOD -->
@@ -4132,6 +4205,18 @@ function innerTab(btn){
     pane.querySelectorAll('[data-view]').forEach(sec => {
         sec.classList.toggle('iview-hidden', sec.getAttribute('data-view') !== view);
     });
+    /* A view with no KPI tiles of its own (the WH receiving DOD tab) hides
+       the KPI band instead of leaving an empty strip above the tables. */
+    const band = pane.querySelector('.hero-band');
+    if (band){
+        const kpis = band.querySelectorAll('[data-view]');
+        if (kpis.length){
+            const anyKpi = Array.prototype.some.call(kpis, function(el){
+                return el.getAttribute('data-view') === view;
+            });
+            band.style.display = anyKpi ? '' : 'none';
+        }
+    }
     if (pane.id === 'page-pending') pdTabMetaUpdate();
     /* A chart built while its section was hidden keeps a 0x0 canvas, so every
        switch re-measures whatever is now on screen. */
@@ -9199,6 +9284,8 @@ async function loadJtCsv(force){
    Cols G/H are blank spacers, hence the fixed index offsets.
 ================================================================ */
 const WR_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=115783227&single=true&output=csv';
+/* The gateway block lives on its own tab: LM_Hub | sh_count | Rec_Date | leg_type. */
+const GW_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=1450202726&single=true&output=csv';
 /* Facility order as the sheet lists it — anything new falls to the end. */
 const WR_FACILITY_ORDER = ['CAI-Z2', 'CAI-Z5', 'EPX', 'directship_express', 'directship',
                            'DS Bulky', 'directship_express Bulky', 'Drop off'];
@@ -9206,6 +9293,10 @@ const WR_FLAG_ORDER = ['After Sales Warranty', 'Core NS', 'Core Sort', 'Core Bul
 
 let wrRows = [], wrPivotRows = [], wrBulkyRows = [], wrDodRows = [], wrLoaded = false, wrLoading = false;
 let wrDodTypeOf = {};                                  // Wh_grouped -> WH Type (from the main block)
+let wrPddRows = [];                                    // AJ:AM — WH_name / total_Shipments / Receiving_Date / PDD
+let wrPddHidden = {};                                  // PDD date keys the filter hides
+let wrGwRows = [];                                     // gateway receiving — LM_Hub / sh_count / Rec_Date / leg_type
+let wrGwSplit = false;                                 // rows: hub only, or hub + leg type
 let wrTodayLabel = '', wrNewestSeen = '';
 
 function wrNum(v){
@@ -9685,7 +9776,7 @@ function renderWrDod(){
         if (kDays) kDays.textContent = '0';
         if (kPlan) kPlan.textContent = '0';
         if (kAct) kAct.textContent = '0';
-        if (kActSub) kActSub.textContent = 'nothing unpacked in this range';
+        if (kActSub) kActSub.textContent = '—';
         renderWrMtd([], dates, range);
         return;
     }
@@ -9764,7 +9855,7 @@ function renderWrDod(){
     if (kDays) kDays.textContent = fmt(dates.length);
     if (kPlan) kPlan.textContent = fmt(tPlan);
     if (kAct) kAct.textContent = fmt(tAct);
-    if (kActSub) kActSub.textContent = pct === null ? 'no plan in the sheet' : pct + '% of plan';
+    if (kActSub) kActSub.textContent = pct === null ? '—' : pct + '% of plan';
 
     renderWrMtd(rows, dates, range);
 }
@@ -9855,6 +9946,231 @@ function renderWrMtd(rows, dates, range){
     if (dateNote) dateNote.textContent = '· ' + wrDodDate(range.from) + ' – ' + wrDodDate(range.to);
 }
 
+/* ================================================================
+   PDD PROFILE — the AJ:AM block of the WH Receiving live sheet
+   WH_name | total_Shipments | Receiving_Date | PDD, pivoted like the
+   sheet's own pivot: WH_name down the rows, PDD dates across (newest
+   first), a Grand Total column on the right and a Grand Total row.
+   ================================================================ */
+function wrPddDates(){
+    const seen = {};
+    (wrPddRows || []).forEach(function(r){ seen[r.key] = true; });
+    return Object.keys(seen).map(Number).sort(function(a, b){ return b - a; });
+}
+function wrPddKeyLabel(k){
+    return k ? wrDodDate(k) : '(no PDD)';
+}
+function wrPddCountUpdate(){
+    const el = document.getElementById('wrPddFilterCount');
+    if (!el) return;
+    const all = wrPddDates();
+    const shown = all.filter(function(k){ return !wrPddHidden[k]; }).length;
+    el.className = 'badge ' +
+        (shown === all.length ? 'text-bg-secondary'
+            : (shown ? 'text-bg-primary' : 'text-bg-danger'));
+    el.textContent = shown === all.length ? ('all ' + all.length) : (shown + ' / ' + all.length);
+}
+function wrPddToggle(k, on){
+    if (on) delete wrPddHidden[k];
+    else wrPddHidden[k] = true;
+    wrPddCountUpdate();
+    renderWrPdd();
+}
+function wrPddAll(on){
+    wrPddHidden = {};
+    if (!on) wrPddDates().forEach(function(k){ wrPddHidden[k] = true; });
+    wrPddBuildFilter();
+    renderWrPdd();
+}
+function wrPddBuildFilter(){
+    const menu = document.getElementById('wrPddFilterMenu');
+    if (!menu) return;
+    const dates = wrPddDates();
+    if (!dates.length){
+        menu.innerHTML = '<div class="small text-muted p-2">No PDD rows in the sheet yet.</div>';
+        wrPddCountUpdate();
+        return;
+    }
+    let html = '<div class="pdd-f-head"><span class="pdd-f-title">PDD columns</span>' +
+        '<span class="d-flex gap-1">' +
+        '<button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="wrPddAll(true)">All</button>' +
+        '<button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="wrPddAll(false)">None</button>' +
+        '</span></div>';
+    dates.forEach(function(k){
+        const id = 'wrPddF' + k;
+        html += '<div class="form-check">' +
+            '<input class="form-check-input" type="checkbox" id="' + id + '"' +
+            (wrPddHidden[k] ? '' : ' checked') +
+            ' onchange="wrPddToggle(' + k + ', this.checked)">' +
+            '<label class="form-check-label" for="' + id + '">' + esc(wrPddKeyLabel(k)) + '</label>' +
+            '</div>';
+    });
+    menu.innerHTML = html;
+    wrPddCountUpdate();
+}
+
+function renderWrPdd(){
+    const host = document.getElementById('wrPddTable');
+    if (!host) return;
+    const note = document.getElementById('wrPddNote');
+    const badge = document.getElementById('wrPddBadge');
+    const dateNote = document.getElementById('wrPddDateNote');
+
+    const rows = wrPddRows || [];
+    if (!rows.length){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">The published sheet has no PDD block yet — add it to columns <code>AJ–AM</code> of the <strong>WH Receiving live</strong> tab ' +
+            '(<code>WH_name</code> · <code>total_Shipments</code> · <code>Receiving_Date</code> · <code>PDD</code>).</div>';
+        if (badge){ badge.className = 'badge text-bg-secondary'; badge.textContent = 'No data yet'; }
+        if (note) note.textContent = '—';
+        if (dateNote) dateNote.textContent = '';
+        return;
+    }
+
+    const allDates = wrPddDates();
+    const dates = allDates.filter(function(k){ return !wrPddHidden[k]; });
+    if (!dates.length){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">Every PDD column is hidden — open the <strong>PDD filter</strong> and tick a few dates back on.</div>';
+        if (badge){ badge.className = 'badge text-bg-secondary'; badge.textContent = 'All columns hidden'; }
+        if (note) note.textContent = '—';
+        if (dateNote) dateNote.textContent = '';
+        return;
+    }
+
+    const cell = {}, rowTot = {}, colTot = {};
+    let grand = 0;
+    rows.forEach(function(r){
+        if (wrPddHidden[r.key]) return;
+        const k = r.wh + '\u0000' + r.key;
+        cell[k] = (cell[k] || 0) + r.n;
+        rowTot[r.wh] = (rowTot[r.wh] || 0) + r.n;
+        colTot[r.key] = (colTot[r.key] || 0) + r.n;
+        grand += r.n;
+    });
+    const whs = Object.keys(rowTot).sort(function(a, b){
+        return String(a).localeCompare(String(b), undefined, { numeric: true });
+    });
+
+    let body = '<tbody>';
+    whs.forEach(function(wh){
+        body += '<tr><td>' + esc(wh) + '</td>';
+        dates.forEach(function(k){
+            const v = cell[wh + '\u0000' + k] || 0;
+            body += v ? '<td>' + fmt(v) + '</td>' : '<td class="wr-pdd-zero">–</td>';
+        });
+        body += '<td class="wr-pdd-tot">' + fmt(rowTot[wh] || 0) + '</td></tr>';
+    });
+    body += '</tbody>';
+
+    let head = '<thead><tr><th>WH_name</th>';
+    dates.forEach(function(k){ head += '<th>' + esc(wrPddKeyLabel(k)) + '</th>'; });
+    head += '<th class="wr-pdd-tot">Grand Total</th></tr></thead>';
+
+    let foot = '<tfoot><tr><td>Grand Total</td>';
+    dates.forEach(function(k){ foot += '<td>' + fmt(colTot[k] || 0) + '</td>'; });
+    foot += '<td class="wr-pdd-tot">' + fmt(grand) + '</td></tr></tfoot>';
+
+    host.innerHTML = '<table class="wr-pdd">' + head + body + foot + '</table>';
+
+    if (badge){
+        badge.className = 'badge ' + (dates.length === allDates.length ? 'text-bg-success' : 'text-bg-primary');
+        badge.textContent = fmt(whs.length) + ' warehouses · ' + fmt(grand) + ' shipments';
+    }
+    if (note){
+        note.textContent = fmt(dates.length) + ' of ' + fmt(allDates.length) + ' PDD dates · ' +
+            fmt(grand) + ' shipments';
+    }
+    if (dateNote){
+        dateNote.textContent = '· ' + wrPddKeyLabel(dates[dates.length - 1]) + ' – ' + wrPddKeyLabel(dates[0]);
+    }
+    wrPddCountUpdate();
+}
+
+/* ================================================================
+   GATEWAY RECEIVING — the gateway receiving tab
+   LM_Hub | sh_count | Rec_Date | leg_type, pivoted like the sheet:
+   hubs down the rows, Rec_Date across (newest first), Grand Total on
+   the right and at the bottom. The Hub / Hub + leg type switch picks
+   whether leg_type joins the row label.
+   ================================================================ */
+function wrGwKeyLabel(k){ return k ? wrDodDate(k) : '(no date)'; }
+function wrGwSetMode(split){
+    wrGwSplit = !!split;
+    const a = document.getElementById('wrGwModeHub');
+    const b = document.getElementById('wrGwModeLeg');
+    if (a) a.classList.toggle('active', !wrGwSplit);
+    if (b) b.classList.toggle('active', wrGwSplit);
+    renderWrGw();
+}
+function renderWrGw(){
+    const host = document.getElementById('wrGwTable');
+    if (!host) return;
+    const note = document.getElementById('wrGwNote');
+    const badge = document.getElementById('wrGwBadge');
+    const dateNote = document.getElementById('wrGwDateNote');
+    const rows = wrGwRows || [];
+    if (!rows.length){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">No gateway rows yet — the <strong>gateway receiving</strong> tab needs ' +
+            '<code>LM_Hub</code> · <code>sh_count</code> · <code>Rec_Date</code> · <code>leg_type</code>.</div>';
+        if (badge){ badge.className = 'badge text-bg-secondary'; badge.textContent = 'No data yet'; }
+        if (note) note.textContent = '—';
+        if (dateNote) dateNote.textContent = '';
+        return;
+    }
+
+    const dateSet = {};
+    rows.forEach(function(r){ dateSet[r.key] = true; });
+    const dates = Object.keys(dateSet).map(Number).sort(function(a, b){ return b - a; });
+
+    const cell = {}, rowTot = {}, colTot = {};
+    let grand = 0;
+    rows.forEach(function(r){
+        const label = wrGwSplit ? (r.hub + ' \u00b7 ' + r.leg) : r.hub;
+        const k = label + '\u0000' + r.key;
+        cell[k] = (cell[k] || 0) + r.n;
+        rowTot[label] = (rowTot[label] || 0) + r.n;
+        colTot[r.key] = (colTot[r.key] || 0) + r.n;
+        grand += r.n;
+    });
+    const labels = Object.keys(rowTot).sort(function(a, b){
+        return String(a).localeCompare(String(b), undefined, { numeric: true });
+    });
+
+    let body = '<tbody>';
+    labels.forEach(function(label){
+        body += '<tr><td>' + esc(label) + '</td>';
+        dates.forEach(function(k){
+            const v = cell[label + '\u0000' + k] || 0;
+            body += v ? '<td>' + fmt(v) + '</td>' : '<td class="wr-pdd-zero">–</td>';
+        });
+        body += '<td class="wr-pdd-tot">' + fmt(rowTot[label] || 0) + '</td></tr>';
+    });
+    body += '</tbody>';
+
+    let head = '<thead><tr><th>' + (wrGwSplit ? 'LM_Hub \u00b7 leg_type' : 'LM_Hub') + '</th>';
+    dates.forEach(function(k){ head += '<th>' + esc(wrGwKeyLabel(k)) + '</th>'; });
+    head += '<th class="wr-pdd-tot">Grand Total</th></tr></thead>';
+
+    let foot = '<tfoot><tr><td>Grand Total</td>';
+    dates.forEach(function(k){ foot += '<td>' + fmt(colTot[k] || 0) + '</td>'; });
+    foot += '<td class="wr-pdd-tot">' + fmt(grand) + '</td></tr></tfoot>';
+
+    host.innerHTML = '<table class="wr-pdd">' + head + body + foot + '</table>';
+
+    const hubs = new Set(rows.map(function(r){ return r.hub; }));
+    const legs = new Set(rows.map(function(r){ return r.leg; }));
+    if (badge){
+        badge.className = 'badge text-bg-info';
+        badge.textContent = fmt(labels.length) + ' rows \u00b7 ' + fmt(grand) + ' AWB';
+    }
+    if (note){
+        note.textContent = fmt(hubs.size) + ' LM hubs \u00b7 ' + fmt(legs.size) + ' leg types \u00b7 ' +
+            fmt(dates.length) + ' days \u00b7 ' + fmt(grand) + ' AWB';
+    }
+    if (dateNote){
+        dateNote.textContent = '· ' + wrGwKeyLabel(dates[dates.length - 1]) + ' – ' + wrGwKeyLabel(dates[0]);
+    }
+}
+
 /* Snapshot for the DOD table: its header is three rows deep (day name,
    date, Plan/Actual/%), which the plain table-to-canvas renderer cannot
    read. Flatten it to a single header row, pad the rows that skip the
@@ -9928,12 +10244,44 @@ async function loadWhRecvCsv(force){
             data = (parsed.data || []).filter(function(r){
                 return r && r.length > 5 &&
                     (String(r[0] || '').trim() || String(r[8] || '').trim() ||
-                     String(r[16] || '').trim() || String(r[26] || '').trim());
+                     String(r[16] || '').trim() || String(r[26] || '').trim() ||
+                     String(r[35] || '').trim());
             });
         }
         if (!data.length) throw new Error('Google kept returning its "Loading…" placeholder for the receiving sheet.');
 
-        const A = new Map(), B = [], C = [], D = [], dates = [];
+        /* Gateway receiving sits on its own tab (gid 1450202726); a failure
+           there must not take the whole receiving page down with it. */
+        let gw = [];
+        try {
+            for (let attempt = 0; attempt < 3 && !gw.length; attempt++){
+                if (attempt) await sleep(1200 * attempt);
+                /* Read the published copy directly and always fresh: this
+                   tab's gid in the published sheet does not match the live
+                   gviz one, so the gviz path would land on a different tab. */
+                const gtext = await fetchCsvFull(GW_CSV_URL, 'gwrecv', 20, null, true);
+                const gbody = String(gtext || '').trim();
+                if (!/^"?LM_Hub"?\s*,/i.test(gbody)) continue;   // not the gateway block
+                if (gbody.length < 40 || /^loading\b/i.test(gbody)) continue;
+                const gp = Papa.parse(gtext, { header: false, skipEmptyLines: 'greedy' });
+                gw = (gp.data || []).filter(function(r){
+                    const h = String((r && r[0]) || '').trim();
+                    return h && h.toLowerCase() !== 'lm_hub';
+                }).map(function(r){
+                    const d = wrDay(String(r[2] || '').trim());
+                    return {
+                        hub: String(r[0] || '').trim(),
+                        n: wrNum(r[1]),
+                        key: d ? (d.y * 10000 + d.a * 100 + d.b) : 0,
+                        leg: String(r[3] || '').trim() || '(blank)'
+                    };
+                });
+            }
+        } catch (e) {
+            console.warn('[WhRecv] gateway block failed:', e);
+        }
+
+        const A = new Map(), B = [], C = [], D = [], P = [], dates = [];
         const typeOf = {};
         data.forEach(function(r){
             /* Wh_grouped -> WH Type lookup for the DOD block (column F). */
@@ -10014,6 +10362,18 @@ async function loadWhRecvCsv(force){
                     });
                 }
             }
+            /* Fifth block, columns AJ–AM: the PDD profile —
+               WH_name, total_Shipments, Receiving_Date, PDD.
+               A row with no PDD keeps a key of 0 -> "(no PDD)" column. */
+            const pw = String(r[35] || '').trim();
+            if (pw && pw.toLowerCase() !== 'wh_name'){
+                const pd = wrDay(String(r[38] || '').trim());
+                P.push({
+                    wh: pw,
+                    n: wrNum(r[36]),
+                    key: pd ? (pd.y * 10000 + pd.a * 100 + pd.b) : 0
+                });
+            }
         });
 
         /* Newest day the sheet carries, for a helpful "nothing yet" message. */
@@ -10032,11 +10392,17 @@ async function loadWhRecvCsv(force){
         wrBulkyRows = C;
         wrDodRows = D;
         wrDodTypeOf = typeOf;
+        wrPddRows = P;
+        if (gw.length) wrGwRows = gw;
         wrLoaded = true;
         renderWrDod();
         renderWhRecv();
+        renderWrPdd();
+        wrPddBuildFilter();
+        renderWrGw();
         console.log('[WhRecv] today:', wrRows.length, 'warehouse rows,', B.length,
-                    'hub rows,', C.length, 'bulky rows,',
+                    'hub rows,', C.length, 'bulky rows,', P.length, 'PDD rows,',
+                    wrGwRows.length, 'gateway rows,',
                     wrRows.reduce(function(a, r){ return a + r.total; }, 0), 'shipments');
     } catch (e) {
         const m = (e && e.message) ? e.message : String(e);
