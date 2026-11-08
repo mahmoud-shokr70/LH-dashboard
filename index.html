@@ -609,6 +609,38 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
     .wr-pill.high { background: #F7C9C4; color: #912018; }     /* over plan */
     .wr-pill.na  { background: #F1F0EA; color: #8A8468; }
     .wr-total td { background: #FFFDF2; border-top: 2px solid #E9DFB8 !important; font-weight: 800; }
+    /* WH receiving DOD — the AA:AD pivot block of the same sheet.
+       Custom table (not .table) so the heat-map cell backgrounds are not
+       overridden by the global white-background !important rule. */
+    .wr-dod { border-collapse: separate; border-spacing: 0; width: 100%; font-size: .74rem; }
+    .wr-dod th, .wr-dod td { border-right: 1px solid #E7E2D2; border-bottom: 1px solid #E7E2D2;
+        padding: 3px 9px; white-space: nowrap; background: #fff; }
+    .wr-dod thead { position: sticky; top: 0; z-index: 5; }
+    .wr-dod thead th { background: var(--brand-yellow3); color: #111; text-align: center; vertical-align: middle;
+        font-family: var(--font-head); font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .3px; }
+    .wr-dod thead tr:first-child > th:first-child,
+    .wr-dod tbody td.wr-dod-type {
+        position: sticky; left: 0;
+    }
+    .wr-dod thead tr:first-child > th:first-child { z-index: 6; }
+    .wr-dod tbody td.wr-dod-type { z-index: 3; background: #FFFDF2; }
+    .wr-dod .wr-dod-type { text-align: left; font-weight: 800; vertical-align: top; }
+    .wr-dod .wr-dod-name { text-align: left; font-weight: 700; }
+    .wr-dod .wr-dod-num { text-align: right; font-family: var(--font-num); }
+    .wr-dod .wr-dod-pct { text-align: center; font-family: var(--font-num); font-weight: 800; }
+    .wr-dod .wr-dod-dow { font-size: .64rem; letter-spacing: .6px; }
+    .wr-dod .wr-dod-date { font-size: .7rem; }
+    .wr-dod .wr-dod-sub { font-size: .62rem; font-weight: 700; letter-spacing: .3px; color: #6B6549; }
+    .wr-dod tbody tr.wr-dod-grp-start > td { border-top: 2px solid #E9DFB8; }
+    .wr-dod tbody tr:hover > td { background: #FFFAE6; }
+    .wr-dod tbody tr:hover > td.wr-dod-type { background: #FFF7DC; }
+    .wr-dod tfoot td { background: #FBF8EE; font-weight: 800; font-family: var(--font-head); font-size: .72rem; }
+    .wr-dod tfoot td:first-child { position: sticky; left: 0; z-index: 3; }
+    .wr-dod tfoot tr > td { border-top: 2px solid #E9DFB8; }
+    /* MTD — one range instead of a day axis, one row per warehouse + Overall */
+    .wr-mtd tbody td { font-family: var(--font-num); text-align: right; }
+    .wr-mtd tbody td.wr-dod-type, .wr-mtd tbody td.wr-dod-name { font-family: var(--font-head); text-align: left; }
+    .wr-mtd .wr-dod-pct { text-align: center; }
     /* hub × flag pivot: % / Shipments switch */
     /* Hub × flag cell: count on top, share of today underneath (like the MF badge) */
     .wr-pv-p { display: inline-block; margin-top: 2px; font-family: var(--font-num); font-size: .6rem;
@@ -1789,6 +1821,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
             <div class="inner-tabs-row">
                 <div class="inner-tabs">
                     <button type="button" class="it-btn active" data-iview="receiving" onclick="innerTab(this)"><i class="bi bi-box-arrow-in-down"></i>WH receiving reports</button>
+                    <button type="button" class="it-btn" data-iview="dod" onclick="innerTab(this)"><i class="bi bi-calendar3"></i>WH Receiving DOD</button>
                     <button type="button" class="it-btn" data-iview="pending" onclick="innerTab(this)"><i class="bi bi-hourglass-split"></i>Pending reports <span class="it-tag">MF</span></button>
                 </div>
                 <span class="it-meta" id="pdTabMeta">—</span>
@@ -1845,6 +1878,21 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                             <div class="lbl">Var = actual − plan</div>
                             <div class="val" id="k-pd-var">0</div>
                             <div class="sub" id="k-pd-var-sub">actual − plan</div>
+                        </div></div>
+                        <div class="col-6 col-md" data-view="dod"><div class="kpi-mini">
+                            <div class="lbl">DOD days</div>
+                            <div class="val" id="k-dod-days">0</div>
+                            <div class="sub">in the AA–AD block</div>
+                        </div></div>
+                        <div class="col-6 col-md" data-view="dod"><div class="kpi-mini">
+                            <div class="lbl">Plan</div>
+                            <div class="val" id="k-dod-plan">0</div>
+                            <div class="sub">sum across those days</div>
+                        </div></div>
+                        <div class="col-6 col-md" data-view="dod"><div class="kpi-mini">
+                            <div class="lbl">Received</div>
+                            <div class="val text-success" id="k-dod-actual">0</div>
+                            <div class="sub" id="k-dod-actual-sub">of plan</div>
                         </div></div>
                     </div>
                 </div>
@@ -1916,6 +1964,49 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                 </div>
                 </div><!-- /receiving reports -->
+
+                <div data-view="dod" class="iview-hidden">
+                <div class="sec-head"><span class="n">1</span>WH receiving DOD <span class="hint">— the AA:AD pivot of the WH Receiving live tab: plan vs actual for every warehouse, day by day</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-calendar3 me-2 text-primary"></i>WH Type × WH Name · Plan / Actual / Attainment %
+                            <span class="text-muted fw-normal" style="font-size:.78rem" id="wrDodDateNote"></span></h6>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="d-flex align-items-center gap-1">
+                                <label class="small text-muted m-0" for="wrDodFrom">From</label>
+                                <input type="date" class="form-control form-control-sm" id="wrDodFrom" style="width:auto" onchange="renderWrDod()">
+                                <label class="small text-muted m-0" for="wrDodTo">To</label>
+                                <input type="date" class="form-control form-control-sm" id="wrDodTo" style="width:auto" onchange="renderWrDod()">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="wrDodResetRange()" title="Back to every day in the sheet"><i class="bi bi-arrow-counterclockwise"></i></button>
+                            </div>
+                            <span class="small text-muted" id="wrDodNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="wrDodSnap()" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                            <span class="badge text-bg-secondary" id="wrDodBadge">No data yet</span>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto" id="wrDodTable"></div>
+                    <div class="pd-mf-legend mt-2" id="wrDodLegend">
+                        <i class="bi bi-calendar-range me-1"></i>Columns <code>AA–AD</code> of the <strong>WH Receiving live</strong> sheet: <code>Wh_grouped</code> · <code>unpack_date</code> · <code>SUM of total_Shipments</code> · <code>Plan</code>. Attainment % = Actual ÷ Plan, green at 90–110%.
+                    </div>
+                </div>
+
+                <div class="sec-head"><span class="n">2</span>MTD · selected range <span class="hint">— plan, actual and the variance between them, summed over the days picked above</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-calculator me-2 text-primary"></i>MTD — Plan vs Actual
+                            <span class="text-muted fw-normal" style="font-size:.78rem" id="wrMtdDateNote"></span></h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted" id="wrMtdNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrMtdTable','WH receiving MTD','wh_receiving_mtd')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                            <span class="badge text-bg-secondary" id="wrMtdBadge">—</span>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto" id="wrMtdTable"></div>
+                    <div class="pd-mf-legend mt-2" id="wrMtdLegend">
+                        <i class="bi bi-calculator me-1"></i>Sum of <code>SUM of total_Shipments</code> and <code>Plan</code> over every day in the From–To range. <strong>Var = Actual − Plan</strong>: above plan dark red, short of plan light red.
+                    </div>
+                </div>
+                </div><!-- /WH receiving DOD -->
 
                 <div data-view="pending" class="iview-hidden">
                 <div class="sec-head"><span class="n">1</span>J&amp;T pending <span class="hint">— the J&amp;T pending tab: aging range on the rows, PDD aging across the columns</span></div>
@@ -8701,6 +8792,24 @@ function pdTabMetaUpdate(){
             (plan ? ' · ' + Math.round((recv / plan) * 100) + '% of plan' : '');
         return;
     }
+    if (view === 'dod'){
+        if (title) title.textContent = 'WH receiving DOD';
+        if (sub) sub.textContent = '— plan vs actual per warehouse, day by day';
+        if (icon) icon.className = 'bi bi-calendar3 me-2 text-primary';
+        if (!wrDodRows.length){ el.textContent = '—'; return; }
+        const fK = wrIsoKey((document.getElementById('wrDodFrom') || {}).value);
+        const tK = wrIsoKey((document.getElementById('wrDodTo') || {}).value);
+        const rowsR = wrDodRows.filter(function(r){
+            return (!fK || r.key >= fK) && (!tK || r.key <= tK);
+        });
+        const days = new Set(rowsR.map(function(r){ return r.key; })).size;
+        const plan = rowsR.reduce(function(a, r){ return a + r.plan; }, 0);
+        const act = rowsR.reduce(function(a, r){ return a + r.actual; }, 0);
+        if (badge){ badge.className = 'badge text-bg-success'; badge.textContent = fmt(days) + ' unpack days'; }
+        el.textContent = fmt(rowsR.length) + ' rows · ' + fmt(days) + ' days · ' +
+            (plan ? Math.round((act / plan) * 100) + '% of plan' : fmt(act) + ' received');
+        return;
+    }
     if (title) title.textContent = 'Manifest pending';
     if (sub) sub.textContent = '— one row per shipment still open in a warehouse';
     if (icon) icon.className = 'bi bi-hourglass-split me-2 text-primary';
@@ -9095,7 +9204,8 @@ const WR_FACILITY_ORDER = ['CAI-Z2', 'CAI-Z5', 'EPX', 'directship_express', 'dir
                            'DS Bulky', 'directship_express Bulky', 'Drop off'];
 const WR_FLAG_ORDER = ['After Sales Warranty', 'Core NS', 'Core Sort', 'Core Bulky', 'Drop off', 'DS', 'DSE', 'DSE Bulky'];
 
-let wrRows = [], wrPivotRows = [], wrBulkyRows = [], wrLoaded = false, wrLoading = false;
+let wrRows = [], wrPivotRows = [], wrBulkyRows = [], wrDodRows = [], wrLoaded = false, wrLoading = false;
+let wrDodTypeOf = {};                                  // Wh_grouped -> WH Type (from the main block)
 let wrTodayLabel = '', wrNewestSeen = '';
 
 function wrNum(v){
@@ -9434,6 +9544,372 @@ function renderWrBulkyHub(){
         '</tr></thead><tbody>' + body + foot + '</tbody></table>';
 }
 
+/* ================================================================
+   WH RECEIVING DOD — the AA:AD pivot of the WH Receiving live tab
+   Columns: Wh_grouped | unpack_date | SUM of total_Shipments | Plan
+   One row per warehouse per unpack day, every day the pivot carries.
+   Laid out like the sheet's own pivot: WH Type / WH Name down the rows,
+   a Plan · Actual · Attainment % trio per day across the columns.
+   ================================================================ */
+const WR_DOD_TYPE_ORDER = ['After Sales Warranty', 'Core Sort', 'Core NS', 'Core Bulky',
+                           'DS', 'DS Bulk', 'DS Bulky', 'DSE', 'DSE Bulk', 'DSE Bulky', 'Drop off'];
+const WR_DOD_TYPE_RANK = (function(){
+    const m = {};
+    WR_DOD_TYPE_ORDER.forEach(function(t, i){ m[t.toLowerCase().replace(/\s+/g, ' ').trim()] = i; });
+    return m;
+})();
+const WR_DOD_DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const WR_DOD_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function wrDodParts(k){
+    return { y: Math.floor(k / 10000), m: Math.floor(k / 100) % 100, d: k % 100 };
+}
+function wrDodDate(k){
+    const p = wrDodParts(k);
+    return p.d + ' ' + (WR_DOD_MON[p.m - 1] || '') + ' ' + p.y;
+}
+function wrDodDow(k){
+    const p = wrDodParts(k);
+    return WR_DOD_DOW[new Date(p.y, p.m - 1, p.d).getDay()];
+}
+/* Blend white -> #C62828: t = 0 is white, t = 1 is the full red. */
+function wrDodRed(t){
+    t = Math.max(0, Math.min(1, t));
+    const f = function(c){ return Math.round(255 + (c - 255) * t); };
+    return 'rgb(' + f(198) + ',' + f(40) + ',' + f(40) + ')';
+}
+/* Attainment heat: green around plan, red either side — deeper as the gap
+   widens, paler at the low end, the same feel as the sheet's pivot. */
+function wrDodHeat(pct){
+    if (pct === null || !isFinite(pct)) return { bg: '#F1F0EA', fg: '#8A8468' };
+    if (pct >= 90 && pct <= 110) return { bg: '#00E676', fg: '#053B1F' };
+    if (pct > 110){
+        const t = Math.min(1, (pct - 110) / 190);
+        return { bg: wrDodRed(0.16 + 0.64 * t), fg: t > 0.55 ? '#ffffff' : '#7F1D1D' };
+    }
+    const t = Math.max(0, pct) / 90;
+    return { bg: wrDodRed(0.08 + 0.42 * t), fg: '#7F1D1D' };
+}
+function wrDodCells(plan, act){
+    if (plan === null){
+        return '<td class="wr-dod-num">—</td><td class="wr-dod-num">—</td>' +
+               '<td class="wr-dod-pct" style="background:#F7F6F0;color:#B5AE99">—</td>';
+    }
+    const pct = plan ? (act / plan) * 100 : null;
+    /* Classify on the rounded number that is actually printed, so 109.6%
+       shows 110% and lands in the green band, not in red. */
+    const shown = pct === null ? null : Math.round(pct);
+    const h = wrDodHeat(shown);
+    const tip = pct === null
+        ? 'No plan for this cell'
+        : fmt(act) + ' of ' + fmt(plan) + ' planned · ' + shown + '%';
+    return '<td class="wr-dod-num">' + fmt(plan) + '</td>' +
+        '<td class="wr-dod-num">' + fmt(act) + '</td>' +
+        '<td class="wr-dod-pct" style="background:' + h.bg + ';color:' + h.fg + '" title="' + esc(tip) + '">' +
+        (shown === null ? '—' : shown + '%') + '</td>';
+}
+
+/* ---- Date range for the DOD tab -------------------------------------
+   The two date inputs hold ISO values; the sheet keys are yyyymmdd. An
+   empty input means "the whole pivot", so a fresh page still shows every
+   day the sheet carries. */
+function wrKeyIso(k){
+    const p = wrDodParts(k);
+    return p.y + '-' + ('0' + p.m).slice(-2) + '-' + ('0' + p.d).slice(-2);
+}
+function wrIsoKey(v){
+    const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? (+m[1]) * 10000 + (+m[2]) * 100 + (+m[3]) : null;
+}
+function wrDodRange(allDates){
+    const inFrom = document.getElementById('wrDodFrom');
+    const inTo = document.getElementById('wrDodTo');
+    const minK = allDates[0], maxK = allDates[allDates.length - 1];
+    if (inFrom){ inFrom.min = wrKeyIso(minK); inFrom.max = wrKeyIso(maxK); }
+    if (inTo){ inTo.min = wrKeyIso(minK); inTo.max = wrKeyIso(maxK); }
+    let from = (inFrom && inFrom.value) ? wrIsoKey(inFrom.value) : minK;
+    let to = (inTo && inTo.value) ? wrIsoKey(inTo.value) : maxK;
+    if (from === null) from = minK;
+    if (to === null) to = maxK;
+    if (from > to){ const t = from; from = to; to = t; }
+    if (inFrom && !inFrom.value) inFrom.value = wrKeyIso(from);
+    if (inTo && !inTo.value) inTo.value = wrKeyIso(to);
+    return { from: from, to: to };
+}
+function wrDodResetRange(){
+    const a = document.getElementById('wrDodFrom');
+    const b = document.getElementById('wrDodTo');
+    if (a) a.value = '';
+    if (b) b.value = '';
+    renderWrDod();
+}
+
+function renderWrDod(){
+    const host = document.getElementById('wrDodTable');
+    if (!host) return;
+    const badge = document.getElementById('wrDodBadge');
+    const note = document.getElementById('wrDodNote');
+    const dateNote = document.getElementById('wrDodDateNote');
+    const kDays = document.getElementById('k-dod-days');
+    const kPlan = document.getElementById('k-dod-plan');
+    const kAct = document.getElementById('k-dod-actual');
+    const kActSub = document.getElementById('k-dod-actual-sub');
+
+    const allRows = wrDodRows || [];
+    if (!allRows.length){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">The published sheet has no DOD block yet — add it to columns <code>AA–AD</code> of the <strong>WH Receiving live</strong> tab ' +
+            '(<code>Wh_grouped</code> · <code>unpack_date</code> · <code>SUM of total_Shipments</code> · <code>Plan</code>).</div>';
+        if (badge){ badge.className = 'badge text-bg-secondary'; badge.textContent = 'No data yet'; }
+        if (note) note.textContent = '—';
+        if (dateNote) dateNote.textContent = '';
+        renderWrMtd([], [], null);
+        return;
+    }
+
+    /* Date axis — every unpack day the pivot carries, oldest first. */
+    const dateSet = {};
+    allRows.forEach(function(r){ dateSet[r.key] = true; });
+    const allDates = Object.keys(dateSet).map(Number).sort(function(a, b){ return a - b; });
+
+    /* From / To from the two inputs (empty = whole sheet). */
+    const range = wrDodRange(allDates);
+    const rows = allRows.filter(function(r){ return r.key >= range.from && r.key <= range.to; });
+    const dates = allDates.filter(function(k){ return k >= range.from && k <= range.to; });
+
+    if (!rows.length){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">No unpack rows between ' +
+            esc(wrDodDate(range.from)) + ' and ' + esc(wrDodDate(range.to)) + '.</div>';
+        if (badge){ badge.className = 'badge text-bg-secondary'; badge.textContent = 'No data in range'; }
+        if (note) note.textContent = '—';
+        if (dateNote) dateNote.textContent = '· ' + wrDodDate(range.from) + ' – ' + wrDodDate(range.to);
+        if (kDays) kDays.textContent = '0';
+        if (kPlan) kPlan.textContent = '0';
+        if (kAct) kAct.textContent = '0';
+        if (kActSub) kActSub.textContent = 'nothing unpacked in this range';
+        renderWrMtd([], dates, range);
+        return;
+    }
+
+    /* type -> group -> dateKey -> {plan, actual} */
+    const byType = {};
+    rows.forEach(function(r){
+        const type = (wrDodTypeOf && wrDodTypeOf[r.grp]) || r.grp;
+        const g = (byType[type] = byType[type] || {});
+        const cell = (g[r.grp] = g[r.grp] || {});
+        const cur = cell[r.key] || { plan: 0, actual: 0 };
+        cur.plan += r.plan; cur.actual += r.actual;
+        cell[r.key] = cur;
+    });
+    const rank = function(t){
+        const k = String(t).toLowerCase().replace(/\s+/g, ' ').trim();
+        return Object.prototype.hasOwnProperty.call(WR_DOD_TYPE_RANK, k) ? WR_DOD_TYPE_RANK[k] : WR_DOD_TYPE_ORDER.length;
+    };
+    const types = Object.keys(byType).sort(function(a, b){
+        return (rank(a) - rank(b)) ||
+            String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    let head = '<thead><tr><th rowspan="3">WH Type</th><th rowspan="3">WH Name</th>';
+    dates.forEach(function(k){ head += '<th colspan="3" class="wr-dod-dow">' + esc(wrDodDow(k)) + '</th>'; });
+    head += '</tr><tr>';
+    dates.forEach(function(k){ head += '<th colspan="3" class="wr-dod-date">' + esc(wrDodDate(k)) + '</th>'; });
+    head += '</tr><tr>';
+    dates.forEach(function(){
+        head += '<th class="wr-dod-sub">Plan</th><th class="wr-dod-sub">Actual</th><th class="wr-dod-sub">Attainment %</th>';
+    });
+    head += '</tr></thead>';
+
+    const overall = {};
+    dates.forEach(function(k){ overall[k] = { plan: 0, actual: 0 }; });
+
+    let body = '<tbody>';
+    types.forEach(function(type){
+        const groups = Object.keys(byType[type]).sort(function(a, b){
+            return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+        });
+        groups.forEach(function(grp, gi){
+            body += '<tr' + (gi === 0 ? ' class="wr-dod-grp-start"' : '') + '>';
+            if (gi === 0){
+                body += '<td class="wr-dod-type" rowspan="' + groups.length + '">' + esc(type) + '</td>';
+            }
+            body += '<td class="wr-dod-name">' + esc(grp) + '</td>';
+            dates.forEach(function(k){
+                const c = byType[type][grp][k];
+                if (c){ overall[k].plan += c.plan; overall[k].actual += c.actual; }
+                body += wrDodCells(c ? c.plan : null, c ? c.actual : 0);
+            });
+            body += '</tr>';
+        });
+    });
+    body += '</tbody>';
+
+    let foot = '<tfoot><tr><td>Overall</td><td class="text-muted">all warehouses</td>';
+    dates.forEach(function(k){ foot += wrDodCells(overall[k].plan, overall[k].actual); });
+    foot += '</tr></tfoot>';
+
+    host.innerHTML = '<table class="wr-dod">' + head + body + foot + '</table>';
+
+    const tPlan = dates.reduce(function(a, k){ return a + overall[k].plan; }, 0);
+    const tAct = dates.reduce(function(a, k){ return a + overall[k].actual; }, 0);
+    const pct = tPlan ? Math.round((tAct / tPlan) * 100) : null;
+    const whCount = types.reduce(function(a, t){ return a + Object.keys(byType[t]).length; }, 0);
+    if (badge){
+        badge.className = 'badge ' + (pct === null ? 'text-bg-secondary'
+            : (pct >= 90 && pct <= 110 ? 'text-bg-success' : 'text-bg-warning'));
+        badge.textContent = fmt(dates.length) + ' days' + (pct === null ? '' : ' · ' + pct + '% of plan');
+    }
+    if (note) note.textContent = fmt(types.length) + ' WH types · ' + fmt(whCount) + ' warehouses · ' +
+        fmt(tAct) + ' received of ' + fmt(tPlan) + ' planned';
+    if (dateNote) dateNote.textContent = '· ' + wrDodDate(dates[0]) + ' – ' + wrDodDate(dates[dates.length - 1]);
+    if (kDays) kDays.textContent = fmt(dates.length);
+    if (kPlan) kPlan.textContent = fmt(tPlan);
+    if (kAct) kAct.textContent = fmt(tAct);
+    if (kActSub) kActSub.textContent = pct === null ? 'no plan in the sheet' : pct + '% of plan';
+
+    renderWrMtd(rows, dates, range);
+}
+
+/* ---- MTD: one column block instead of a day axis --------------------
+   Sums Plan and Actual over the From–To range, per warehouse, with a
+   subtotal per WH Type and an Overall row. Var = Actual − Plan. */
+function wrMtdCells(plan, act){
+    const v = act - plan;
+    const pct = plan ? Math.round((act / plan) * 100) : null;
+    const h = wrDodHeat(pct);
+    const cls = v > 0 ? 'mp-var-up' : (v < 0 ? 'mp-var-down' : 'mp-var-flat');
+    return '<td class="wr-dod-num">' + fmt(plan) + '</td>' +
+        '<td class="wr-dod-num">' + fmt(act) + '</td>' +
+        '<td class="wr-dod-num ' + cls + '" title="Var = Actual − Plan">' + (v > 0 ? '+' : '') + fmt(v) + '</td>' +
+        '<td class="wr-dod-pct" style="background:' + h.bg + ';color:' + h.fg + '" title="' +
+            esc(fmt(act) + ' of ' + fmt(plan) + ' planned') + '">' + (pct === null ? '—' : pct + '%') + '</td>';
+}
+
+function renderWrMtd(rows, dates, range){
+    const host = document.getElementById('wrMtdTable');
+    if (!host) return;
+    const note = document.getElementById('wrMtdNote');
+    const badge = document.getElementById('wrMtdBadge');
+    const dateNote = document.getElementById('wrMtdDateNote');
+
+    if (!range || !dates.length || !rows.length){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">No unpack rows between the selected dates.</div>';
+        if (note) note.textContent = '—';
+        if (dateNote) dateNote.textContent = range ? '· ' + wrDodDate(range.from) + ' – ' + wrDodDate(range.to) : '';
+        if (badge){ badge.className = 'badge text-bg-secondary'; badge.textContent = '—'; }
+        return;
+    }
+
+    const agg = {};                                  // type -> group -> {plan, actual}
+    rows.forEach(function(r){
+        const type = (wrDodTypeOf && wrDodTypeOf[r.grp]) || r.grp;
+        const g = (agg[type] = agg[type] || {});
+        const c = (g[r.grp] = g[r.grp] || { plan: 0, actual: 0 });
+        c.plan += r.plan; c.actual += r.actual;
+    });
+    const rank = function(t){
+        const k = String(t).toLowerCase().replace(/\s+/g, ' ').trim();
+        return Object.prototype.hasOwnProperty.call(WR_DOD_TYPE_RANK, k) ? WR_DOD_TYPE_RANK[k] : WR_DOD_TYPE_ORDER.length;
+    };
+    const nat = function(a, b){
+        return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    };
+    const types = Object.keys(agg).sort(function(a, b){ return (rank(a) - rank(b)) || nat(a, b); });
+
+    let body = '<tbody>';
+    let tP = 0, tA = 0;
+    types.forEach(function(type){
+        const groups = Object.keys(agg[type]).sort(nat);
+        groups.forEach(function(grp, gi){
+            const c = agg[type][grp];
+            tP += c.plan; tA += c.actual;
+            body += '<tr' + (gi === 0 ? ' class="wr-dod-grp-start"' : '') + '>';
+            if (gi === 0){
+                body += '<td class="wr-dod-type" rowspan="' + groups.length + '">' + esc(type) + '</td>';
+            }
+            body += '<td class="wr-dod-name">' + esc(grp) + '</td>' + wrMtdCells(c.plan, c.actual) + '</tr>';
+        });
+    });
+    body += '</tbody>';
+
+    const head = '<thead><tr><th>WH Type</th><th>WH Name</th>' +
+        '<th class="wr-dod-sub">Plan</th><th class="wr-dod-sub">Actual</th>' +
+        '<th class="wr-dod-sub">Var</th><th class="wr-dod-sub">Attainment %</th></tr></thead>';
+    const foot = '<tfoot><tr><td colspan="2">Overall · ' + fmt(dates.length) + ' day' + (dates.length === 1 ? '' : 's') + '</td>' +
+        wrMtdCells(tP, tA) + '</tr></tfoot>';
+
+    host.innerHTML = '<table class="wr-dod wr-mtd">' + head + body + foot + '</table>';
+
+    const pct = tP ? Math.round((tA / tP) * 100) : null;
+    const varTot = tA - tP;
+    if (badge){
+        badge.className = 'badge ' + (pct === null ? 'text-bg-secondary'
+            : (pct >= 90 && pct <= 110 ? 'text-bg-success' : 'text-bg-warning'));
+        badge.textContent = (pct === null ? '—' : pct + '% of plan') +
+            (pct === null ? '' : ' · var ' + (varTot > 0 ? '+' : '') + fmt(varTot));
+    }
+    if (note){
+        const whs = types.reduce(function(a, t){ return a + Object.keys(agg[t]).length; }, 0);
+        note.textContent = fmt(types.length) + ' WH types · ' + fmt(whs) + ' warehouses · ' +
+            fmt(tA) + ' received of ' + fmt(tP) + ' planned';
+    }
+    if (dateNote) dateNote.textContent = '· ' + wrDodDate(range.from) + ' – ' + wrDodDate(range.to);
+}
+
+/* Snapshot for the DOD table: its header is three rows deep (day name,
+   date, Plan/Actual/%), which the plain table-to-canvas renderer cannot
+   read. Flatten it to a single header row, pad the rows that skip the
+   rowspan'd WH Type cell, and append the Overall row. */
+async function wrDodSnap(){
+    const host = document.getElementById('wrDodTable');
+    const live = host && host.querySelector('table.wr-dod');
+    if (!live || !live.tBodies[0].rows.length){ showToast('Nothing to capture — this table has no rows yet', 'danger'); return; }
+    const dateCells = Array.from(live.tHead.rows[1].cells).map(function(c){ return c.textContent.trim(); });
+    const dowCells = Array.from(live.tHead.rows[0].cells);
+    const flat = document.createElement('table');
+    let html = '<thead><tr><th>WH Type</th><th>WH Name</th>';
+    dateCells.forEach(function(d, i){
+        const dow = dowCells[i + 2] ? dowCells[i + 2].textContent.trim().slice(0, 3) : '';
+        ['Plan', 'Actual', 'Attain %'].forEach(function(sub){
+            html += '<th>' + (dow ? dow + ' ' : '') + d + ' · ' + sub + '</th>';
+        });
+    });
+    html += '</tr></thead><tbody>';
+    Array.from(live.tBodies[0].rows).forEach(function(tr){
+        const cells = Array.from(tr.cells);
+        if (cells.length && !cells[0].classList.contains('wr-dod-type')) cells.unshift(null);
+        html += '<tr>' + cells.map(function(c){
+            return '<td>' + (c ? c.textContent.trim() : '') + '</td>';
+        }).join('') + '</tr>';
+    });
+    if (live.tFoot && live.tFoot.rows.length){
+        html += '<tr class="wr-total">' + Array.from(live.tFoot.rows[0].cells).map(function(c){
+            return '<td>' + c.textContent.trim() + '</td>';
+        }).join('') + '</tr>';
+    }
+    html += '</tbody>';
+    flat.innerHTML = html;
+
+    snapStatus('Rendering WH receiving DOD…');
+    try {
+        const canvas = pdTableToCanvas(flat, 'WH receiving DOD');
+        try {
+            const blob = await copyCanvasToClipboard(canvas);
+            window.__lastSnapBlob = blob;
+            snapStatus('\ud83d\udcf8 WH receiving DOD copied — paste it anywhere (Ctrl+V)');
+        } catch (err) {
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL('image/png');
+            a.download = 'control_tower_wh_receiving_dod_' +
+                new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '') + '.png';
+            document.body.appendChild(a); a.click(); a.remove();
+            snapStatus('\ud83d\udcf8 WH receiving DOD downloaded — clipboard images are not available here');
+        }
+    } catch (e) {
+        console.error('[snap dod]', e);
+        snapStatus('Snapshot failed: ' + ((e && e.message) || e));
+    }
+}
+
 async function loadWhRecvCsv(force){
     if (wrLoading || (wrLoaded && !force)) return;
     wrLoading = true;
@@ -9451,13 +9927,21 @@ async function loadWhRecvCsv(force){
             parsed = Papa.parse(text, { header: false, skipEmptyLines: 'greedy' });
             data = (parsed.data || []).filter(function(r){
                 return r && r.length > 5 &&
-                    (String(r[0] || '').trim() || String(r[8] || '').trim() || String(r[16] || '').trim());
+                    (String(r[0] || '').trim() || String(r[8] || '').trim() ||
+                     String(r[16] || '').trim() || String(r[26] || '').trim());
             });
         }
         if (!data.length) throw new Error('Google kept returning its "Loading…" placeholder for the receiving sheet.');
 
-        const A = new Map(), B = [], C = [], dates = [];
+        const A = new Map(), B = [], C = [], D = [], dates = [];
+        const typeOf = {};
         data.forEach(function(r){
+            /* Wh_grouped -> WH Type lookup for the DOD block (column F). */
+            const tw = String(r[0] || '').trim();
+            if (tw && tw.toLowerCase() !== 'wh_grouped'){
+                const ty = String(r[5] || '').trim();
+                if (ty) typeOf[tw] = ty;
+            }
             const aw = String(r[0] || '').trim();
             if (aw){
                 const d = String(r[2] || '').trim();
@@ -9515,6 +9999,21 @@ async function loadWhRecvCsv(force){
                     });
                 }
             }
+            /* Fourth block, columns AA–AD: the DOD pivot —
+               Wh_grouped, unpack_date, SUM of total_Shipments, Plan.
+               Every unpack day at once (not just today). */
+            const dw = String(r[26] || '').trim();
+            if (dw && dw.toLowerCase() !== 'wh_grouped'){
+                const dd = wrDay(String(r[27] || '').trim());
+                if (dd){
+                    D.push({
+                        grp: dw,
+                        key: dd.y * 10000 + dd.a * 100 + dd.b,
+                        actual: wrNum(r[28]),
+                        plan: wrNum(r[29])
+                    });
+                }
+            }
         });
 
         /* Newest day the sheet carries, for a helpful "nothing yet" message. */
@@ -9531,7 +10030,10 @@ async function loadWhRecvCsv(force){
         wrRows = Array.from(A.values());
         wrPivotRows = B;
         wrBulkyRows = C;
+        wrDodRows = D;
+        wrDodTypeOf = typeOf;
         wrLoaded = true;
+        renderWrDod();
         renderWhRecv();
         console.log('[WhRecv] today:', wrRows.length, 'warehouse rows,', B.length,
                     'hub rows,', C.length, 'bulky rows,',
