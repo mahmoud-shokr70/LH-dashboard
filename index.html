@@ -1991,7 +1991,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                 </div>
 
-                <div class="sec-head"><span class="n">4</span>PDD profile <span class="hint">— the AJ:AM block of the same sheet: shipments per warehouse against their PDD</span></div>
+                <div class="sec-head"><span class="n">4</span>PDD profile</div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-calendar2-week me-2 text-primary"></i>PDD profile
@@ -2018,7 +2018,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 </div><!-- /receiving reports -->
 
                 <div data-view="dod" class="iview-hidden">
-                <div class="sec-head"><span class="n">1</span>WH receiving DOD <span class="hint">— the AA:AD pivot of the WH Receiving live tab: plan vs actual for every warehouse, day by day</span></div>
+                <div class="sec-head"><span class="n">1</span>WH receiving DOD</div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-calendar3 me-2 text-primary"></i>WH Type × WH Name · Plan / Actual / Attainment %
@@ -2042,7 +2042,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                 </div>
 
-                <div class="sec-head"><span class="n">2</span>MTD · selected range <span class="hint">— plan, actual and the variance between them, summed over the days picked above</span></div>
+                <div class="sec-head"><span class="n">2</span>MTD · selected range</div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-calculator me-2 text-primary"></i>MTD — Plan vs Actual
@@ -2059,7 +2059,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                 </div>
 
-                <div class="sec-head"><span class="n">3</span>Gateway receiving <span class="hint">— the gateway receiving tab: shipments per LM Hub, day by day, with the leg type behind them</span></div>
+                <div class="sec-head"><span class="n">3</span>Gateway receiving</div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>GW Receiving
@@ -2803,7 +2803,7 @@ async function fetchCsvFull(url, name, minLines, onProgress, force){
            on old data. */
         const winner = await Promise.race([
             download.catch(function(){ return null; }),
-            sleep(1200).then(function(){ return null; })
+            sleep(500).then(function(){ return null; })      // paint the saved copy quickly
         ]);
         if (winner) return csvAccept(name, winner);
         download.then(function(res){
@@ -4170,14 +4170,27 @@ function bootApp() {
     // The WH receiving sheet rides along with it — it is only 128 rows.
     const pdTab = document.querySelector('[data-bs-target="#page-pending"]');
     if (pdTab) pdTab.addEventListener('shown.bs.tab', function(){
-        if (typeof loadPendingCsv === 'function') loadPendingCsv(false);
+        /* WH Receiving is this page's default view, so let its small sheet go
+           first and hand the big Pending / J&T downloads the line right after. */
         if (typeof loadWhRecvCsv === 'function') loadWhRecvCsv(false);
-        if (typeof loadJtCsv === 'function') loadJtCsv(false);
+        setTimeout(function(){
+            if (typeof loadPendingCsv === 'function') loadPendingCsv(false);
+            if (typeof loadJtCsv === 'function') loadJtCsv(false);
+        }, 250);
     });
 
     loadDataFromCSV();
     loadLiveCsv();
     if (typeof loadLhPlan === 'function') loadLhPlan(false);
+
+    /* Warm the WH Receiving sheet once the first screen has settled. Google is
+       slow while the boot downloads are in flight, so doing it now means the
+       Warehouse page opens with its data already in place instead of waiting. */
+    setTimeout(function(){
+        try {
+            if (typeof loadWhRecvCsv === 'function' && typeof wrLoaded !== 'undefined' && !wrLoaded) loadWhRecvCsv(false);
+        } catch(e){}
+    }, 4500);
     // Wire the filter dropdowns immediately, even before the sheets answer —
     // otherwise they render as empty, unusable boxes ("options not found").
     // populateDashFilters re-runs once the trips land, keeping current values.
@@ -9297,6 +9310,7 @@ let wrPddRows = [];                                    // AJ:AM — WH_name / to
 let wrPddHidden = {};                                  // PDD date keys the filter hides
 let wrGwRows = [];                                     // gateway receiving — LM_Hub / sh_count / Rec_Date / leg_type
 let wrGwSplit = false;                                 // rows: hub only, or hub + leg type
+let wrGwLoading = false;                               // gateway download in flight (it never blocks the page)
 let wrTodayLabel = '', wrNewestSeen = '';
 
 function wrNum(v){
@@ -9335,6 +9349,28 @@ function wrPill(plan, actual){
     const cls = (pct >= 90 && pct <= 110) ? 'ok' : (pct > 110 ? 'high' : 'low');
     return '<span class="wr-pill ' + cls + '" title="' + fmt(actual) + ' of ' + fmt(plan) + ' planned">' +
         pct + '%</span>';
+}
+
+/* First paint while the sheet downloads: dashes instead of zeroes and a
+   spinner on the cards, so a cold load never looks like an empty day. */
+function wrLoadingUi(){
+    ['k-pd-recv', 'k-pd-plan', 'k-pd-var'].forEach(function(id){
+        const el = document.getElementById(id);
+        if (el){ el.textContent = '—'; el.className = 'val text-muted'; }
+    });
+    const s1 = document.getElementById('k-pd-recv-sub');
+    if (s1) s1.textContent = 'loading the receiving sheet…';
+    const s2 = document.getElementById('k-pd-var-sub');
+    if (s2) s2.textContent = '';
+    const spin = '<div class="text-center text-muted py-4 small">' +
+        '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' +
+        'Loading…</div>';
+    ['wrTable', 'wrPivotTable', 'wrPddTable', 'wrDodTable'].forEach(function(id){
+        const host = document.getElementById(id);
+        if (host && !host.querySelector('table')) host.innerHTML = spin;
+    });
+    const pbadge = document.getElementById('wrPddBadge');
+    if (pbadge){ pbadge.className = 'badge text-bg-info'; pbadge.textContent = 'Loading…'; }
 }
 
 function renderWhRecv(){
@@ -10109,6 +10145,15 @@ function renderWrGw(){
     const dateNote = document.getElementById('wrGwDateNote');
     const rows = wrGwRows || [];
     if (!rows.length){
+        if (wrGwLoading){
+            host.innerHTML = '<div class="text-center text-muted py-4 small">' +
+                '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' +
+                'Loading gateway rows…</div>';
+            if (badge){ badge.className = 'badge text-bg-info'; badge.textContent = 'Loading…'; }
+            if (note) note.textContent = '—';
+            if (dateNote) dateNote.textContent = '';
+            return;
+        }
         host.innerHTML = '<div class="text-center text-muted py-4 small">No gateway rows yet — the <strong>gateway receiving</strong> tab needs ' +
             '<code>LM_Hub</code> · <code>sh_count</code> · <code>Rec_Date</code> · <code>leg_type</code>.</div>';
         if (badge){ badge.className = 'badge text-bg-secondary'; badge.textContent = 'No data yet'; }
@@ -10226,17 +10271,65 @@ async function wrDodSnap(){
     }
 }
 
+/* Gateway receiving sits on its own tab (gid 1450202726) whose published gid
+   does not map to the same tab on the live gviz endpoint, so this reads the
+   published CSV directly. It is cached exactly like every other source: the
+   saved copy paints at once and the fresh body swaps in when it lands.
+   Runs on its own — it never holds the receiving page back. */
+async function loadGwRecvCsv(force){
+    csvOnHeal('gwrecv', function(){ loadGwRecvCsv(true); });
+    wrGwLoading = !wrGwRows.length;
+    if (wrGwLoading) renderWrGw();
+    let gw = [];
+    for (let attempt = 0; attempt < 2 && !gw.length; attempt++){
+        if (attempt) await sleep(600);
+        try {
+            const gtext = await fetchCsvFull(GW_CSV_URL, 'gwrecv', 20, null, !!force);
+            const gbody = String(gtext || '').trim();
+            if (!/^"?LM_Hub"?\s*,/i.test(gbody)) continue;      // a different tab's block
+            if (gbody.length < 40 || /^loading\b/i.test(gbody)) continue;
+            const gp = Papa.parse(gtext, { header: false, skipEmptyLines: 'greedy' });
+            gw = (gp.data || []).filter(function(r){
+                const h = String((r && r[0]) || '').trim();
+                return h && h.toLowerCase() !== 'lm_hub';
+            }).map(function(r){
+                const d = wrDay(String(r[2] || '').trim());
+                return {
+                    hub: String(r[0] || '').trim(),
+                    n: wrNum(r[1]),
+                    key: d ? (d.y * 10000 + d.a * 100 + d.b) : 0,
+                    leg: String(r[3] || '').trim() || '(blank)'
+                };
+            });
+        } catch (e) {
+            console.warn('[WhRecv] gateway attempt ' + (attempt + 1) + ' failed:', e);
+        }
+    }
+    wrGwLoading = false;
+    if (gw.length){
+        wrGwRows = gw;
+        console.log('[WhRecv] gateway rows:', gw.length, '·',
+                    gw.reduce(function(a, r){ return a + r.n; }, 0), 'AWB');
+    }
+    renderWrGw();
+    return gw;
+}
+
 async function loadWhRecvCsv(force){
     if (wrLoading || (wrLoaded && !force)) return;
     wrLoading = true;
     const badge = document.getElementById('wrBadge');
     if (badge){ badge.className = 'badge text-bg-info'; badge.textContent = 'Loading receiving…'; }
+    if (!wrLoaded) wrLoadingUi();
 
     try {
         csvOnHeal('whrecv', function(){ loadWhRecvCsv(true); });
+        /* The gateway block is a separate tab and often the slowest read of
+           the lot — start it now and let it paint when it lands. */
+        loadGwRecvCsv(!!force).catch(function(e){ console.warn('[WhRecv] gateway block failed:', e); });
         let parsed = null, data = [];
         for (let attempt = 0; attempt < 3 && !data.length; attempt++){
-            if (attempt) await sleep(1200 * attempt);
+            if (attempt) await sleep(700 * attempt);
             const text = await fetchSheetCsv(WR_CSV_URL, 'whrecv', 20, null, !!force);
             const body = String(text || '').trim();
             if (body.length < 200 || /^loading\b/i.test(body)) continue;   // stub, try again
@@ -10249,37 +10342,6 @@ async function loadWhRecvCsv(force){
             });
         }
         if (!data.length) throw new Error('Google kept returning its "Loading…" placeholder for the receiving sheet.');
-
-        /* Gateway receiving sits on its own tab (gid 1450202726); a failure
-           there must not take the whole receiving page down with it. */
-        let gw = [];
-        try {
-            for (let attempt = 0; attempt < 3 && !gw.length; attempt++){
-                if (attempt) await sleep(1200 * attempt);
-                /* Read the published copy directly and always fresh: this
-                   tab's gid in the published sheet does not match the live
-                   gviz one, so the gviz path would land on a different tab. */
-                const gtext = await fetchCsvFull(GW_CSV_URL, 'gwrecv', 20, null, true);
-                const gbody = String(gtext || '').trim();
-                if (!/^"?LM_Hub"?\s*,/i.test(gbody)) continue;   // not the gateway block
-                if (gbody.length < 40 || /^loading\b/i.test(gbody)) continue;
-                const gp = Papa.parse(gtext, { header: false, skipEmptyLines: 'greedy' });
-                gw = (gp.data || []).filter(function(r){
-                    const h = String((r && r[0]) || '').trim();
-                    return h && h.toLowerCase() !== 'lm_hub';
-                }).map(function(r){
-                    const d = wrDay(String(r[2] || '').trim());
-                    return {
-                        hub: String(r[0] || '').trim(),
-                        n: wrNum(r[1]),
-                        key: d ? (d.y * 10000 + d.a * 100 + d.b) : 0,
-                        leg: String(r[3] || '').trim() || '(blank)'
-                    };
-                });
-            }
-        } catch (e) {
-            console.warn('[WhRecv] gateway block failed:', e);
-        }
 
         const A = new Map(), B = [], C = [], D = [], P = [], dates = [];
         const typeOf = {};
@@ -10393,7 +10455,6 @@ async function loadWhRecvCsv(force){
         wrDodRows = D;
         wrDodTypeOf = typeOf;
         wrPddRows = P;
-        if (gw.length) wrGwRows = gw;
         wrLoaded = true;
         renderWrDod();
         renderWhRecv();
