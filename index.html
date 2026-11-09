@@ -653,16 +653,35 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
     .wr-pdd thead th.wr-pdd-tot { color: #FEEE00; border-left: 2px solid #4A4A44; }
     /* Two-row header: the group cell (Current hub) sits above the hub codes. */
     .wr-pdd thead tr:first-child th.wr-pdd-grp { border-bottom: 1px solid #4A4A44; letter-spacing: .8px; }
-    /* Two-up PDD cards: the table hugs its columns like the Live WH Receiving
-       pivots (width:auto), and the cells are tighter so a full pivot fits a
-       half-width card. */
-    .pdd-pair .wr-pdd { width: auto; font-size: .71rem; }
-    .pdd-pair .wr-pdd th, .pdd-pair .wr-pdd td { padding: 3px 6px; }
-    /* Counts sit centred under their hub header; the row label stays left. */
+    /* Two-up PDD cards — one shared column grid (colgroup below) so the two
+       cards in a row line up column for column, with roomier cells, centred
+       counts and a calm zebra. */
+    .pdd-pair .wr-pdd { width: 100%; table-layout: fixed; font-size: .73rem; }
+    .pdd-pair .wr-pdd th, .pdd-pair .wr-pdd td { padding: 5px 9px; }
+    .pdd-pair .wr-pdd thead th { font-size: .65rem; letter-spacing: .5px; padding-left: 5px; padding-right: 5px; }
+    /* The total column is narrow: let "Grand Total" break over the two header
+       rows instead of spilling into a horizontal scrollbar. */
+    .pdd-pair .wr-pdd thead th.wr-pdd-tot { white-space: normal; line-height: 1.15;
+        font-size: .6rem; letter-spacing: .2px; }
+    .pdd-pair .wr-pdd thead tr:first-child th.wr-pdd-grp { letter-spacing: .9px; background: #23252B; }
     .pdd-pair .wr-pdd tbody td,
-    .pdd-pair .wr-pdd tfoot td { text-align: center; }
+    .pdd-pair .wr-pdd tfoot td { text-align: center; font-variant-numeric: tabular-nums; }
     .pdd-pair .wr-pdd tbody td:first-child,
-    .pdd-pair .wr-pdd tfoot td:first-child { text-align: left; }
+    .pdd-pair .wr-pdd tfoot td:first-child { text-align: left; white-space: normal; line-height: 1.25; }
+    /* Zebra on the count cells; the row-label column stays one flat band. */
+    .pdd-pair .wr-pdd tbody tr:nth-child(even) > td { background: #FFFAEA; }
+    .pdd-pair .wr-pdd tbody tr:nth-child(even):not(:hover) > td:first-child { background: #FFFDF2; }
+    /* The label column doubles as the row header: a hair stronger than the data. */
+    .pdd-pair .wr-pdd tbody td:first-child { font-size: .73rem; letter-spacing: .1px; }
+    .pdd-pair .wr-pdd tfoot td { font-size: .7rem; }
+    .pdd-pair .wr-pdd tfoot td:first-child { letter-spacing: .3px; text-transform: uppercase; }
+    /* Keep the totals in view while a long pivot scrolls inside its card. */
+    .pdd-pair .wr-pdd tfoot { position: sticky; bottom: 0; z-index: 4; }
+    .pdd-pair .wr-pdd tfoot td { border-top: 2px solid #16171B; }
+    /* The FWD hub pivot has 27 rows; cap its scroller so the card stays in
+       proportion with the aging card beside it (the Snap button still grabs
+       every row). Overrides the global 72vh cap. */
+    #pddTabFwdTable { max-height: 360px; }
     .wr-pdd tbody td { text-align: right; font-family: var(--font-num); }
     .wr-pdd tbody td:first-child { text-align: left; font-family: var(--font-head); font-weight: 700;
         position: sticky; left: 0; z-index: 3; background: #FFFDF2; }
@@ -10507,8 +10526,20 @@ function pddTabPivot(rows, rowOf, colOf, colRows){
 
 /* Aging buckets read oldest-first only when the caller asks for it. */
 function pddTabAgingRank(label){
+    /* Works for both the sheet wording ("24 to 48 Hrs") and the compact card
+       wording ("24–48 Hrs", "> 72 Hrs"): rank by the range's lower bound. */
+    const s = String(label).trim();
+    if (/^(>|more than)/i.test(s)) return PDD_AGING_ORDER.length - 1;
+    const m = s.match(/^(\d+)/);
+    if (m){
+        const hrs = parseInt(m[1], 10);
+        const idx = PDD_AGING_ORDER.findIndex(function(v){
+            return v.indexOf(hrs + ' to ') === 0;
+        });
+        if (idx !== -1) return idx;
+    }
     for (let i = 0; i < PDD_AGING_ORDER.length; i++){
-        if (String(label).indexOf(PDD_AGING_ORDER[i]) === 0) return i;
+        if (s.indexOf(PDD_AGING_ORDER[i]) === 0) return i;
     }
     return PDD_AGING_ORDER.length;
 }
@@ -10523,6 +10554,13 @@ function pddTabFlagShort(flag){
     if (/^old/i.test(flag)) return 'Old';
     if (/^current/i.test(flag)) return 'Current';
     return flag;
+}
+/* Compact aging range for the half-width card: "> 72 Hrs" instead of
+   "More than 72 Hrs", so every row label stays on one line. */
+function pddTabAgingShort(aging){
+    const s = String(aging);
+    const m = s.match(/^more than\s+(\d+)\s*hrs?/i);
+    return m ? '> ' + m[1] + ' Hrs' : s.replace(/\s+to\s+/i, '\u2013');
 }
 
 /* One table: rows come from the (already filtered) rows, columns are
@@ -10543,6 +10581,13 @@ function pddTabTable(hostId, noteId, opts){
         note.textContent = fmt(p.rowKeys.length) + ' ' + (opts.noteWord || 'rows') +
             ' · ' + fmt(p.total) + ' AWB';
     }
+    /* Shared column grid: 30% row label, even split for the hub columns, 14%
+       for the row total — so all four pivots line up column for column. */
+    const hubW = (54 / Math.max(1, p.cols.length)).toFixed(2) + '%';
+    let cols = '<colgroup><col style="width:33%">';
+    p.cols.forEach(function(){ cols += '<col style="width:' + hubW + '">'; });
+    cols += '<col style="width:13%"></colgroup>';
+
     let head = '<thead><tr><th rowspan="2">' + esc(opts.label) + '</th>' +
         '<th colspan="' + p.cols.length + '" class="wr-pdd-grp">Current hub</th>' +
         '<th rowspan="2" class="wr-pdd-tot">Grand Total</th></tr><tr>';
@@ -10564,7 +10609,7 @@ function pddTabTable(hostId, noteId, opts){
     p.cols.forEach(function(c){ foot += '<td>' + fmt(p.colTot[c] || 0) + '</td>'; });
     foot += '<td class="wr-pdd-tot">' + fmt(p.total) + '</td></tr></tfoot>';
 
-    host.innerHTML = '<table class="wr-pdd">' + head + body + foot + '</table>';
+    host.innerHTML = '<table class="wr-pdd">' + cols + head + body + foot + '</table>';
 }
 
 /* Snapshot for the PDD tables: their header is two rows deep (row label,
@@ -10657,7 +10702,7 @@ function renderPddTab(){
         rowOf: function(r){ return r.fwd; }, label: 'FWD hub', noteWord: 'FWD hubs'
     }));
     pddTabTable('pddTabAgingTable', 'pddTabAgingNote', Object.assign({}, common, {
-        rowOf: function(r){ return r.aging + ' · ' + pddTabFlagShort(r.flag); },
+        rowOf: function(r){ return pddTabAgingShort(r.aging) + ' · ' + pddTabFlagShort(r.flag); },
         label: 'Aging × PDD flag', noteWord: 'aging × status rows',
         order: function(a, b){
             return (pddTabAgingRank(a) - pddTabAgingRank(b)) ||
