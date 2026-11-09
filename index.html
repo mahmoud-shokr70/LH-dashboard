@@ -653,6 +653,16 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
     .wr-pdd thead th.wr-pdd-tot { color: #FEEE00; border-left: 2px solid #4A4A44; }
     /* Two-row header: the group cell (Current hub) sits above the hub codes. */
     .wr-pdd thead tr:first-child th.wr-pdd-grp { border-bottom: 1px solid #4A4A44; letter-spacing: .8px; }
+    /* Two-up PDD cards: the table hugs its columns like the Live WH Receiving
+       pivots (width:auto), and the cells are tighter so a full pivot fits a
+       half-width card. */
+    .pdd-pair .wr-pdd { width: auto; font-size: .71rem; }
+    .pdd-pair .wr-pdd th, .pdd-pair .wr-pdd td { padding: 3px 6px; }
+    /* Counts sit centred under their hub header; the row label stays left. */
+    .pdd-pair .wr-pdd tbody td,
+    .pdd-pair .wr-pdd tfoot td { text-align: center; }
+    .pdd-pair .wr-pdd tbody td:first-child,
+    .pdd-pair .wr-pdd tfoot td:first-child { text-align: left; }
     .wr-pdd tbody td { text-align: right; font-family: var(--font-num); }
     .wr-pdd tbody td:first-child { text-align: left; font-family: var(--font-head); font-weight: 700;
         position: sticky; left: 0; z-index: 3; background: #FFFDF2; }
@@ -2470,9 +2480,9 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 <span class="small text-muted" id="pddTabNote">—</span>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <div class="d-flex align-items-center gap-2">
-                        <label class="small text-muted mb-0" for="pddTabStatus">Status</label>
+                        <label class="small text-muted mb-0" for="pddTabStatus">PDD flag</label>
                         <select id="pddTabStatus" class="form-select form-select-sm" style="width:auto;min-width:150px" onchange="pddTabSetStatus(this.value)" title="Filter every table by PDD_flag_status">
-                            <option value="">All statuses</option>
+                            <option value="">All flags</option>
                         </select>
                     </div>
                     <span class="badge text-bg-secondary" id="pddTabBadge">No data yet</span>
@@ -2481,48 +2491,58 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 </div>
             </div>
 
-            <div class="card p-3 border-0 shadow-sm mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <h6 class="fw-bold m-0"><i class="bi bi-boxes me-2 text-primary"></i>Location type</h6>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="small text-muted" id="pddTabTypeNote">—</span>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabSnap('pddTabTypeTable','PDD — location type × current hub','pdd_location_type')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+            <div class="row g-3 mb-4 pdd-pair" id="pddTabCards">
+                <div class="col-12 col-xl-6">
+                    <div class="card p-3 border-0 shadow-sm h-100">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <h6 class="fw-bold m-0"><i class="bi bi-boxes me-2 text-primary"></i>Location type</h6>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="small text-muted" id="pddTabTypeNote">—</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabSnap('pddTabTypeTable','PDD — location type × current hub','pdd_location_type')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                            </div>
+                        </div>
+                        <div style="overflow-x:auto" id="pddTabTypeTable"></div>
                     </div>
                 </div>
-                <div style="overflow-x:auto" id="pddTabTypeTable"></div>
-            </div>
 
-            <div class="card p-3 border-0 shadow-sm mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <h6 class="fw-bold m-0"><i class="bi bi-flag me-2 text-primary"></i>PDD flag</h6>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="small text-muted" id="pddTabFlagNote">—</span>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabSnap('pddTabFlagTable','PDD — PDD flag × current hub','pdd_flag')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                <div class="col-12 col-xl-6">
+                    <div class="card p-3 border-0 shadow-sm h-100">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <h6 class="fw-bold m-0"><i class="bi bi-flag me-2 text-primary"></i>PDD flag</h6>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="small text-muted" id="pddTabFlagNote">—</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabSnap('pddTabFlagTable','PDD — PDD flag × current hub','pdd_flag')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                            </div>
+                        </div>
+                        <div style="overflow-x:auto" id="pddTabFlagTable"></div>
                     </div>
                 </div>
-                <div style="overflow-x:auto" id="pddTabFlagTable"></div>
-            </div>
 
-            <div class="card p-3 border-0 shadow-sm mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <h6 class="fw-bold m-0"><i class="bi bi-signpost-split me-2 text-primary"></i>FWD hub</h6>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="small text-muted" id="pddTabFwdNote">—</span>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabSnap('pddTabFwdTable','PDD — FWD hub × current hub','pdd_fwd_hub')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                <div class="col-12 col-xl-6">
+                    <div class="card p-3 border-0 shadow-sm h-100">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <h6 class="fw-bold m-0"><i class="bi bi-signpost-split me-2 text-primary"></i>FWD hub</h6>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="small text-muted" id="pddTabFwdNote">—</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabSnap('pddTabFwdTable','PDD — FWD hub × current hub','pdd_fwd_hub')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                            </div>
+                        </div>
+                        <div style="overflow-x:auto" id="pddTabFwdTable"></div>
                     </div>
                 </div>
-                <div style="overflow-x:auto" id="pddTabFwdTable"></div>
-            </div>
 
-            <div class="card p-3 border-0 shadow-sm mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <h6 class="fw-bold m-0"><i class="bi bi-clock-history me-2 text-primary"></i>Aging × PDD flag</h6>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="small text-muted" id="pddTabAgingNote">—</span>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabSnap('pddTabAgingTable','PDD — aging × PDD flag × current hub','pdd_aging_flag')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                <div class="col-12 col-xl-6">
+                    <div class="card p-3 border-0 shadow-sm h-100">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <h6 class="fw-bold m-0"><i class="bi bi-clock-history me-2 text-primary"></i>Aging × PDD flag</h6>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="small text-muted" id="pddTabAgingNote">—</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabSnap('pddTabAgingTable','PDD — aging × PDD flag × current hub','pdd_aging_flag')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                            </div>
+                        </div>
+                        <div style="overflow-x:auto" id="pddTabAgingTable"></div>
                     </div>
                 </div>
-                <div style="overflow-x:auto" id="pddTabAgingTable"></div>
             </div>
         </div>
 
@@ -10440,7 +10460,7 @@ function pddTabFillStatus(wanted){
             if (ac !== bc) return ac ? -1 : 1;
             return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
         });
-    host.innerHTML = '<option value="">All statuses</option>' + vals.map(function(v){
+    host.innerHTML = '<option value="">All flags</option>' + vals.map(function(v){
         return '<option value="' + esc(v) + '">' + esc(v) + '</option>';
     }).join('');
     host.value = vals.indexOf(keep) >= 0 ? keep : '';
@@ -10496,6 +10516,13 @@ function pddTabFlagRank(label){
     if (/·\s*current/i.test(String(label))) return 0;
     if (/·\s*old/i.test(String(label))) return 1;
     return 2;
+}
+/* Compact flag tag for the aging × flag rows, so the two-line reading fits
+   a half-width card: "24 to 48 Hrs · Old" instead of "· Old PDD". */
+function pddTabFlagShort(flag){
+    if (/^old/i.test(flag)) return 'Old';
+    if (/^current/i.test(flag)) return 'Current';
+    return flag;
 }
 
 /* One table: rows come from the (already filtered) rows, columns are
@@ -10630,7 +10657,7 @@ function renderPddTab(){
         rowOf: function(r){ return r.fwd; }, label: 'FWD hub', noteWord: 'FWD hubs'
     }));
     pddTabTable('pddTabAgingTable', 'pddTabAgingNote', Object.assign({}, common, {
-        rowOf: function(r){ return r.aging + ' · ' + r.flag; },
+        rowOf: function(r){ return r.aging + ' · ' + pddTabFlagShort(r.flag); },
         label: 'Aging × PDD flag', noteWord: 'aging × status rows',
         order: function(a, b){
             return (pddTabAgingRank(a) - pddTabAgingRank(b)) ||
@@ -10649,7 +10676,7 @@ function renderPddTab(){
     const note = document.getElementById('pddTabNote');
     if (note){
         if (pddTabStatus){
-            note.textContent = 'Status: ' + pddTabStatus + ' · ' + fmt(total) + ' AWB · ' +
+            note.textContent = 'PDD flag: ' + pddTabStatus + ' · ' + fmt(total) + ' AWB · ' +
                 fmt(allRows.length - total) + ' hidden by the filter';
         } else {
             const flags = new Set(allRows.map(function(r){ return r.flag; }));
