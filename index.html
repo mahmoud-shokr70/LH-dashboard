@@ -1957,35 +1957,35 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                 </div>
 
-                <div class="sec-head"><span class="n">3</span>Bulky receiving <span class="hint">— the Bulky block of the same sheet (columns Q–W), family on the rows of both tables</span></div>
+                <div class="sec-head"><span class="n">3</span>Bulky receiving</div>
                 <div class="row g-3 mb-4">
                     <div class="col-12 col-xl-6">
                         <div class="card p-3 border-0 shadow-sm h-100">
                             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                                <h6 class="fw-bold m-0"><i class="bi bi-boxes me-2 text-primary"></i>family × WH Type</h6>
+                                <h6 class="fw-bold m-0"><i class="bi bi-boxes me-2 text-primary"></i>Product category × WH Type</h6>
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="small text-muted" id="wrBulkyNote">—</span>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrBulkyTable','Bulky receiving — family × WH Type','wh_receiving_bulky_whtype')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrBulkyTable','Bulky receiving — product category × WH Type','wh_receiving_bulky_whtype')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
                                 </div>
                             </div>
                             <div style="overflow-x:auto" id="wrBulkyTable"></div>
                             <div class="pd-mf-legend mt-2" id="wrBulkyLegend">
-                                <i class="bi bi-boxes me-1"></i>Sum of the Bulky block's <code>total_Shipments</code> per <code>family</code> (rows) and <code>WH Type</code> (columns), rows whose <code>unpack_date</code> is today. Biggest family first, biggest WH Type first.
+                                <i class="bi bi-boxes me-1"></i>Sum of the Bulky block's <code>total_Shipments</code> per <code>product_catg</code> (rows) and <code>WH Type</code> (columns), rows whose <code>unpack_date</code> is today. Biggest category first, biggest WH Type first.
                             </div>
                         </div>
                     </div>
                     <div class="col-12 col-xl-6">
                         <div class="card p-3 border-0 shadow-sm h-100">
                             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                                <h6 class="fw-bold m-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>family × forward hub</h6>
+                                <h6 class="fw-bold m-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>Product category × forward hub</h6>
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="small text-muted" id="wrBulkyHubNote">—</span>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrBulkyHubTable','Bulky receiving — family × forward hub','wh_receiving_bulky_hub')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrBulkyHubTable','Bulky receiving — product category × forward hub','wh_receiving_bulky_hub')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
                                 </div>
                             </div>
                             <div style="overflow-x:auto" id="wrBulkyHubTable"></div>
                             <div class="pd-mf-legend mt-2" id="wrBulkyHubLegend">
-                                <i class="bi bi-diagram-3 me-1"></i>The same rows cut by destination: <code>family</code> (rows) against <code>forward_hub</code> (columns), sum of <code>total_Shipments</code>. Biggest family first, biggest hub first.
+                                <i class="bi bi-diagram-3 me-1"></i>The same rows cut by destination: <code>product_catg</code> (rows) against <code>forward_hub</code> (columns), sum of <code>total_Shipments</code>. Biggest category first, biggest hub first.
                             </div>
                         </div>
                     </div>
@@ -9544,23 +9544,24 @@ function renderWhRecv(){
     pdTabMetaUpdate();
 }
 
-/* --- Bulky block (columns Q–W): family × WH Type ---------------------
+/* --- Bulky block (columns Q–X): product_catg × WH Type ---------------
    The worksheet carries a third block to the right of the two receiving
    blocks, already aggregated per forward hub / family / WH type / day:
    Wh_grouped, forward_hub, family, total_Shipments, unpack_date,
-   Facility Receiving, WH Type. This report filters it to today and sums
-   total_Shipments by family (rows) and WH Type (columns), with a total
-   column and a grand-total row — the same shape as the sheet's own pivot. */
+   Facility Receiving, WH Type, product_catg. This report filters it to
+   today and sums total_Shipments by product category (rows) and WH Type
+   (columns), with a total column and a grand-total row — the same shape
+   as the sheet's own pivot. */
 function renderWrBulky(){
     const host = document.getElementById('wrBulkyTable');
     const note = document.getElementById('wrBulkyNote');
     const rows = wrBulkyRows;
     const total = rows.reduce(function(a, r){ return a + r.total; }, 0);
-    const families = new Set(rows.map(function(r){ return r.family || '(blank)'; }));
+    const cats = new Set(rows.map(function(r){ return r.cat || r.family || '(blank)'; }));
     const types = new Set(rows.map(function(r){ return r.whType || '(blank)'; }));
     if (note){
         note.textContent = rows.length
-            ? fmt(total) + ' shipments · ' + fmt(families.size) + ' famil' + (families.size === 1 ? 'y' : 'ies') +
+            ? fmt(total) + ' shipments · ' + fmt(cats.size) + ' categor' + (cats.size === 1 ? 'y' : 'ies') +
               ' · ' + fmt(types.size) + ' WH type' + (types.size === 1 ? '' : 's')
             : 'nothing dated today yet';
     }
@@ -9571,12 +9572,12 @@ function renderWrBulky(){
     }
     const cell = {}, rowTot = {}, colTot = {};
     rows.forEach(function(r){
-        const fam = r.family || '(blank)', ty = r.whType || '(blank)';
-        cell[fam + '\u0000' + ty] = (cell[fam + '\u0000' + ty] || 0) + r.total;
-        rowTot[fam] = (rowTot[fam] || 0) + r.total;
+        const cat = r.cat || r.family || '(blank)', ty = r.whType || '(blank)';
+        cell[cat + '\u0000' + ty] = (cell[cat + '\u0000' + ty] || 0) + r.total;
+        rowTot[cat] = (rowTot[cat] || 0) + r.total;
         colTot[ty] = (colTot[ty] || 0) + r.total;
     });
-    /* Biggest family first, biggest WH type first, like every report here;
+    /* Biggest category first, biggest WH type first, like every report here;
        a blank label goes last and ties fall back to alphabetical. */
     const typeList = Array.from(types).sort(function(a, b){
         const ab = a === '(blank)', bb = b === '(blank)';
@@ -9584,46 +9585,46 @@ function renderWrBulky(){
             (ab !== bb ? (ab ? 1 : -1) : 0) ||
             String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
     });
-    const famList = Array.from(families).sort(function(a, b){
+    const catList = Array.from(cats).sort(function(a, b){
         const ab = a === '(blank)', bb = b === '(blank)';
         return ((rowTot[b] || 0) - (rowTot[a] || 0)) ||
             (ab !== bb ? (ab ? 1 : -1) : 0) ||
             String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
     });
-    const body = famList.map(function(fam){
-        return '<tr><td class="fw-bold">' + esc(fam) + '</td>' +
+    const body = catList.map(function(cat){
+        return '<tr><td class="fw-bold">' + esc(cat) + '</td>' +
             typeList.map(function(ty){
-                const v = cell[fam + '\u0000' + ty] || 0;
+                const v = cell[cat + '\u0000' + ty] || 0;
                 return '<td class="text-center"' + (v
                     ? ' title="' + fmt(v) + ' shipments · ' + (total ? ((v / total) * 100).toFixed(1) : 0) + '% of Bulky today"'
                     : '') + '>' + (v ? fmt(v) : '') + '</td>';
             }).join('') +
-            '<td class="text-center fw-bold">' + fmt(rowTot[fam] || 0) + '</td></tr>';
+            '<td class="text-center fw-bold">' + fmt(rowTot[cat] || 0) + '</td></tr>';
     }).join('');
     const foot = '<tr class="table-light fw-bold"><td>Grand Total</td>' +
         typeList.map(function(ty){ return '<td class="text-center">' + fmt(colTot[ty] || 0) + '</td>'; }).join('') +
         '<td class="text-center">' + fmt(total) + '</td></tr>';
     host.innerHTML = '<table class="table table-sm align-middle fs-7 mb-0 mm-pivot">' +
-        '<thead class="table-light"><tr><th>family</th>' +
+        '<thead class="table-light"><tr><th>Product category</th>' +
         typeList.map(function(ty){ return '<th class="text-center">' + esc(ty) + '</th>'; }).join('') +
         '<th class="text-center">Grand Total</th>' +
         '</tr></thead><tbody>' + body + foot + '</tbody></table>';
 }
 
-/* --- Bulky block: family × forward hub ------------------------------
-   The same rows, the other cut: family on the rows, forward hub across
-   the columns, so the two cards answer "which family, in which WH type"
-   and "which family, to which hub" side by side. */
+/* --- Bulky block: product_catg × forward hub ------------------------
+   The same rows, the other cut: product category on the rows, forward
+   hub across the columns, so the two cards answer "which category, in
+   which WH type" and "which category, to which hub" side by side. */
 function renderWrBulkyHub(){
     const host = document.getElementById('wrBulkyHubTable');
     const note = document.getElementById('wrBulkyHubNote');
     const rows = wrBulkyRows;
     const total = rows.reduce(function(a, r){ return a + r.total; }, 0);
-    const families = new Set(rows.map(function(r){ return r.family || '(blank)'; }));
+    const cats = new Set(rows.map(function(r){ return r.cat || r.family || '(blank)'; }));
     const hubs = new Set(rows.map(function(r){ return r.hub || '(blank)'; }));
     if (note){
         note.textContent = rows.length
-            ? fmt(total) + ' shipments · ' + fmt(families.size) + ' famil' + (families.size === 1 ? 'y' : 'ies') +
+            ? fmt(total) + ' shipments · ' + fmt(cats.size) + ' categor' + (cats.size === 1 ? 'y' : 'ies') +
               ' · ' + fmt(hubs.size) + ' hub' + (hubs.size === 1 ? '' : 's')
             : 'nothing dated today yet';
     }
@@ -9634,39 +9635,39 @@ function renderWrBulkyHub(){
     }
     const cell = {}, rowTot = {}, colTot = {};
     rows.forEach(function(r){
-        const fam = r.family || '(blank)', hb = r.hub || '(blank)';
-        cell[fam + '\u0000' + hb] = (cell[fam + '\u0000' + hb] || 0) + r.total;
-        rowTot[fam] = (rowTot[fam] || 0) + r.total;
+        const cat = r.cat || r.family || '(blank)', hb = r.hub || '(blank)';
+        cell[cat + '\u0000' + hb] = (cell[cat + '\u0000' + hb] || 0) + r.total;
+        rowTot[cat] = (rowTot[cat] || 0) + r.total;
         colTot[hb] = (colTot[hb] || 0) + r.total;
     });
-    const flagList = Array.from(hubs).sort(function(a, b){
+    const hubList = Array.from(hubs).sort(function(a, b){
         const ab = a === '(blank)', bb = b === '(blank)';
         return ((colTot[b] || 0) - (colTot[a] || 0)) ||
             (ab !== bb ? (ab ? 1 : -1) : 0) ||
             String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
     });
-    const hubList = Array.from(families).sort(function(a, b){
+    const catList = Array.from(cats).sort(function(a, b){
         const ab = a === '(blank)', bb = b === '(blank)';
         return ((rowTot[b] || 0) - (rowTot[a] || 0)) ||
             (ab !== bb ? (ab ? 1 : -1) : 0) ||
             String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
     });
-    const body = hubList.map(function(fam){
-        return '<tr><td class="fw-bold">' + esc(fam) + '</td>' +
-            flagList.map(function(hb){
-                const v = cell[fam + '\u0000' + hb] || 0;
+    const body = catList.map(function(cat){
+        return '<tr><td class="fw-bold">' + esc(cat) + '</td>' +
+            hubList.map(function(hb){
+                const v = cell[cat + '\u0000' + hb] || 0;
                 return '<td class="text-center"' + (v
                     ? ' title="' + fmt(v) + ' shipments · ' + (total ? ((v / total) * 100).toFixed(1) : 0) + '% of Bulky today"'
                     : '') + '>' + (v ? fmt(v) : '') + '</td>';
             }).join('') +
-            '<td class="text-center fw-bold">' + fmt(rowTot[fam] || 0) + '</td></tr>';
+            '<td class="text-center fw-bold">' + fmt(rowTot[cat] || 0) + '</td></tr>';
     }).join('');
     const foot = '<tr class="table-light fw-bold"><td>Grand Total</td>' +
-        flagList.map(function(hb){ return '<td class="text-center">' + fmt(colTot[hb] || 0) + '</td>'; }).join('') +
+        hubList.map(function(hb){ return '<td class="text-center">' + fmt(colTot[hb] || 0) + '</td>'; }).join('') +
         '<td class="text-center">' + fmt(total) + '</td></tr>';
     host.innerHTML = '<table class="table table-sm align-middle fs-7 mb-0 mm-pivot">' +
-        '<thead class="table-light"><tr><th>family</th>' +
-        flagList.map(function(hb){ return '<th class="text-center">' + esc(hb) + '</th>'; }).join('') +
+        '<thead class="table-light"><tr><th>Product category</th>' +
+        hubList.map(function(hb){ return '<th class="text-center">' + esc(hb) + '</th>'; }).join('') +
         '<th class="text-center">Grand Total</th>' +
         '</tr></thead><tbody>' + body + foot + '</tbody></table>';
 }
@@ -10345,6 +10346,10 @@ async function loadWhRecvCsv(force){
 
         const A = new Map(), B = [], C = [], D = [], P = [], dates = [];
         const typeOf = {};
+        /* Where the Bulky block keeps product_catg. Read from its header row
+           (Wh_grouped | … | product_catg) so inserting a column in the sheet
+           does not silently shift the category into something else. */
+        let bulkyCatIdx = -1;
         data.forEach(function(r){
             /* Wh_grouped -> WH Type lookup for the DOD block (column F). */
             const tw = String(r[0] || '').trim();
@@ -10381,25 +10386,38 @@ async function loadWhRecvCsv(force){
                     total: wrNum(r[12])
                 });
             }
-            /* Third block, columns Q–U: the Bulky list — Wh_grouped,
-               forward_hub, family, total_Shipments, unpack_date (16–20).
+            /* Third block, columns Q–X: the Bulky list — Wh_grouped,
+               forward_hub, family, total_Shipments, unpack_date,
+               Facility Receiving, WH Type, product_catg (16–23).
                Older copies of the sheet carried flag / forward_hub_flag
-               too (Q–W, date at 22), so locate the date column instead of
+               too (date at 22), so locate the date column instead of
                hard-coding one layout. */
             const cw = String(r[16] || '').trim();
             if (cw){
+                if (cw.toLowerCase() === 'wh_grouped'){
+                    /* Header row of the block — find product_catg by name. */
+                    for (let i = 17; i < Math.min(r.length, 32); i++){
+                        if (String(r[i] || '').trim().toLowerCase() === 'product_catg'){ bulkyCatIdx = i; break; }
+                    }
+                }
                 let dIdx = -1;
                 for (let i = 20; i <= 22; i++){
                     if (wrDay(String(r[i] || '').trim())) { dIdx = i; break; }
                 }
                 if (dIdx < 0) dIdx = 20;
                 if (wrIsToday(String(r[dIdx] || '').trim())){
+                    const fam = String(r[18] || '').trim();
+                    /* product_catg follows WH Type in the current sheet.
+                       Copies that stop at WH Type have no category column,
+                       so the item family stands in for it. */
+                    const cat = String(r[bulkyCatIdx >= 0 ? bulkyCatIdx : dIdx + 3] || '').trim() || fam;
                     C.push({
                         wh: cw,
                         hub: String(r[17] || '').trim(),
-                        family: String(r[18] || '').trim(),
+                        family: fam,
+                        cat: cat,
                         /* The date is followed by Facility Receiving and
-                           WH Type (Q–W layout); older copies put flag /
+                           WH Type (Q–X layout); older copies put flag /
                            forward_hub_flag before the date instead. */
                         facility: String(r[dIdx + 1] || '').trim(),
                         whType: String(r[dIdx + 2] || '').trim(),
