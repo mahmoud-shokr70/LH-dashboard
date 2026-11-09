@@ -843,6 +843,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn" title="Manpower"><i class="bi bi-people"></i> <span class="nl-txt">Manpower</span><span class="tab-state" data-state="idle" title="Not loaded yet"><i class="bi bi-cloud-slash"></i><span class="tab-time"></span></span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mm" id="mmTabBtn" title="MM Pendency"><i class="bi bi-box-seam"></i> <span class="nl-txt">MM Pendency</span><span class="tab-state" data-state="idle" title="Not loaded yet"><i class="bi bi-cloud-slash"></i><span class="tab-time"></span></span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-pending" id="pdTabBtn" title="Live WH Receiving"><i class="bi bi-box-arrow-in-down"></i> <span class="nl-txt">Live WH Receiving</span><span class="tab-state" data-state="idle" title="Not loaded yet"><i class="bi bi-cloud-slash"></i><span class="tab-time"></span></span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-pddtab" id="pddtabBtn" title="PDD"><i class="bi bi-calendar2-x"></i> <span class="nl-txt">PDD</span><span class="tab-state" data-state="idle" title="Not loaded yet"><i class="bi bi-cloud-slash"></i><span class="tab-time"></span></span></button></li>
         <!-- Trip Log & RCA is reached from the report cards / welcome screen, not the rail -->
         <li class="nav-item d-none"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-rca" id="rcaTabBtn" tabindex="-1" aria-hidden="true"></button></li>
     </ul>
@@ -2430,6 +2431,100 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </tr></thead>
                     <tbody id="pendingTableBody"></tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- ============ PAGE: PDD ============ -->
+        <div class="tab-pane fade" id="page-pddtab">
+            <div class="page-strip">
+                <div>
+                    <div class="k"><i class="bi bi-calendar2-x"></i>PDD</div>
+                    <div class="d">Open AWBs against their promised delivery date — how many are already past PDD, and where the rest are sitting.</div>
+                </div>
+                <span class="m">PENDING · PDD</span>
+            </div>
+
+            <div class="hero-band mb-4">
+                <div class="row g-3">
+                    <div class="col-6 col-md"><div class="kpi-mini">
+                        <div class="lbl">Total AWB</div>
+                        <div class="val" id="k-pddtab-total">—</div>
+                        <div class="sub" id="k-pddtab-total-sub">rows in the PDD tab</div>
+                    </div></div>
+                    <div class="col-6 col-md"><div class="kpi-mini">
+                        <div class="lbl">Old PDD</div>
+                        <div class="val text-danger" id="k-pddtab-old">—</div>
+                        <div class="sub" id="k-pddtab-old-sub">already past the promise date</div>
+                    </div></div>
+                    <div class="col-6 col-md"><div class="kpi-mini">
+                        <div class="lbl">Current PDD</div>
+                        <div class="val text-success" id="k-pddtab-current">—</div>
+                        <div class="sub" id="k-pddtab-current-sub">still inside the promise date</div>
+                    </div></div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <span class="small text-muted" id="pddTabNote">—</span>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge text-bg-secondary" id="pddTabBadge">No data yet</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadPddTabCsv(true)" title="Reload the PDD tab"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
+                </div>
+            </div>
+
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-clock-history me-2 text-primary"></i>Aging × PDD flag</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted" id="pddTabAgingNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('pddTabAgingTable','PDD — aging × PDD flag','pdd_aging')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto" id="pddTabAgingTable"></div>
+            </div>
+
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-geo-alt me-2 text-primary"></i>Current location × PDD flag</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted" id="pddTabLocNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('pddTabLocTable','PDD — current location × PDD flag','pdd_location')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto" id="pddTabLocTable"></div>
+            </div>
+
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-boxes me-2 text-primary"></i>Location type × PDD flag</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted" id="pddTabTypeNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('pddTabTypeTable','PDD — location type × PDD flag','pdd_location_type')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto" id="pddTabTypeTable"></div>
+            </div>
+
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-flag me-2 text-primary"></i>Final status × PDD flag</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted" id="pddTabFinalNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('pddTabFinalTable','PDD — final status × PDD flag','pdd_final_status')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto" id="pddTabFinalTable"></div>
+            </div>
+
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>Service × PDD flag</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted" id="pddTabServiceNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('pddTabServiceTable','PDD — service × PDD flag','pdd_service')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto" id="pddTabServiceTable"></div>
             </div>
         </div>
 
@@ -4179,6 +4274,12 @@ function bootApp() {
         }, 250);
     });
 
+    // The PDD tab is a small read (~420 AWBs) — load it the first time it opens.
+    const pddTabBtnEl = document.querySelector('[data-bs-target="#page-pddtab"]');
+    if (pddTabBtnEl) pddTabBtnEl.addEventListener('shown.bs.tab', function(){
+        if (typeof loadPddTabCsv === 'function') loadPddTabCsv(false);
+    });
+
     loadDataFromCSV();
     loadLiveCsv();
     if (typeof loadLhPlan === 'function') loadLhPlan(false);
@@ -4971,6 +5072,7 @@ function refreshData(silent){
     try{ if (pdLoaded && typeof loadPendingCsv === 'function') loadPendingCsv(true); }catch(e){ console.error('[refreshData] loadPendingCsv threw:', e); }
     try{ if (wrLoaded && typeof loadWhRecvCsv === 'function') loadWhRecvCsv(true); }catch(e){ console.error('[refreshData] loadWhRecvCsv threw:', e); }
     try{ if (jtLoaded && typeof loadJtCsv === 'function') loadJtCsv(true); }catch(e){ console.error('[refreshData] loadJtCsv threw:', e); }
+    try{ if (pddTabLoaded && typeof loadPddTabCsv === 'function') loadPddTabCsv(true); }catch(e){ console.error('[refreshData] pdd tab threw:', e); }
 
     if(btn){
         setTimeout(function(){ btn.disabled = false; }, 2000);
@@ -5790,6 +5892,7 @@ function autoRefreshBoth(){
     try{ if (pdLoaded && typeof loadPendingCsv === 'function') loadPendingCsv(true); }catch(e){ console.error('[autoRefresh] pending threw:', e); }
     try{ if (wrLoaded && typeof loadWhRecvCsv === 'function') loadWhRecvCsv(true); }catch(e){ console.error('[autoRefresh] whrecv threw:', e); }
     try{ if (jtLoaded && typeof loadJtCsv === 'function') loadJtCsv(true); }catch(e){ console.error('[autoRefresh] jt threw:', e); }
+    try{ if (pddTabLoaded && typeof loadPddTabCsv === 'function') loadPddTabCsv(true); }catch(e){ console.error('[autoRefresh] pdd tab threw:', e); }
 }
 
 /* Global header auto-refresh. mins = 0 turns it off. */
@@ -9299,6 +9402,9 @@ async function loadJtCsv(force){
 const WR_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=115783227&single=true&output=csv';
 /* The gateway block lives on its own tab: LM_Hub | sh_count | Rec_Date | leg_type. */
 const GW_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=1450202726&single=true&output=csv';
+/* The PDD tab is not published to the web, but the document itself is shared,
+   so read it by sheet name from the live gviz endpoint. */
+const PDDTAB_CSV_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_FILE_ID + '/gviz/tq?tqx=out:csv&sheet=PDD';
 /* Facility order as the sheet lists it — anything new falls to the end. */
 const WR_FACILITY_ORDER = ['CAI-Z2', 'CAI-Z5', 'EPX', 'directship_express', 'directship',
                            'DS Bulky', 'directship_express Bulky', 'Drop off'];
@@ -10214,6 +10320,173 @@ function renderWrGw(){
     }
     if (dateNote){
         dateNote.textContent = '· ' + wrGwKeyLabel(dates[dates.length - 1]) + ' – ' + wrGwKeyLabel(dates[0]);
+    }
+}
+
+/* ================================================================
+   PDD — the PDD tab of the live workbook
+   One row per open AWB with its aging bucket, current location,
+   location type, final status and service. The cards count the AWBs,
+   then every pivot crosses one dimension with PDD_flag_status.
+   ================================================================ */
+let pddTabRows = [], pddTabLoaded = false, pddTabLoading = false;
+
+async function loadPddTabCsv(force){
+    if (pddTabLoading || (pddTabLoaded && !force)) return;
+    pddTabLoading = true;
+    const badge = document.getElementById('pddTabBadge');
+    if (badge){ badge.className = 'badge text-bg-info'; badge.textContent = 'Loading…'; }
+    setTabStatus('page-pddtab', 'loading', 'Downloading the PDD tab…');
+
+    try {
+        csvOnHeal('pddtab', function(){ loadPddTabCsv(true); });
+        const text = await fetchCsvFull(PDDTAB_CSV_URL, 'pddtab', 20, null, !!force);
+        const grid = (Papa.parse(text, { header: false, skipEmptyLines: 'greedy' }).data || []);
+        if (grid.length < 2) throw new Error('The PDD tab came back empty.');
+        const head = (grid[0] || []).map(function(h){ return String(h || '').trim().toLowerCase(); });
+        const col = function(name){ return head.indexOf(String(name).toLowerCase()); };
+        const iAwb = col('awb_nr'), iFlag = col('PDD_flag_status');
+        if (iAwb < 0 || iFlag < 0) throw new Error('The PDD tab needs awb_nr and PDD_flag_status columns.');
+        const iAging = col('aging_flag'), iLoc = col('current_location'),
+              iType  = col('location_type'), iFinal = col('Final_Status'),
+              iSvc   = col('id_service_logistics');
+        const pick = function(r, i){ return i >= 0 ? (String(r[i] || '').trim() || '(blank)') : '(blank)'; };
+
+        const rows = [];
+        for (let n = 1; n < grid.length; n++){
+            const r = grid[n];
+            if (!String(r[iAwb] || '').trim()) continue;
+            rows.push({
+                flag:  pick(r, iFlag),
+                aging: pick(r, iAging),
+                loc:   pick(r, iLoc),
+                type:  pick(r, iType),
+                final: pick(r, iFinal),
+                svc:   pick(r, iSvc)
+            });
+        }
+        if (!rows.length) throw new Error('The PDD tab returned no AWB rows.');
+
+        pddTabRows = rows;
+        pddTabLoaded = true;
+        renderPddTab();
+        setTabStatus('page-pddtab', 'ok', fmt(rows.length) + ' AWB in the PDD tab');
+    } catch (e) {
+        console.warn('[PDD tab] load failed:', e);
+        const msg = (e && e.message) ? e.message : String(e);
+        if (badge){ badge.className = 'badge text-bg-danger'; badge.textContent = 'Load failed'; }
+        setTabStatus('page-pddtab', 'err', msg);
+        if (!pddTabRows.length){
+            ['pddTabAgingTable', 'pddTabLocTable', 'pddTabTypeTable', 'pddTabFinalTable', 'pddTabServiceTable'].forEach(function(id){
+                const host = document.getElementById(id);
+                if (!host) return;
+                host.innerHTML = '<div class="text-center text-muted py-4 small">' + esc(msg) +
+                    ' <button class="btn btn-sm btn-outline-secondary mt-2" onclick="loadPddTabCsv(true)">' +
+                    '<i class="bi bi-arrow-repeat me-1"></i>Retry</button></div>';
+            });
+        }
+    } finally {
+        pddTabLoading = false;
+    }
+}
+
+/* Counts per (dimension value × PDD_flag_status). */
+function pddTabPivot(rows, key){
+    const cell = {}, rowTot = {}, colTot = {};
+    let total = 0;
+    rows.forEach(function(r){
+        const row = r[key] || '(blank)', colv = r.flag || '(blank)';
+        const k = row + '\u0000' + colv;
+        cell[k] = (cell[k] || 0) + 1;
+        rowTot[row] = (rowTot[row] || 0) + 1;
+        colTot[colv] = (colTot[colv] || 0) + 1;
+        total++;
+    });
+    const cols = Object.keys(colTot).sort(function(a, b){
+        return (colTot[b] || 0) - (colTot[a] || 0) ||
+            String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    });
+    const rowKeys = Object.keys(rowTot).sort(function(a, b){
+        const ab = a === '(blank)', bb = b === '(blank)';
+        return ((rowTot[b] || 0) - (rowTot[a] || 0)) ||
+            (ab !== bb ? (ab ? 1 : -1) : 0) ||
+            String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    });
+    return { cell: cell, rowTot: rowTot, colTot: colTot, cols: cols, rowKeys: rowKeys, total: total };
+}
+
+function pddTabTable(hostId, noteId, rows, key, label){
+    const host = document.getElementById(hostId);
+    const note = noteId ? document.getElementById(noteId) : null;
+    if (!host) return;
+    if (!rows.length){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">No rows in the PDD tab yet.</div>';
+        if (note) note.textContent = '—';
+        return;
+    }
+    const p = pddTabPivot(rows, key);
+    if (note){
+        note.textContent = fmt(p.rowKeys.length) + ' ' + String(label).toLowerCase() +
+            (p.rowKeys.length === 1 ? '' : 's') + ' · ' + fmt(p.total) + ' AWB';
+    }
+    let head = '<thead><tr><th>' + esc(label) + '</th>';
+    p.cols.forEach(function(c){ head += '<th>' + esc(c) + '</th>'; });
+    head += '<th class="wr-pdd-tot">Grand Total</th></tr></thead>';
+
+    let body = '<tbody>';
+    p.rowKeys.forEach(function(rk){
+        body += '<tr><td>' + esc(rk) + '</td>';
+        p.cols.forEach(function(c){
+            const v = p.cell[rk + '\u0000' + c] || 0;
+            body += v ? '<td>' + fmt(v) + '</td>' : '<td class="wr-pdd-zero">–</td>';
+        });
+        body += '<td class="wr-pdd-tot">' + fmt(p.rowTot[rk] || 0) + '</td></tr>';
+    });
+    body += '</tbody>';
+
+    let foot = '<tfoot><tr><td>Grand Total</td>';
+    p.cols.forEach(function(c){ foot += '<td>' + fmt(p.colTot[c] || 0) + '</td>'; });
+    foot += '<td class="wr-pdd-tot">' + fmt(p.total) + '</td></tr></tfoot>';
+
+    host.innerHTML = '<table class="wr-pdd">' + head + body + foot + '</table>';
+}
+
+function renderPddTab(){
+    const rows = pddTabRows || [];
+    const total = rows.length;
+    const oldRows = rows.filter(function(r){ return /^old/i.test(r.flag); }).length;
+    const curRows = rows.filter(function(r){ return /^current/i.test(r.flag); }).length;
+    const pct = function(n){ return total ? Math.round((n / total) * 100) + '% of all AWB' : '—'; };
+
+    const setVal = function(id, v, cls){
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = v;
+        if (cls) el.className = 'val ' + cls;
+    };
+    setVal('k-pddtab-total', fmt(total), '');
+    setVal('k-pddtab-old', fmt(oldRows), 'text-danger');
+    setVal('k-pddtab-current', fmt(curRows), 'text-success');
+    const s1 = document.getElementById('k-pddtab-old-sub');
+    if (s1) s1.textContent = pct(oldRows);
+    const s2 = document.getElementById('k-pddtab-current-sub');
+    if (s2) s2.textContent = pct(curRows);
+    const s3 = document.getElementById('k-pddtab-total-sub');
+    if (s3) s3.textContent = 'rows in the PDD tab';
+
+    pddTabTable('pddTabAgingTable',   'pddTabAgingNote',   rows, 'aging', 'Aging');
+    pddTabTable('pddTabLocTable',     'pddTabLocNote',     rows, 'loc',   'Current location');
+    pddTabTable('pddTabTypeTable',    'pddTabTypeNote',    rows, 'type',  'Location type');
+    pddTabTable('pddTabFinalTable',   'pddTabFinalNote',   rows, 'final', 'Final status');
+    pddTabTable('pddTabServiceTable', 'pddTabServiceNote', rows, 'svc',   'ID service logistics');
+
+    const badge = document.getElementById('pddTabBadge');
+    if (badge){ badge.className = 'badge text-bg-info'; badge.textContent = fmt(total) + ' AWB'; }
+    const note = document.getElementById('pddTabNote');
+    if (note){
+        const flags = new Set(rows.map(function(r){ return r.flag; }));
+        note.textContent = fmt(total) + ' AWB · ' + fmt(flags.size) + ' PDD status' + (flags.size === 1 ? '' : 'es') +
+            ' · ' + fmt(oldRows) + ' old PDD · ' + fmt(curRows) + ' current PDD';
     }
 }
 
