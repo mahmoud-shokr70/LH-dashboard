@@ -557,6 +557,22 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
     .page-strip .d { font-size: .78rem; color: var(--warm-sub); max-width: 640px; }
     .page-strip .m { font-family: var(--font-num); font-size: .7rem; font-weight: 700; color: #16171B; background: var(--brand-yellow3);
         border: 1px solid #E9DFB8; border-radius: 999px; padding: 3px 12px; white-space: nowrap; }
+    /* Top-right action cluster — same spot and same size on every tab. */
+    .page-strip .strip-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; margin-left:auto; }
+    .btn.ct-act { display:inline-flex; align-items:center; gap:8px; font-family: var(--font-head); font-weight:800;
+        font-size:.78rem; letter-spacing:.5px; text-transform:uppercase; padding:9px 18px; border-radius:13px;
+        border:1.5px solid var(--ink); background:#fff; color:var(--ink); box-shadow:0 2px 0 var(--ink);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease; }
+    .btn.ct-act i { font-size:.95rem; line-height:1; }
+    .btn.ct-act:hover { background:#FFFAEA; color:var(--ink); border-color:var(--ink); }
+    .btn.ct-act:active { transform:translateY(1px); box-shadow:0 1px 0 var(--ink); }
+    .btn.ct-act-primary { background: linear-gradient(120deg, var(--noon), #FFEA1F); }
+    .btn.ct-act-primary:hover { background: linear-gradient(120deg, #FFE81A, var(--noon-sunk)); }
+    .btn.ct-act[disabled] { opacity:.55; box-shadow:none; transform:none; }
+    @media (max-width: 575.98px){
+        .page-strip .strip-actions { width:100%; justify-content:flex-start; margin-left:0; }
+        .btn.ct-act { padding:8px 14px; font-size:.74rem; }
+    }
 
     /* KPI strip on the LH Adherence page — same light treatment as Manpower */
     .hero-band { background: transparent; border-radius: 0; padding: 0;
@@ -991,7 +1007,10 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     <div class="k"><i class="bi bi-speedometer2"></i>LH Adherence</div>
                     <div class="d">The morning picture — trips moved, adherence across the 4 core checkpoints, shipment health.</div>
                 </div>
-                <span class="m">MIDDLE-MILE · LH ADH</span>
+                <div class="strip-actions">
+                    <span class="m">MIDDLE-MILE · LH ADH</span>
+                    <button type="button" class="btn ct-act ct-act-primary" onclick="tabRefresh('dashboard')" title="Reload every loaded sheet"><i class="bi bi-arrow-clockwise"></i>Refresh</button>
+                </div>
             </div>
             <div class="inner-tabs-row">
                 <div class="inner-tabs">
@@ -1325,7 +1344,10 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     <div class="k"><i class="bi bi-people"></i>Manpower</div>
                     <div class="d">Roster health and the plan-vs-actual picture — who showed up, against which plan, at which hub.</div>
                 </div>
-                <span class="m">WORKFORCE · PLANNING</span>
+                <div class="strip-actions">
+                    <span class="m">WORKFORCE · PLANNING</span>
+                    <button type="button" class="btn ct-act ct-act-primary" onclick="tabRefresh('mp')" title="Reload the Manpower sheet"><i class="bi bi-arrow-clockwise"></i>Refresh</button>
+                </div>
             </div>
             <div class="inner-tabs-row">
                 <div class="inner-tabs">
@@ -1343,7 +1365,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge text-bg-warning" id="mpBadge">No data yet</span>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="loadManpowerCsv(true)" title="Reload the Manpower sheet"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadManpowerCsv(true)" title="Refresh the Manpower sheet"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
                     </div>
                 </div>
                 <div class="row g-2 align-items-end">
@@ -1605,7 +1627,10 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     <div class="k"><i class="bi bi-box-seam"></i>MM Pendency</div>
                     <div class="d">Middle-mile shipments still pending — where they sit, how long they have been receiving, when they were last touched, why they are flagged, and which are already past their PDD.</div>
                 </div>
-                <span class="m">MIDDLE-MILE · PENDENCY</span>
+                <div class="strip-actions">
+                    <span class="m">MIDDLE-MILE · PENDENCY</span>
+                    <button type="button" class="btn ct-act ct-act-primary" onclick="tabRefresh('mm')" title="Reload the MM Pendency sheet"><i class="bi bi-arrow-clockwise"></i>Refresh</button>
+                </div>
             </div>
             <div class="inner-tabs-row">
                 <div class="inner-tabs">
@@ -1624,7 +1649,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge text-bg-warning" id="mmBadge">No data yet</span>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="loadMmCsv(true)" title="Reload the MM Pendency sheet"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadMmCsv(true)" title="Refresh the MM Pendency sheet"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
                     </div>
                 </div>
                 <div class="row g-3 align-items-end">
@@ -1767,7 +1792,10 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     <div class="k"><i class="bi bi-box-seam"></i>Dock Utilization</div>
                     <div class="d">Open → seal at the source dock — adherence, minutes and volume per hub and per vendor, plus the ADM dock feed.</div>
                 </div>
-                <span class="m">MIDDLE-MILE · DOCK</span>
+                <div class="strip-actions">
+                    <span class="m">MIDDLE-MILE · DOCK</span>
+                    <button type="button" class="btn ct-act ct-act-primary" onclick="tabRefresh('dock')" title="Reload the dock feed"><i class="bi bi-arrow-clockwise"></i>Refresh</button>
+                </div>
             </div>
             <div class="card p-3 mb-4 border-0 shadow-sm">
                 <div class="row g-2 align-items-end">
@@ -1880,7 +1908,10 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     <div class="k"><i class="bi bi-box-arrow-in-down"></i>Live WH Receiving</div>
                     <div class="d">Shipments the warehouses have not finished — what already sits on a manifest but has not been unpacked, and what is still waiting for a manifest to be created.</div>
                 </div>
-                <span class="m">WAREHOUSE · RECEIVING</span>
+                <div class="strip-actions">
+                    <span class="m">WAREHOUSE · RECEIVING</span>
+                    <button type="button" class="btn ct-act ct-act-primary" onclick="tabRefresh('pending')" title="Reload the receiving, WH receiving and J&amp;T sheets"><i class="bi bi-arrow-clockwise"></i>Refresh</button>
+                </div>
             </div>
             <div class="inner-tabs-row">
                 <div class="inner-tabs">
@@ -1900,7 +1931,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge text-bg-warning" id="pdBadge">No data yet</span>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="loadPendingCsv(true);loadWhRecvCsv(true);loadJtCsv(true)" title="Reload the Pending sheet"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadPendingCsv(true);loadWhRecvCsv(true);loadJtCsv(true)" title="Refresh the Pending sheet"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
                     </div>
                 </div>
             </div>
@@ -2123,7 +2154,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                         <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>Aging_Range × PDD_Aging</h6>
                         <div class="d-flex align-items-center gap-2">
                             <span class="small text-muted" id="jtNote">—</span>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadJtCsv(true)" title="Reload the J&amp;T pending sheet"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadJtCsv(true)" title="Refresh the J&amp;T pending sheet"><i class="bi bi-arrow-clockwise me-1"></i>Refresh J&amp;T</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('jtTable','J&amp;T pending — aging × PDD aging','jt_pending_aging')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
                         </div>
                     </div>
@@ -2196,7 +2227,10 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     <div class="k"><i class="bi bi-broadcast"></i>LH Live Tracking</div>
                     <div class="d">Who is filling now — live occupancy across hubs, destinations, and the current wave.</div>
                 </div>
-                <span class="m">MIDDLE-MILE · LIVE OPS</span>
+                <div class="strip-actions">
+                    <span class="m">MIDDLE-MILE · LIVE OPS</span>
+                    <button type="button" class="btn ct-act ct-act-primary" onclick="tabRefresh('live')" title="Reload the live board"><i class="bi bi-arrow-clockwise"></i>Refresh</button>
+                </div>
             </div>
             <div class="inner-tabs-row">
                 <div class="inner-tabs">
@@ -2475,26 +2509,10 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     <div class="k"><i class="bi bi-calendar2-x"></i>PDD</div>
                     <div class="d">Open AWBs against their promised delivery date — how many are already past PDD, and where the rest are sitting.</div>
                 </div>
-                <span class="m">PENDING · PDD</span>
-            </div>
-
-            <div class="hero-band mb-4">
-                <div class="row g-3">
-                    <div class="col-6 col-md"><div class="kpi-mini">
-                        <div class="lbl">Total AWB</div>
-                        <div class="val" id="k-pddtab-total">—</div>
-                        <div class="sub" id="k-pddtab-total-sub">rows in the PDD tab</div>
-                    </div></div>
-                    <div class="col-6 col-md"><div class="kpi-mini">
-                        <div class="lbl">Old PDD</div>
-                        <div class="val text-danger" id="k-pddtab-old">—</div>
-                        <div class="sub" id="k-pddtab-old-sub">already past the promise date</div>
-                    </div></div>
-                    <div class="col-6 col-md"><div class="kpi-mini">
-                        <div class="lbl">Current PDD</div>
-                        <div class="val text-success" id="k-pddtab-current">—</div>
-                        <div class="sub" id="k-pddtab-current-sub">still inside the promise date</div>
-                    </div></div>
+                <div class="strip-actions">
+                    <span class="m">PENDING · PDD</span>
+                    <button type="button" class="btn ct-act" onclick="pddTabExportCsv()" title="Download the PDD tab as CSV — only the rows that pass the active filters"><i class="bi bi-download"></i>Export CSV</button>
+                    <button type="button" class="btn ct-act ct-act-primary" onclick="tabRefresh('pdd')" title="Reload the PDD tab"><i class="bi bi-arrow-clockwise"></i>Refresh</button>
                 </div>
             </div>
 
@@ -2513,9 +2531,13 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                             <option value="">All shipping flags</option>
                         </select>
                     </div>
+                    <div class="d-flex align-items-center gap-2 pdd-filter">
+                        <label class="small text-muted mb-0" for="pddTabLt">LT</label>
+                        <select id="pddTabLt" class="form-select form-select-sm" style="width:auto;min-width:120px" onchange="pddTabSetLt(this.value)" title="Filter every table by id_service_logistics">
+                            <option value="">All LT</option>
+                        </select>
+                    </div>
                     <span class="badge text-bg-secondary" id="pddTabBadge">No data yet</span>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabExportCsv()" title="Download the PDD tab as CSV — only the rows that pass the active filters"><i class="bi bi-download me-1"></i>Export CSV</button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadPddTabCsv(true)" title="Reload the PDD tab"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
                 </div>
             </div>
 
@@ -2594,7 +2616,10 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     <div class="k"><i class="bi bi-clipboard2-pulse"></i>Trip Log &amp; RCA</div>
                     <div class="d">Every trip, every checkpoint measurement — record root causes and keep the story straight.</div>
                 </div>
-                <span class="m">MIDDLE-MILE · RCA LEDGER</span>
+                <div class="strip-actions">
+                    <span class="m">MIDDLE-MILE · RCA LEDGER</span>
+                    <button type="button" class="btn ct-act ct-act-primary" onclick="tabRefresh('dashboard')" title="Reload every loaded sheet"><i class="bi bi-arrow-clockwise"></i>Refresh</button>
+                </div>
             </div>
             <div class="table-container">
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -5135,6 +5160,23 @@ function refreshData(silent){
 
     if(btn){
         setTimeout(function(){ btn.disabled = false; }, 2000);
+    }
+}
+
+/* The Refresh button at the top of every tab. Each one reloads just the sheet
+   that tab reads (force = skip the saved copy), so a single tab refresh stays
+   quick and never disturbs the other tabs. */
+function tabRefresh(which){
+    try {
+        if (which === 'live'){ loadLiveCsv(true); return; }
+        if (which === 'dock'){ reloadDockUtil(); return; }
+        if (which === 'mp'){ loadManpowerCsv(true); return; }
+        if (which === 'mm'){ loadMmCsv(true); return; }
+        if (which === 'pending'){ loadPendingCsv(true); loadWhRecvCsv(true); loadJtCsv(true); return; }
+        if (which === 'pdd'){ loadPddTabCsv(true); return; }
+        refreshData();
+    } catch (e) {
+        showToast('Refresh failed: ' + (e && e.message ? e.message : e), 'danger');
     }
 }
 
@@ -10398,6 +10440,8 @@ let pddTabRawHead = [], pddTabRawRows = [];
 let pddTabStatus = '';
 /* '' = every flag. Holds the CFC_Flag value picked in the Shipping flag box. */
 let pddTabCfc = '';
+/* '' = every LT. Holds the id_service_logistics value picked in the LT box. */
+let pddTabLt = '';
 /* The defaults (Current PDD + Ship on Time) are applied once, on the first load. */
 let pddTabDefaulted = false;
 /* Natural order of the aging buckets, used by the aging × flag table. */
@@ -10450,6 +10494,7 @@ async function loadPddTabCsv(force){
         pddTabLoaded = true;
         pddTabFillStatus();
         pddTabFillCfc();
+        pddTabFillLt();
         pddTabApplyDefaults();
         renderPddTab();
         setTabStatus('page-pddtab', 'ok', fmt(rows.length) + ' AWB in the PDD tab');
@@ -10477,6 +10522,7 @@ async function loadPddTabCsv(force){
 function pddTabMatch(r){
     if (pddTabStatus && r.flag !== pddTabStatus) return false;
     if (pddTabCfc && r.cfc !== pddTabCfc) return false;
+    if (pddTabLt && r.svc !== pddTabLt) return false;
     return true;
 }
 
@@ -10488,7 +10534,7 @@ function pddTabExportCsv(){
         showToast('Nothing to export yet — the PDD tab has not loaded', 'danger');
         return;
     }
-    const filtering = !!(pddTabStatus || pddTabCfc);
+    const filtering = !!(pddTabStatus || pddTabCfc || pddTabLt);
     const rows = [];
     pddTabRows.forEach(function(r, i){
         if (pddTabMatch(r) && pddTabRawRows[i]) rows.push(pddTabRawRows[i]);
@@ -10558,6 +10604,26 @@ function pddTabFillCfc(wanted){
 
 function pddTabSetCfc(v){
     pddTabCfc = v || '';
+    renderPddTab();
+}
+
+/* LT filter — same idea, options read from id_service_logistics. */
+function pddTabFillLt(wanted){
+    const host = document.getElementById('pddTabLt');
+    if (!host) return;
+    const keep = wanted === undefined ? (host.value || pddTabLt) : wanted;
+    const vals = Array.from(new Set(pddTabRows.map(function(r){ return r.svc; })))
+        .filter(function(v){ return v && v !== '(blank)'; })
+        .sort(function(a, b){ return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }); });
+    host.innerHTML = '<option value="">All LT</option>' + vals.map(function(v){
+        return '<option value="' + esc(v) + '">' + esc(v) + '</option>';
+    }).join('');
+    host.value = vals.indexOf(keep) >= 0 ? keep : '';
+    pddTabLt = host.value;
+}
+
+function pddTabSetLt(v){
+    pddTabLt = v || '';
     renderPddTab();
 }
 
@@ -10767,23 +10833,6 @@ function renderPddTab(){
     const total = rows.length;
     const oldRows = allRows.filter(function(r){ return /^old/i.test(r.flag); }).length;
     const curRows = allRows.filter(function(r){ return /^current/i.test(r.flag); }).length;
-    const pct = function(n){ return allRows.length ? Math.round((n / allRows.length) * 100) + '% of all AWB' : '—'; };
-
-    const setVal = function(id, v, cls){
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.textContent = v;
-        if (cls) el.className = 'val ' + cls;
-    };
-    setVal('k-pddtab-total', fmt(allRows.length), '');
-    setVal('k-pddtab-old', fmt(oldRows), 'text-danger');
-    setVal('k-pddtab-current', fmt(curRows), 'text-success');
-    const s1 = document.getElementById('k-pddtab-old-sub');
-    if (s1) s1.textContent = pct(oldRows);
-    const s2 = document.getElementById('k-pddtab-current-sub');
-    if (s2) s2.textContent = pct(curRows);
-    const s3 = document.getElementById('k-pddtab-total-sub');
-    if (s3) s3.textContent = 'rows in the PDD tab';
 
     const common = { rows: rows, colOf: function(r){ return r.loc; }, colRows: allRows };
     pddTabTable('pddTabTypeTable', 'pddTabTypeNote', Object.assign({}, common, {
@@ -10815,7 +10864,7 @@ function renderPddTab(){
     const badge = document.getElementById('pddTabBadge');
     if (badge){
         badge.className = 'badge text-bg-info';
-        badge.textContent = (pddTabStatus || pddTabCfc)
+        badge.textContent = (pddTabStatus || pddTabCfc || pddTabLt)
             ? fmt(total) + ' / ' + fmt(allRows.length) + ' AWB'
             : fmt(allRows.length) + ' AWB';
     }
@@ -10824,6 +10873,7 @@ function renderPddTab(){
         const picked = [];
         if (pddTabStatus) picked.push('PDD flag: ' + pddTabStatus);
         if (pddTabCfc) picked.push('Shipping flag: ' + pddTabCfc);
+        if (pddTabLt) picked.push('LT: ' + pddTabLt);
         if (picked.length){
             note.textContent = picked.join(' · ') + ' · ' + fmt(total) + ' AWB · ' +
                 fmt(allRows.length - total) + ' hidden by the filter';
