@@ -2506,20 +2506,12 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                         <select id="pddTabStatus" class="form-select form-select-sm" style="width:auto;min-width:150px" onchange="pddTabSetStatus(this.value)" title="Filter every table by PDD_flag_status">
                             <option value="">All flags</option>
                         </select>
-                        <button type="button" class="btn btn-sm btn-outline-primary" id="pddTabQuickCurrent"
-                                onclick="pddTabQuick('current')" title="One click: show only Current PDD">
-                            <i class="bi bi-lightning-charge me-1"></i>Current PDD
-                        </button>
                     </div>
                     <div class="d-flex align-items-center gap-2 pdd-filter">
                         <label class="small text-muted mb-0" for="pddTabCfc">Shipping flag</label>
                         <select id="pddTabCfc" class="form-select form-select-sm" style="width:auto;min-width:150px" onchange="pddTabSetCfc(this.value)" title="Filter every table by CFC_Flag (shipping / CFC flag)">
                             <option value="">All shipping flags</option>
                         </select>
-                        <button type="button" class="btn btn-sm btn-outline-primary" id="pddTabQuickShip"
-                                onclick="pddTabQuick('ship')" title="One click: show only Ship on Time">
-                            <i class="bi bi-lightning-charge me-1"></i>Ship on Time
-                        </button>
                     </div>
                     <span class="badge text-bg-secondary" id="pddTabBadge">No data yet</span>
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabExportCsv()" title="Download the PDD tab as CSV — only the rows that pass the active filters"><i class="bi bi-download me-1"></i>Export CSV</button>
@@ -10406,6 +10398,8 @@ let pddTabRawHead = [], pddTabRawRows = [];
 let pddTabStatus = '';
 /* '' = every flag. Holds the CFC_Flag value picked in the Shipping flag box. */
 let pddTabCfc = '';
+/* The defaults (Current PDD + Ship on Time) are applied once, on the first load. */
+let pddTabDefaulted = false;
 /* Natural order of the aging buckets, used by the aging × flag table. */
 const PDD_AGING_ORDER = ['0 to 12 Hrs', '12 to 24 Hrs', '24 to 48 Hrs', '48 to 72 Hrs', 'More than 72 Hrs'];
 
@@ -10456,6 +10450,7 @@ async function loadPddTabCsv(force){
         pddTabLoaded = true;
         pddTabFillStatus();
         pddTabFillCfc();
+        pddTabApplyDefaults();
         renderPddTab();
         setTabStatus('page-pddtab', 'ok', fmt(rows.length) + ' AWB in the PDD tab');
     } catch (e) {
@@ -10566,33 +10561,30 @@ function pddTabSetCfc(v){
     renderPddTab();
 }
 
-/* One-click filters: flip straight to Current PDD / Ship on Time, or back to
-   every row when that chip is already on. The value is read from the real
-   option list, so it always matches the sheet's own spelling. */
-function pddTabQuick(kind){
-    const isCurrent = kind === 'current';
-    const host = document.getElementById(isCurrent ? 'pddTabStatus' : 'pddTabCfc');
-    if (!host) return;
+/* Pick the option that best matches `want` from a filter box. Exact value
+   first, then a value that starts with it, then the visible label — so the
+   default always matches the sheet's own spelling. */
+function pddTabOptionValue(host, want){
+    if (!host) return '';
     const opts = Array.from(host.options).filter(function(o){ return o.value; });
-    const want = isCurrent ? 'current' : 'ship on time';
-    const pick = opts.find(function(o){ return String(o.value).toLowerCase() === want; }) ||
-                 opts.find(function(o){ return String(o.value).toLowerCase().indexOf(want) === 0; }) ||
-                 opts.find(function(o){ return String(o.textContent).toLowerCase().indexOf(want) === 0; });
-    if (!pick){
-        showToast(isCurrent ? 'The sheet has no Current PDD rows' : 'The sheet has no Ship on Time rows', 'warning');
-        return;
-    }
-    host.value = host.value === pick.value ? '' : pick.value;
-    if (isCurrent) pddTabSetStatus(host.value);
-    else pddTabSetCfc(host.value);
+    const hit = opts.find(function(o){ return String(o.value).toLowerCase() === want; }) ||
+                opts.find(function(o){ return String(o.value).toLowerCase().indexOf(want) === 0; }) ||
+                opts.find(function(o){ return String(o.textContent).toLowerCase().indexOf(want) === 0; });
+    return hit ? hit.value : '';
 }
 
-/* Keep the chips lit while their value is the one picked in the box. */
-function pddTabSyncQuick(){
-    const cur = document.getElementById('pddTabQuickCurrent');
-    const ship = document.getElementById('pddTabQuickShip');
-    if (cur) cur.classList.toggle('active', /^current/i.test(pddTabStatus || ''));
-    if (ship) ship.classList.toggle('active', /^ship/i.test(pddTabCfc || ''));
+/* The tab opens on the two flags the floor watches every day: Current PDD and
+   Ship on Time. Only on the first load — reloads and refreshes keep whatever
+   the user picked afterwards, and "All …" still clears a default. */
+function pddTabApplyDefaults(){
+    if (pddTabDefaulted) return;
+    pddTabDefaulted = true;
+    const status = document.getElementById('pddTabStatus');
+    const cfc = document.getElementById('pddTabCfc');
+    if (status && !status.value) status.value = pddTabOptionValue(status, 'current');
+    if (cfc && !cfc.value) cfc.value = pddTabOptionValue(cfc, 'ship on time');
+    pddTabStatus = status ? status.value : '';
+    pddTabCfc = cfc ? cfc.value : '';
 }
 
 /* Counts per (row value × column value). The column list is taken from
@@ -10842,8 +10834,6 @@ function renderPddTab(){
                 fmt(curRows) + ' current PDD';
         }
     }
-    /* Light the one-click chips when their value is the active filter. */
-    pddTabSyncQuick();
     /* Let the two cards of the second row settle at the same height. */
     requestAnimationFrame(function(){ requestAnimationFrame(pddTabBalance); });
 }
