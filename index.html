@@ -658,7 +658,8 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
        counts and a calm zebra. */
     .pdd-pair .wr-pdd { width: 100%; table-layout: fixed; font-size: .73rem; }
     .pdd-pair .wr-pdd th, .pdd-pair .wr-pdd td { padding: 5px 9px; }
-    .pdd-pair .wr-pdd thead th { font-size: .65rem; letter-spacing: .5px; padding-left: 5px; padding-right: 5px; }
+    .pdd-pair .wr-pdd thead th { font-size: .65rem; letter-spacing: .5px; padding-left: 5px; padding-right: 5px;
+        overflow-wrap: normal; }
     /* The total column is narrow: let "Grand Total" break over the two header
        rows instead of spilling into a horizontal scrollbar. */
     .pdd-pair .wr-pdd thead th.wr-pdd-tot { white-space: normal; line-height: 1.15;
@@ -2504,6 +2505,12 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                             <option value="">All flags</option>
                         </select>
                     </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="small text-muted mb-0" for="pddTabCfc">CFC flag</label>
+                        <select id="pddTabCfc" class="form-select form-select-sm" style="width:auto;min-width:150px" onchange="pddTabSetCfc(this.value)" title="Filter every table by CFC_Flag">
+                            <option value="">All CFC flags</option>
+                        </select>
+                    </div>
                     <span class="badge text-bg-secondary" id="pddTabBadge">No data yet</span>
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabExportCsv()" title="Download every row and column of the PDD tab as a CSV file"><i class="bi bi-download me-1"></i>Export CSV</button>
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadPddTabCsv(true)" title="Reload the PDD tab"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
@@ -2560,6 +2567,19 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                             </div>
                         </div>
                         <div style="overflow-x:auto" id="pddTabAgingTable"></div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-6">
+                    <div class="card p-3 border-0 shadow-sm h-100">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>Service logistics</h6>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="small text-muted" id="pddTabSvcNote">—</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabSnap('pddTabSvcTable','PDD — service logistics × current hub','pdd_service_logistics')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                            </div>
+                        </div>
+                        <div style="overflow-x:auto" id="pddTabSvcTable"></div>
                     </div>
                 </div>
             </div>
@@ -10364,14 +10384,17 @@ function renderWrGw(){
    PDD — the PDD tab of the live workbook
    One row per open AWB with its aging bucket, current location,
    location type, final status and service. The cards count the AWBs,
-   then every pivot crosses one dimension with PDD_flag_status.
+   then every pivot crosses one dimension with the current hub, and the
+   PDD flag / CFC flag boxes narrow all of them together.
    ================================================================ */
 let pddTabRows = [], pddTabLoaded = false, pddTabLoading = false;
 /* The sheet exactly as it arrived — header + every AWB row — so Export CSV
    hands back the raw PDD tab, not one of the pivots. */
 let pddTabRawHead = [], pddTabRawRows = [];
-/* '' = every status. Holds the PDD_flag_status value picked in the Status box. */
+/* '' = every flag. Holds the PDD_flag_status value picked in the PDD flag box. */
 let pddTabStatus = '';
+/* '' = every flag. Holds the CFC_Flag value picked in the CFC flag box. */
+let pddTabCfc = '';
 /* Natural order of the aging buckets, used by the aging × flag table. */
 const PDD_AGING_ORDER = ['0 to 12 Hrs', '12 to 24 Hrs', '24 to 48 Hrs', '48 to 72 Hrs', 'More than 72 Hrs'];
 
@@ -10393,7 +10416,8 @@ async function loadPddTabCsv(force){
         if (iAwb < 0 || iFlag < 0) throw new Error('The PDD tab needs awb_nr and PDD_flag_status columns.');
         const iAging = col('aging_flag'), iLoc = col('current_location'),
               iType  = col('location_type'), iFinal = col('Final_Status'),
-              iSvc   = col('id_service_logistics'), iFwd = col('Destination_Hub');
+              iSvc   = col('id_service_logistics'), iFwd = col('Destination_Hub'),
+              iCfc   = col('CFC_Flag');
         const pick = function(r, i){ return i >= 0 ? (String(r[i] || '').trim() || '(blank)') : '(blank)'; };
 
         const rows = [];
@@ -10403,6 +10427,7 @@ async function loadPddTabCsv(force){
             if (!String(r[iAwb] || '').trim()) continue;
             rows.push({
                 flag:  pick(r, iFlag),
+                cfc:   pick(r, iCfc),
                 aging: pick(r, iAging),
                 loc:   pick(r, iLoc),
                 type:  pick(r, iType),
@@ -10419,6 +10444,7 @@ async function loadPddTabCsv(force){
         pddTabRawRows = raw;
         pddTabLoaded = true;
         pddTabFillStatus();
+        pddTabFillCfc();
         renderPddTab();
         setTabStatus('page-pddtab', 'ok', fmt(rows.length) + ' AWB in the PDD tab');
     } catch (e) {
@@ -10427,7 +10453,7 @@ async function loadPddTabCsv(force){
         if (badge){ badge.className = 'badge text-bg-danger'; badge.textContent = 'Load failed'; }
         setTabStatus('page-pddtab', 'err', msg);
         if (!pddTabRows.length){
-            ['pddTabTypeTable', 'pddTabFlagTable', 'pddTabFwdTable', 'pddTabAgingTable'].forEach(function(id){
+            ['pddTabTypeTable', 'pddTabFlagTable', 'pddTabFwdTable', 'pddTabAgingTable', 'pddTabSvcTable'].forEach(function(id){
                 const host = document.getElementById(id);
                 if (!host) return;
                 host.innerHTML = '<div class="text-center text-muted py-4 small">' + esc(msg) +
@@ -10488,6 +10514,27 @@ function pddTabFillStatus(wanted){
 
 function pddTabSetStatus(v){
     pddTabStatus = v || '';
+    renderPddTab();
+}
+
+/* CFC filter — options also come from the sheet (CFC_Flag), independent of
+   the PDD flag box; both narrow every pivot together. */
+function pddTabFillCfc(wanted){
+    const host = document.getElementById('pddTabCfc');
+    if (!host) return;
+    const keep = wanted === undefined ? (host.value || pddTabCfc) : wanted;
+    const vals = Array.from(new Set(pddTabRows.map(function(r){ return r.cfc; })))
+        .filter(function(v){ return v && v !== '(blank)'; })
+        .sort(function(a, b){ return String(a).localeCompare(String(b), undefined, { sensitivity: 'base' }); });
+    host.innerHTML = '<option value="">All CFC flags</option>' + vals.map(function(v){
+        return '<option value="' + esc(v) + '">' + esc(v) + '</option>';
+    }).join('');
+    host.value = vals.indexOf(keep) >= 0 ? keep : '';
+    pddTabCfc = host.value;
+}
+
+function pddTabSetCfc(v){
+    pddTabCfc = v || '';
     renderPddTab();
 }
 
@@ -10564,22 +10611,22 @@ function pddTabAgingShort(aging){
 }
 
 /* One table: rows come from the (already filtered) rows, columns are
-   always the current hubs. opts = { label, noteWord, rowOf, order }. */
+   always the current hubs. opts = { label, noteWord, noteOne, rowOf, order }. */
 function pddTabTable(hostId, noteId, opts){
     const host = document.getElementById(hostId);
     const note = noteId ? document.getElementById(noteId) : null;
     if (!host) return;
     const rows = opts.rows || [];
     if (!rows.length){
-        host.innerHTML = '<div class="text-center text-muted py-4 small">No rows for this status.</div>';
+        host.innerHTML = '<div class="text-center text-muted py-4 small">No rows for this filter.</div>';
         if (note) note.textContent = '—';
         return;
     }
     const p = pddTabPivot(rows, opts.rowOf, opts.colOf, opts.colRows || rows);
     if (opts.order) p.rowKeys.sort(opts.order);
     if (note){
-        note.textContent = fmt(p.rowKeys.length) + ' ' + (opts.noteWord || 'rows') +
-            ' · ' + fmt(p.total) + ' AWB';
+        const word = (p.rowKeys.length === 1 && opts.noteOne) ? opts.noteOne : (opts.noteWord || 'rows');
+        note.textContent = fmt(p.rowKeys.length) + ' ' + word + ' · ' + fmt(p.total) + ' AWB';
     }
     /* Shared column grid: 30% row label, even split for the hub columns, 14%
        for the row total — so all four pivots line up column for column. */
@@ -10667,9 +10714,11 @@ async function pddTabSnap(hostId, title, fileBase){
 
 function renderPddTab(){
     const allRows = pddTabRows || [];
-    const rows = pddTabStatus
-        ? allRows.filter(function(r){ return r.flag === pddTabStatus; })
-        : allRows;
+    const rows = allRows.filter(function(r){
+        if (pddTabStatus && r.flag !== pddTabStatus) return false;
+        if (pddTabCfc && r.cfc !== pddTabCfc) return false;
+        return true;
+    });
     const total = rows.length;
     const oldRows = allRows.filter(function(r){ return /^old/i.test(r.flag); }).length;
     const curRows = allRows.filter(function(r){ return /^current/i.test(r.flag); }).length;
@@ -10693,35 +10742,45 @@ function renderPddTab(){
 
     const common = { rows: rows, colOf: function(r){ return r.loc; }, colRows: allRows };
     pddTabTable('pddTabTypeTable', 'pddTabTypeNote', Object.assign({}, common, {
-        rowOf: function(r){ return r.type; }, label: 'Location type', noteWord: 'location types'
+        rowOf: function(r){ return r.type; }, label: 'Location type',
+        noteWord: 'location types', noteOne: 'location type'
     }));
     pddTabTable('pddTabFlagTable', 'pddTabFlagNote', Object.assign({}, common, {
-        rowOf: function(r){ return r.flag; }, label: 'PDD flag', noteWord: 'PDD statuses'
+        rowOf: function(r){ return r.flag; }, label: 'PDD flag',
+        noteWord: 'PDD statuses', noteOne: 'PDD status'
     }));
     pddTabTable('pddTabFwdTable', 'pddTabFwdNote', Object.assign({}, common, {
-        rowOf: function(r){ return r.fwd; }, label: 'FWD hub', noteWord: 'FWD hubs'
+        rowOf: function(r){ return r.fwd; }, label: 'FWD hub',
+        noteWord: 'FWD hubs', noteOne: 'FWD hub'
     }));
     pddTabTable('pddTabAgingTable', 'pddTabAgingNote', Object.assign({}, common, {
         rowOf: function(r){ return pddTabAgingShort(r.aging) + ' · ' + pddTabFlagShort(r.flag); },
-        label: 'Aging × PDD flag', noteWord: 'aging × status rows',
+        label: 'Aging × PDD flag', noteWord: 'aging × status rows', noteOne: 'aging × status row',
         order: function(a, b){
             return (pddTabAgingRank(a) - pddTabAgingRank(b)) ||
                 (pddTabFlagRank(a) - pddTabFlagRank(b)) ||
                 String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
         }
     }));
+    pddTabTable('pddTabSvcTable', 'pddTabSvcNote', Object.assign({}, common, {
+        rowOf: function(r){ return r.svc; }, label: 'Service logistics',
+        noteWord: 'services', noteOne: 'service'
+    }));
 
     const badge = document.getElementById('pddTabBadge');
     if (badge){
         badge.className = 'badge text-bg-info';
-        badge.textContent = pddTabStatus
+        badge.textContent = (pddTabStatus || pddTabCfc)
             ? fmt(total) + ' / ' + fmt(allRows.length) + ' AWB'
             : fmt(allRows.length) + ' AWB';
     }
     const note = document.getElementById('pddTabNote');
     if (note){
-        if (pddTabStatus){
-            note.textContent = 'PDD flag: ' + pddTabStatus + ' · ' + fmt(total) + ' AWB · ' +
+        const picked = [];
+        if (pddTabStatus) picked.push('PDD flag: ' + pddTabStatus);
+        if (pddTabCfc) picked.push('CFC flag: ' + pddTabCfc);
+        if (picked.length){
+            note.textContent = picked.join(' · ') + ' · ' + fmt(total) + ' AWB · ' +
                 fmt(allRows.length - total) + ' hidden by the filter';
         } else {
             const flags = new Set(allRows.map(function(r){ return r.flag; }));
@@ -10730,7 +10789,35 @@ function renderPddTab(){
                 fmt(curRows) + ' current PDD';
         }
     }
+    /* Let the two cards of the second row settle at the same height. */
+    requestAnimationFrame(function(){ requestAnimationFrame(pddTabBalance); });
 }
+
+/* The FWD hub pivot scrolls, the aging pivot does not. Give the scroller the
+   same height as the aging table beside it, so both cards end on one line and
+   the FWD card never leaves a blank patch under its rows. Falls back to the
+   CSS cap when the cards are stacked (narrow screens). */
+function pddTabBalance(){
+    const fwdHost = document.getElementById('pddTabFwdTable');
+    const agingHost = document.getElementById('pddTabAgingTable');
+    if (!fwdHost || !agingHost) return;
+    const fwdCard = fwdHost.closest('.card'), agingCard = agingHost.closest('.card');
+    if (!fwdCard || !agingCard) return;
+    fwdHost.style.maxHeight = '';
+    const fr = fwdCard.getBoundingClientRect(), ar = agingCard.getBoundingClientRect();
+    const sideBySide = Math.abs(fr.top - ar.top) < 6 && Math.abs(fr.left - ar.left) > 40;
+    if (!sideBySide) return;
+    const want = Math.round(agingHost.getBoundingClientRect().height);
+    if (!want) return;
+    fwdHost.style.maxHeight = Math.max(260, Math.min(want, Math.round(window.innerHeight * 0.9))) + 'px';
+}
+
+let pddTabBalanceTimer = null;
+window.addEventListener('resize', function(){
+    if (!pddTabLoaded) return;
+    clearTimeout(pddTabBalanceTimer);
+    pddTabBalanceTimer = setTimeout(pddTabBalance, 180);
+});
 
 /* Snapshot for the DOD table: its header is three rows deep (day name,
    date, Plan/Actual/%), which the plain table-to-canvas renderer cannot
