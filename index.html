@@ -683,6 +683,8 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
        proportion with the aging card beside it (the Snap button still grabs
        every row). Overrides the global 72vh cap. */
     #pddTabFwdTable { max-height: 360px; }
+    /* Each filter box and its one-click chip read as one control. */
+    .pdd-filter { border: 1px solid #E3DBC2; border-radius: 12px; padding: 4px 10px; background: #FFFDF2; }
     .wr-pdd tbody td { text-align: right; font-family: var(--font-num); }
     .wr-pdd tbody td:first-child { text-align: left; font-family: var(--font-head); font-weight: 700;
         position: sticky; left: 0; z-index: 3; background: #FFFDF2; }
@@ -2499,20 +2501,28 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                 <span class="small text-muted" id="pddTabNote">—</span>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <div class="d-flex align-items-center gap-2">
+                    <div class="d-flex align-items-center gap-2 pdd-filter">
                         <label class="small text-muted mb-0" for="pddTabStatus">PDD flag</label>
                         <select id="pddTabStatus" class="form-select form-select-sm" style="width:auto;min-width:150px" onchange="pddTabSetStatus(this.value)" title="Filter every table by PDD_flag_status">
                             <option value="">All flags</option>
                         </select>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="pddTabQuickCurrent"
+                                onclick="pddTabQuick('current')" title="One click: show only Current PDD">
+                            <i class="bi bi-lightning-charge me-1"></i>Current PDD
+                        </button>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <label class="small text-muted mb-0" for="pddTabCfc">CFC flag</label>
-                        <select id="pddTabCfc" class="form-select form-select-sm" style="width:auto;min-width:150px" onchange="pddTabSetCfc(this.value)" title="Filter every table by CFC_Flag">
-                            <option value="">All CFC flags</option>
+                    <div class="d-flex align-items-center gap-2 pdd-filter">
+                        <label class="small text-muted mb-0" for="pddTabCfc">Shipping flag</label>
+                        <select id="pddTabCfc" class="form-select form-select-sm" style="width:auto;min-width:150px" onchange="pddTabSetCfc(this.value)" title="Filter every table by CFC_Flag (shipping / CFC flag)">
+                            <option value="">All shipping flags</option>
                         </select>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="pddTabQuickShip"
+                                onclick="pddTabQuick('ship')" title="One click: show only Ship on Time">
+                            <i class="bi bi-lightning-charge me-1"></i>Ship on Time
+                        </button>
                     </div>
                     <span class="badge text-bg-secondary" id="pddTabBadge">No data yet</span>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabExportCsv()" title="Download every row and column of the PDD tab as a CSV file"><i class="bi bi-download me-1"></i>Export CSV</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabExportCsv()" title="Download the PDD tab as CSV — only the rows that pass the active filters"><i class="bi bi-download me-1"></i>Export CSV</button>
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadPddTabCsv(true)" title="Reload the PDD tab"><i class="bi bi-arrow-repeat me-1"></i>Reload</button>
                 </div>
             </div>
@@ -10385,15 +10395,16 @@ function renderWrGw(){
    One row per open AWB with its aging bucket, current location,
    location type, final status and service. The cards count the AWBs,
    then every pivot crosses one dimension with the current hub, and the
-   PDD flag / CFC flag boxes narrow all of them together.
+   PDD flag / Shipping flag boxes narrow all of them together.
    ================================================================ */
 let pddTabRows = [], pddTabLoaded = false, pddTabLoading = false;
 /* The sheet exactly as it arrived — header + every AWB row — so Export CSV
-   hands back the raw PDD tab, not one of the pivots. */
+   hands back real sheet rows (13 columns) instead of pivot output, cut down
+   to whatever the two filters let through. */
 let pddTabRawHead = [], pddTabRawRows = [];
 /* '' = every flag. Holds the PDD_flag_status value picked in the PDD flag box. */
 let pddTabStatus = '';
-/* '' = every flag. Holds the CFC_Flag value picked in the CFC flag box. */
+/* '' = every flag. Holds the CFC_Flag value picked in the Shipping flag box. */
 let pddTabCfc = '';
 /* Natural order of the aging buckets, used by the aging × flag table. */
 const PDD_AGING_ORDER = ['0 to 12 Hrs', '12 to 24 Hrs', '24 to 48 Hrs', '48 to 72 Hrs', 'More than 72 Hrs'];
@@ -10466,17 +10477,34 @@ async function loadPddTabCsv(force){
     }
 }
 
-/* Raw export: the PDD tab exactly as the sheet holds it — every column,
-   every AWB row. The Status filter does not cut it down; this is the data
-   behind the cards and pivots, ready for Excel. */
+/* Which AWBs the two filter boxes let through. Kept in one place so the
+   pivots and Export CSV always agree on what "filtered" means. */
+function pddTabMatch(r){
+    if (pddTabStatus && r.flag !== pddTabStatus) return false;
+    if (pddTabCfc && r.cfc !== pddTabCfc) return false;
+    return true;
+}
+
+/* Export: the sheet's own 13 columns, every AWB row — cut down to the rows
+   the active filters keep. With both boxes on "All" this is the untouched
+   raw PDD tab. */
 function pddTabExportCsv(){
     if (!pddTabRawRows.length){
         showToast('Nothing to export yet — the PDD tab has not loaded', 'danger');
         return;
     }
+    const filtering = !!(pddTabStatus || pddTabCfc);
+    const rows = [];
+    pddTabRows.forEach(function(r, i){
+        if (pddTabMatch(r) && pddTabRawRows[i]) rows.push(pddTabRawRows[i]);
+    });
+    if (!rows.length){
+        showToast('No rows match the active filters — nothing to export', 'warning');
+        return;
+    }
     const head = pddTabRawHead;
     const lines = [head.map(csvCell).join(',')];
-    pddTabRawRows.forEach(function(r){
+    rows.forEach(function(r){
         const out = [];
         for (let i = 0; i < head.length; i++) out.push(csvCell(r[i]));
         lines.push(out.join(','));
@@ -10485,10 +10513,10 @@ function pddTabExportCsv(){
     const a = document.createElement('a');
     const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
     a.href = URL.createObjectURL(blob);
-    a.download = 'pdd_' + stamp + '.csv';
+    a.download = 'pdd_' + (filtering ? 'filtered_' : '') + stamp + '.csv';
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(a.href);
-    showToast('Exported ' + fmt(pddTabRawRows.length) + ' PDD rows to CSV');
+    showToast('Exported ' + fmt(rows.length) + ' PDD rows to CSV' + (filtering ? ' (filtered)' : ''));
 }
 
 /* Status filter — the options come from the sheet, so a new flag value
@@ -10517,8 +10545,8 @@ function pddTabSetStatus(v){
     renderPddTab();
 }
 
-/* CFC filter — options also come from the sheet (CFC_Flag), independent of
-   the PDD flag box; both narrow every pivot together. */
+/* Shipping flag filter — options also come from the sheet (CFC_Flag),
+   independent of the PDD flag box; both narrow every pivot together. */
 function pddTabFillCfc(wanted){
     const host = document.getElementById('pddTabCfc');
     if (!host) return;
@@ -10526,7 +10554,7 @@ function pddTabFillCfc(wanted){
     const vals = Array.from(new Set(pddTabRows.map(function(r){ return r.cfc; })))
         .filter(function(v){ return v && v !== '(blank)'; })
         .sort(function(a, b){ return String(a).localeCompare(String(b), undefined, { sensitivity: 'base' }); });
-    host.innerHTML = '<option value="">All CFC flags</option>' + vals.map(function(v){
+    host.innerHTML = '<option value="">All shipping flags</option>' + vals.map(function(v){
         return '<option value="' + esc(v) + '">' + esc(v) + '</option>';
     }).join('');
     host.value = vals.indexOf(keep) >= 0 ? keep : '';
@@ -10536,6 +10564,35 @@ function pddTabFillCfc(wanted){
 function pddTabSetCfc(v){
     pddTabCfc = v || '';
     renderPddTab();
+}
+
+/* One-click filters: flip straight to Current PDD / Ship on Time, or back to
+   every row when that chip is already on. The value is read from the real
+   option list, so it always matches the sheet's own spelling. */
+function pddTabQuick(kind){
+    const isCurrent = kind === 'current';
+    const host = document.getElementById(isCurrent ? 'pddTabStatus' : 'pddTabCfc');
+    if (!host) return;
+    const opts = Array.from(host.options).filter(function(o){ return o.value; });
+    const want = isCurrent ? 'current' : 'ship on time';
+    const pick = opts.find(function(o){ return String(o.value).toLowerCase() === want; }) ||
+                 opts.find(function(o){ return String(o.value).toLowerCase().indexOf(want) === 0; }) ||
+                 opts.find(function(o){ return String(o.textContent).toLowerCase().indexOf(want) === 0; });
+    if (!pick){
+        showToast(isCurrent ? 'The sheet has no Current PDD rows' : 'The sheet has no Ship on Time rows', 'warning');
+        return;
+    }
+    host.value = host.value === pick.value ? '' : pick.value;
+    if (isCurrent) pddTabSetStatus(host.value);
+    else pddTabSetCfc(host.value);
+}
+
+/* Keep the chips lit while their value is the one picked in the box. */
+function pddTabSyncQuick(){
+    const cur = document.getElementById('pddTabQuickCurrent');
+    const ship = document.getElementById('pddTabQuickShip');
+    if (cur) cur.classList.toggle('active', /^current/i.test(pddTabStatus || ''));
+    if (ship) ship.classList.toggle('active', /^ship/i.test(pddTabCfc || ''));
 }
 
 /* Counts per (row value × column value). The column list is taken from
@@ -10714,11 +10771,7 @@ async function pddTabSnap(hostId, title, fileBase){
 
 function renderPddTab(){
     const allRows = pddTabRows || [];
-    const rows = allRows.filter(function(r){
-        if (pddTabStatus && r.flag !== pddTabStatus) return false;
-        if (pddTabCfc && r.cfc !== pddTabCfc) return false;
-        return true;
-    });
+    const rows = allRows.filter(pddTabMatch);
     const total = rows.length;
     const oldRows = allRows.filter(function(r){ return /^old/i.test(r.flag); }).length;
     const curRows = allRows.filter(function(r){ return /^current/i.test(r.flag); }).length;
@@ -10778,7 +10831,7 @@ function renderPddTab(){
     if (note){
         const picked = [];
         if (pddTabStatus) picked.push('PDD flag: ' + pddTabStatus);
-        if (pddTabCfc) picked.push('CFC flag: ' + pddTabCfc);
+        if (pddTabCfc) picked.push('Shipping flag: ' + pddTabCfc);
         if (picked.length){
             note.textContent = picked.join(' · ') + ' · ' + fmt(total) + ' AWB · ' +
                 fmt(allRows.length - total) + ' hidden by the filter';
@@ -10789,6 +10842,8 @@ function renderPddTab(){
                 fmt(curRows) + ' current PDD';
         }
     }
+    /* Light the one-click chips when their value is the active filter. */
+    pddTabSyncQuick();
     /* Let the two cards of the second row settle at the same height. */
     requestAnimationFrame(function(){ requestAnimationFrame(pddTabBalance); });
 }
