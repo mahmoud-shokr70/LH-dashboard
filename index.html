@@ -2524,8 +2524,8 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 <span class="small text-muted" id="pddTabNote">—</span>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <div class="d-flex align-items-center gap-2 pdd-filter">
-                        <label class="small text-muted mb-0" for="pddTabFinal">Final status</label>
-                        <select id="pddTabFinal" class="form-select form-select-sm" multiple title="Filter every table by Final_Status — tick as many as you need"></select>
+                        <label class="small text-muted mb-0" for="pddTabFlag">PDD flag</label>
+                        <select id="pddTabFlag" class="form-select form-select-sm" multiple title="Filter every table by PDD_flag_status — tick as many as you need"></select>
                     </div>
                     <div class="d-flex align-items-center gap-2 pdd-filter">
                         <label class="small text-muted mb-0" for="pddTabShip">Shipping flag</label>
@@ -10508,7 +10508,7 @@ function renderWrGw(){
    One row per open AWB with its aging bucket, current location,
    location type, final status and service. The cards count the AWBs,
    then every pivot crosses one dimension with the current hub, and the
-   Final status / Shipping flag / LT boxes narrow all of them together.
+   PDD flag / Shipping flag / LT boxes narrow all of them together.
    ================================================================ */
 let pddTabRows = [], pddTabLoaded = false, pddTabLoading = false;
 /* The sheet exactly as it arrived — header + every AWB row — so Export CSV
@@ -10516,8 +10516,8 @@ let pddTabRows = [], pddTabLoaded = false, pddTabLoading = false;
    to whatever the three multi-select filters let through. */
 let pddTabRawHead = [], pddTabRawRows = [];
 /* Selected values per box; an empty array means "all". */
-let pddTabFinal = [], pddTabShip = [], pddTabLt = [];
-/* The default (Ship on Time) is applied once, on the first load. */
+let pddTabFlag = [], pddTabShip = [], pddTabLt = [];
+/* The defaults (Current PDD + Ship on Time) are applied once, on the first load. */
 let pddTabDefaulted = false;
 /* Natural order of the aging buckets, used by the aging × flag table. */
 const PDD_AGING_ORDER = ['0 to 12 Hrs', '12 to 24 Hrs', '24 to 48 Hrs', '48 to 72 Hrs', 'More than 72 Hrs'];
@@ -10567,7 +10567,7 @@ async function loadPddTabCsv(force){
         pddTabRawHead = (grid[0] || []).map(function(h){ return String(h || '').trim(); });
         pddTabRawRows = raw;
         pddTabLoaded = true;
-        pddTabFillFinal();
+        pddTabFillFlag();
         pddTabFillShip();
         pddTabFillLt();
         pddTabInitFilters();
@@ -10593,10 +10593,10 @@ async function loadPddTabCsv(force){
     }
 }
 
-/* Which AWBs the two filter boxes let through. Kept in one place so the
+/* Which AWBs the three filter boxes let through. Kept in one place so the
    pivots and Export CSV always agree on what "filtered" means. */
 function pddTabMatch(r){
-    if (pddTabFinal.length && pddTabFinal.indexOf(r.final) < 0) return false;
+    if (pddTabFlag.length && pddTabFlag.indexOf(r.flag) < 0) return false;
     if (pddTabShip.length && pddTabShip.indexOf(r.cfc) < 0) return false;
     if (pddTabLt.length && pddTabLt.indexOf(r.svc) < 0) return false;
     return true;
@@ -10611,7 +10611,7 @@ function pddTabExportCsv(){
         return;
     }
     pddTabReadFilters();
-    const filtering = !!(pddTabFinal.length || pddTabShip.length || pddTabLt.length);
+    const filtering = !!(pddTabFlag.length || pddTabShip.length || pddTabLt.length);
     const rows = [];
     pddTabRows.forEach(function(r, i){
         if (pddTabMatch(r) && pddTabRawRows[i]) rows.push(pddTabRawRows[i]);
@@ -10651,7 +10651,7 @@ function pddTabSel(id){
 }
 
 function pddTabReadFilters(){
-    pddTabFinal = pddTabSel('pddTabFinal');
+    pddTabFlag  = pddTabSel('pddTabFlag');
     pddTabShip  = pddTabSel('pddTabShip');
     pddTabLt    = pddTabSel('pddTabLt');
 }
@@ -10674,9 +10674,15 @@ function pddTabFillBox(id, values, sortFn){
     if (host.__mcs) mcsSync(host);
 }
 
-function pddTabFillFinal(){
-    pddTabFillBox('pddTabFinal', pddTabRows.map(function(r){ return r.final; }),
-        function(a, b){ return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }); });
+/* PDD flag box — Current PDD first, then Old PDD, then anything else the
+   sheet carries. */
+function pddTabFillFlag(){
+    pddTabFillBox('pddTabFlag', pddTabRows.map(function(r){ return r.flag; }),
+        function(a, b){
+            const ac = /^current/i.test(a), bc = /^current/i.test(b);
+            if (ac !== bc) return ac ? -1 : 1;
+            return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+        });
 }
 
 function pddTabFillShip(){
@@ -10697,10 +10703,10 @@ function pddTabFacetCount(which){
         if (cache[v] !== undefined) return cache[v];
         let n = 0;
         rows.forEach(function(r){
-            if (which !== 'ship'  && pddTabShip.length  && pddTabShip.indexOf(r.cfc) < 0) return;
-            if (which !== 'lt'    && pddTabLt.length    && pddTabLt.indexOf(r.svc) < 0) return;
-            if (which !== 'final' && pddTabFinal.length && pddTabFinal.indexOf(r.final) < 0) return;
-            const val = which === 'ship' ? r.cfc : (which === 'lt' ? r.svc : r.final);
+            if (which !== 'ship' && pddTabShip.length && pddTabShip.indexOf(r.cfc) < 0) return;
+            if (which !== 'lt'   && pddTabLt.length   && pddTabLt.indexOf(r.svc) < 0) return;
+            if (which !== 'flag' && pddTabFlag.length && pddTabFlag.indexOf(r.flag) < 0) return;
+            const val = which === 'ship' ? r.cfc : (which === 'lt' ? r.svc : r.flag);
             if (val === v) n++;
         });
         cache[v] = n;
@@ -10709,9 +10715,9 @@ function pddTabFacetCount(which){
 }
 
 function pddTabInitFilters(){
-    mcsInit(document.getElementById('pddTabFinal'), pddTabFiltersChanged, pddTabFacetCount('final'));
-    mcsInit(document.getElementById('pddTabShip'),  pddTabFiltersChanged, pddTabFacetCount('ship'));
-    mcsInit(document.getElementById('pddTabLt'),    pddTabFiltersChanged, pddTabFacetCount('lt'));
+    mcsInit(document.getElementById('pddTabFlag'), pddTabFiltersChanged, pddTabFacetCount('flag'));
+    mcsInit(document.getElementById('pddTabShip'), pddTabFiltersChanged, pddTabFacetCount('ship'));
+    mcsInit(document.getElementById('pddTabLt'),   pddTabFiltersChanged, pddTabFacetCount('lt'));
 }
 
 /* Pick the option that best matches `want` from a filter box. Exact value
@@ -10726,12 +10732,18 @@ function pddTabOptionValue(host, want){
     return hit ? hit.value : '';
 }
 
-/* The tab opens on Ship on Time. Only on the first load — reloads and
-   refreshes keep whatever the user ticked afterwards, and “Clear” still
-   empties a box. */
+/* The tab opens on the two flags the floor watches every day: Current PDD and
+   Ship on Time. Only on the first load — reloads and refreshes keep whatever
+   the user ticked afterwards, and “Clear” still empties a box. */
 function pddTabApplyDefaults(){
     if (pddTabDefaulted) return;
     pddTabDefaulted = true;
+    const flag = document.getElementById('pddTabFlag');
+    if (flag){
+        const want = pddTabOptionValue(flag, 'current');
+        Array.from(flag.options).forEach(function(o){ o.selected = (want !== '' && o.value === want); });
+        if (flag.__mcs) mcsSync(flag);
+    }
     const ship = document.getElementById('pddTabShip');
     if (ship){
         const want = pddTabOptionValue(ship, 'ship on time');
@@ -10955,14 +10967,14 @@ function renderPddTab(){
     const badge = document.getElementById('pddTabBadge');
     if (badge){
         badge.className = 'badge text-bg-info';
-        badge.textContent = (pddTabFinal.length || pddTabShip.length || pddTabLt.length)
+        badge.textContent = (pddTabFlag.length || pddTabShip.length || pddTabLt.length)
             ? fmt(total) + ' / ' + fmt(allRows.length) + ' AWB'
             : fmt(allRows.length) + ' AWB';
     }
     const note = document.getElementById('pddTabNote');
     if (note){
         const picked = [];
-        if (pddTabFinal.length) picked.push('Final status: ' + pddTabFinal.join(', '));
+        if (pddTabFlag.length) picked.push('PDD flag: ' + pddTabFlag.join(', '));
         if (pddTabShip.length) picked.push('Shipping flag: ' + pddTabShip.join(', '));
         if (pddTabLt.length) picked.push('LT: ' + pddTabLt.join(', '));
         if (picked.length){
