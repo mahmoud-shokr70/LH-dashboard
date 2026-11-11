@@ -643,6 +643,8 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
     .wr-dod .wr-dod-type { text-align: left; font-weight: 800; vertical-align: top; }
     .wr-dod .wr-dod-name { text-align: left; font-weight: 700; }
     .wr-dod .wr-dod-num { text-align: right; font-family: var(--font-num); }
+    /* Plan carried from the nearest day because nothing was received then. */
+    .wr-dod .wr-dod-carry { color: #8A7A45; font-style: italic; }
     .wr-dod .wr-dod-pct { text-align: center; font-family: var(--font-num); font-weight: 800; }
     .wr-dod .wr-dod-dow { font-size: .64rem; letter-spacing: .6px; }
     .wr-dod .wr-dod-date { font-size: .7rem; }
@@ -699,8 +701,10 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
        proportion with the aging card beside it (the Snap button still grabs
        every row). Overrides the global 72vh cap. */
     #pddTabFwdTable { max-height: 360px; }
-    /* Each filter box and its one-click chip read as one control. */
+    /* Each filter box reads as one control: label on the left, picker right. */
     .pdd-filter { border: 1px solid #E3DBC2; border-radius: 12px; padding: 4px 10px; background: #FFFDF2; }
+    .pdd-filter .mcs { width: 185px; }
+    .pdd-filter .mcs-btn { min-height: 31px; font-size: .78rem; }
     .wr-pdd tbody td { text-align: right; font-family: var(--font-num); }
     .wr-pdd tbody td:first-child { text-align: left; font-family: var(--font-head); font-weight: 700;
         position: sticky; left: 0; z-index: 3; background: #FFFDF2; }
@@ -2520,22 +2524,16 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 <span class="small text-muted" id="pddTabNote">—</span>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <div class="d-flex align-items-center gap-2 pdd-filter">
-                        <label class="small text-muted mb-0" for="pddTabStatus">PDD flag</label>
-                        <select id="pddTabStatus" class="form-select form-select-sm" style="width:auto;min-width:150px" onchange="pddTabSetStatus(this.value)" title="Filter every table by PDD_flag_status">
-                            <option value="">All flags</option>
-                        </select>
+                        <label class="small text-muted mb-0" for="pddTabFinal">Final status</label>
+                        <select id="pddTabFinal" class="form-select form-select-sm" multiple title="Filter every table by Final_Status — tick as many as you need"></select>
                     </div>
                     <div class="d-flex align-items-center gap-2 pdd-filter">
-                        <label class="small text-muted mb-0" for="pddTabCfc">Shipping flag</label>
-                        <select id="pddTabCfc" class="form-select form-select-sm" style="width:auto;min-width:150px" onchange="pddTabSetCfc(this.value)" title="Filter every table by CFC_Flag (shipping / CFC flag)">
-                            <option value="">All shipping flags</option>
-                        </select>
+                        <label class="small text-muted mb-0" for="pddTabShip">Shipping flag</label>
+                        <select id="pddTabShip" class="form-select form-select-sm" multiple title="Filter every table by CFC_Flag (shipping / CFC flag) — tick as many as you need"></select>
                     </div>
                     <div class="d-flex align-items-center gap-2 pdd-filter">
                         <label class="small text-muted mb-0" for="pddTabLt">LT</label>
-                        <select id="pddTabLt" class="form-select form-select-sm" style="width:auto;min-width:120px" onchange="pddTabSetLt(this.value)" title="Filter every table by id_service_logistics">
-                            <option value="">All LT</option>
-                        </select>
+                        <select id="pddTabLt" class="form-select form-select-sm" multiple title="Filter every table by id_service_logistics — tick as many as you need"></select>
                     </div>
                     <span class="badge text-bg-secondary" id="pddTabBadge">No data yet</span>
                 </div>
@@ -2558,13 +2556,13 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 <div class="col-12 col-xl-6">
                     <div class="card p-3 border-0 shadow-sm h-100">
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                            <h6 class="fw-bold m-0"><i class="bi bi-flag me-2 text-primary"></i>PDD flag</h6>
+                            <h6 class="fw-bold m-0"><i class="bi bi-check2-square me-2 text-primary"></i>Final status</h6>
                             <div class="d-flex align-items-center gap-2">
-                                <span class="small text-muted" id="pddTabFlagNote">—</span>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabSnap('pddTabFlagTable','PDD — PDD flag × current hub','pdd_flag')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                                <span class="small text-muted" id="pddTabFinalNote">—</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pddTabSnap('pddTabFinalTable','PDD — final status × current hub','pdd_final_status')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
                             </div>
                         </div>
-                        <div style="overflow-x:auto" id="pddTabFlagTable"></div>
+                        <div style="overflow-x:auto" id="pddTabFinalTable"></div>
                     </div>
                 </div>
 
@@ -9548,13 +9546,12 @@ function wrOrd(list, v){
 function wrPill(plan, actual){
     if (!plan) return '<span class="wr-pill na" title="the sheet has no plan for this row">—</span>';
     const pct = Math.round((actual / plan) * 100);
-    /* A plan cell far below actual is a sheet problem, not a 1000% day —
-       flag it instead of printing an impossible percentage. */
-    if (pct > 200) return '<span class="wr-pill na" title="Actual ' + fmt(actual) +
-        ' against a plan of ' + fmt(plan) + ' — that plan cell looks wrong in the published sheet">plan?</span>';
-    /* 90–110% of plan is on target (green); below is light red, above is red. */
+    /* 90–110% of plan is on target (green); below is light red, above is red.
+       The percentage is always shown — a plan far below actual is still a
+       reading, so "plan?" never replaces the number. */
     const cls = (pct >= 90 && pct <= 110) ? 'ok' : (pct > 110 ? 'high' : 'low');
-    return '<span class="wr-pill ' + cls + '" title="' + fmt(actual) + ' of ' + fmt(plan) + ' planned">' +
+    const note = pct > 200 ? ' — well above plan, worth checking that plan cell' : '';
+    return '<span class="wr-pill ' + cls + '" title="' + fmt(actual) + ' of ' + fmt(plan) + ' planned' + note + '">' +
         pct + '%</span>';
 }
 
@@ -9736,17 +9733,12 @@ function renderWhRecv(){
         }
     }
 
-    /* Name any plan cell that cannot be right, so nobody reads "plan?" as a bug. */
+    /* The % pill always prints Actual ÷ Plan; the legend just explains the
+       bands so a very high reading is understood as a real number. */
     const legend = document.getElementById('wrLegend');
     if (legend){
-        const flagged = wrRows.filter(function(r){ return r.plan > 0 && (r.total / r.plan) * 100 > 200; });
         legend.innerHTML = '<i class="bi bi-calendar-check me-1"></i>Only rows whose <code>unpack_date</code> is today. ' +
-            "Plan is the sheet's own Plan column; % = Actual ÷ Plan." +
-            (flagged.length
-                ? ' <span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle me-1"></i>' +
-                  flagged.map(function(r){ return esc(r.wh) + ' (' + fmt(r.total) + ' vs plan ' + fmt(r.plan) + ')'; }).join(', ') +
-                  ' — that plan cell looks wrong in the published sheet.</span>'
-                : '');
+            "Plan is the sheet's own Plan column; % = Actual ÷ Plan, 90–110% is on target.";
     }
     pdTabMetaUpdate();
 }
@@ -9907,6 +9899,12 @@ function wrDodDow(k){
     const p = wrDodParts(k);
     return WR_DOD_DOW[new Date(p.y, p.m - 1, p.d).getDay()];
 }
+/* Whole days since the epoch, so "the nearest plan" compares real dates, not
+   yyyymmdd numbers (20261101 - 20261031 is 70, not one day). */
+function wrDodDayNum(k){
+    const p = wrDodParts(k);
+    return Date.UTC(p.y, p.m - 1, p.d) / 86400000;
+}
 /* Blend white -> #C62828: t = 0 is white, t = 1 is the full red. */
 function wrDodRed(t){
     t = Math.max(0, Math.min(1, t));
@@ -9925,8 +9923,8 @@ function wrDodHeat(pct){
     const t = Math.max(0, pct) / 90;
     return { bg: wrDodRed(0.08 + 0.42 * t), fg: '#7F1D1D' };
 }
-function wrDodCells(plan, act){
-    if (plan === null){
+function wrDodCells(plan, act, carried){
+    if (plan === null || plan === undefined){
         return '<td class="wr-dod-num">—</td><td class="wr-dod-num">—</td>' +
                '<td class="wr-dod-pct" style="background:#F7F6F0;color:#B5AE99">—</td>';
     }
@@ -9935,10 +9933,11 @@ function wrDodCells(plan, act){
        shows 110% and lands in the green band, not in red. */
     const shown = pct === null ? null : Math.round(pct);
     const h = wrDodHeat(shown);
-    const tip = pct === null
+    const tip = (pct === null
         ? 'No plan for this cell'
-        : fmt(act) + ' of ' + fmt(plan) + ' planned · ' + shown + '%';
-    return '<td class="wr-dod-num">' + fmt(plan) + '</td>' +
+        : fmt(act) + ' of ' + fmt(plan) + ' planned · ' + shown + '%') +
+        (carried ? ' · nothing was received that day, so the plan is carried from the nearest day' : '');
+    return '<td class="wr-dod-num' + (carried ? ' wr-dod-carry' : '') + '">' + fmt(plan) + '</td>' +
         '<td class="wr-dod-num">' + fmt(act) + '</td>' +
         '<td class="wr-dod-pct" style="background:' + h.bg + ';color:' + h.fg + '" title="' + esc(tip) + '">' +
         (shown === null ? '—' : shown + '%') + '</td>';
@@ -10035,6 +10034,71 @@ function renderWrDod(){
         cur.plan += r.plan; cur.actual += r.actual;
         cell[r.key] = cur;
     });
+
+    /* The pivot only renders a cell for a day the warehouse received
+       something, which hides the plan on a zero day too. Today's plan is in
+       the receiving block (wrRows); older empty days carry the nearest plan
+       the selected range has for the same warehouse. */
+    const today = new Date();
+    const todayK = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+    const todayInRange = dates.indexOf(todayK) >= 0;
+    const repPlan = {}, repAct = {};
+    (wrRows || []).forEach(function(r){
+        repPlan[r.wh] = r.plan || 0;
+        repAct[r.wh] = r.total || 0;
+    });
+
+    /* A warehouse receiving today with no pivot row at all still belongs in
+       the plan view. */
+    if (todayInRange){
+        const known = {};
+        Object.keys(byType).forEach(function(t){
+            Object.keys(byType[t]).forEach(function(g){ known[g] = true; });
+        });
+        (wrRows || []).forEach(function(r){
+            if (known[r.wh] || (!(r.plan > 0) && !(r.total > 0))) return;
+            const t = r.whType || r.wh;
+            const bag = (byType[t] = byType[t] || {});
+            bag[r.wh] = bag[r.wh] || {};
+            known[r.wh] = true;
+        });
+    }
+
+    /* Every plan value the range knows, per warehouse, for the nearest-day
+       carry. */
+    const planIndex = {};
+    Object.keys(byType).forEach(function(t){
+        Object.keys(byType[t]).forEach(function(g){
+            const list = [];
+            Object.keys(byType[t][g]).forEach(function(k){
+                const c = byType[t][g][k];
+                if (c && c.plan > 0) list.push({ k: +k, plan: c.plan, d: wrDodDayNum(+k) });
+            });
+            /* Today's report plan is exact for today; only add it to the carry
+               index when the warehouse already has a planned day in this range,
+               so a brand-new row does not spread one day's plan over the week. */
+            if (todayInRange && repPlan[g] > 0 && list.length && !list.some(function(x){ return x.k === todayK; })){
+                list.push({ k: todayK, plan: repPlan[g], d: wrDodDayNum(todayK) });
+            }
+            planIndex[g] = list;
+        });
+    });
+    const carryPlan = function(grp, key){
+        if (todayInRange && key === todayK && repPlan[grp] > 0){
+            return { plan: repPlan[grp], carried: false };
+        }
+        const list = planIndex[grp] || [];
+        const dk = wrDodDayNum(key);
+        let best = null;
+        list.forEach(function(x){
+            const gap = Math.abs(x.d - dk);
+            if (!best || gap < best.gap || (gap === best.gap && x.k < best.k)){
+                best = { gap: gap, plan: x.plan };
+            }
+        });
+        return best ? { plan: best.plan, carried: true } : null;
+    };
+
     const rank = function(t){
         const k = String(t).toLowerCase().replace(/\s+/g, ' ').trim();
         return Object.prototype.hasOwnProperty.call(WR_DOD_TYPE_RANK, k) ? WR_DOD_TYPE_RANK[k] : WR_DOD_TYPE_ORDER.length;
@@ -10056,6 +10120,9 @@ function renderWrDod(){
 
     const overall = {};
     dates.forEach(function(k){ overall[k] = { plan: 0, actual: 0 }; });
+    /* Every filled plan/actual pair, handed to the MTD table so its totals
+       match the DOD grid. */
+    const filled = [];
 
     let body = '<tbody>';
     types.forEach(function(type){
@@ -10070,8 +10137,20 @@ function renderWrDod(){
             body += '<td class="wr-dod-name">' + esc(grp) + '</td>';
             dates.forEach(function(k){
                 const c = byType[type][grp][k];
-                if (c){ overall[k].plan += c.plan; overall[k].actual += c.actual; }
-                body += wrDodCells(c ? c.plan : null, c ? c.actual : 0);
+                let plan = null, act = 0, carried = false;
+                if (c){
+                    plan = c.plan; act = c.actual;
+                } else {
+                    const fall = carryPlan(grp, k);
+                    if (fall){ plan = fall.plan; carried = fall.carried; }
+                    act = (todayInRange && k === todayK) ? (repAct[grp] || 0) : 0;
+                }
+                if (plan !== null){
+                    overall[k].plan += plan;
+                    overall[k].actual += act;
+                    filled.push({ grp: grp, key: k, plan: plan, actual: act });
+                }
+                body += wrDodCells(plan, act, carried);
             });
             body += '</tr>';
         });
@@ -10101,7 +10180,7 @@ function renderWrDod(){
     if (kAct) kAct.textContent = fmt(tAct);
     if (kActSub) kActSub.textContent = pct === null ? '—' : pct + '% of plan';
 
-    renderWrMtd(rows, dates, range);
+    renderWrMtd(filled, dates, range);
 }
 
 /* ---- MTD: one column block instead of a day axis --------------------
@@ -10429,20 +10508,16 @@ function renderWrGw(){
    One row per open AWB with its aging bucket, current location,
    location type, final status and service. The cards count the AWBs,
    then every pivot crosses one dimension with the current hub, and the
-   PDD flag / Shipping flag boxes narrow all of them together.
+   Final status / Shipping flag / LT boxes narrow all of them together.
    ================================================================ */
 let pddTabRows = [], pddTabLoaded = false, pddTabLoading = false;
 /* The sheet exactly as it arrived — header + every AWB row — so Export CSV
    hands back real sheet rows (13 columns) instead of pivot output, cut down
-   to whatever the two filters let through. */
+   to whatever the three multi-select filters let through. */
 let pddTabRawHead = [], pddTabRawRows = [];
-/* '' = every flag. Holds the PDD_flag_status value picked in the PDD flag box. */
-let pddTabStatus = '';
-/* '' = every flag. Holds the CFC_Flag value picked in the Shipping flag box. */
-let pddTabCfc = '';
-/* '' = every LT. Holds the id_service_logistics value picked in the LT box. */
-let pddTabLt = '';
-/* The defaults (Current PDD + Ship on Time) are applied once, on the first load. */
+/* Selected values per box; an empty array means "all". */
+let pddTabFinal = [], pddTabShip = [], pddTabLt = [];
+/* The default (Ship on Time) is applied once, on the first load. */
 let pddTabDefaulted = false;
 /* Natural order of the aging buckets, used by the aging × flag table. */
 const PDD_AGING_ORDER = ['0 to 12 Hrs', '12 to 24 Hrs', '24 to 48 Hrs', '48 to 72 Hrs', 'More than 72 Hrs'];
@@ -10492,9 +10567,10 @@ async function loadPddTabCsv(force){
         pddTabRawHead = (grid[0] || []).map(function(h){ return String(h || '').trim(); });
         pddTabRawRows = raw;
         pddTabLoaded = true;
-        pddTabFillStatus();
-        pddTabFillCfc();
+        pddTabFillFinal();
+        pddTabFillShip();
         pddTabFillLt();
+        pddTabInitFilters();
         pddTabApplyDefaults();
         renderPddTab();
         setTabStatus('page-pddtab', 'ok', fmt(rows.length) + ' AWB in the PDD tab');
@@ -10504,7 +10580,7 @@ async function loadPddTabCsv(force){
         if (badge){ badge.className = 'badge text-bg-danger'; badge.textContent = 'Load failed'; }
         setTabStatus('page-pddtab', 'err', msg);
         if (!pddTabRows.length){
-            ['pddTabTypeTable', 'pddTabFlagTable', 'pddTabFwdTable', 'pddTabAgingTable', 'pddTabSvcTable'].forEach(function(id){
+            ['pddTabTypeTable', 'pddTabFinalTable', 'pddTabFwdTable', 'pddTabAgingTable', 'pddTabSvcTable'].forEach(function(id){
                 const host = document.getElementById(id);
                 if (!host) return;
                 host.innerHTML = '<div class="text-center text-muted py-4 small">' + esc(msg) +
@@ -10520,21 +10596,22 @@ async function loadPddTabCsv(force){
 /* Which AWBs the two filter boxes let through. Kept in one place so the
    pivots and Export CSV always agree on what "filtered" means. */
 function pddTabMatch(r){
-    if (pddTabStatus && r.flag !== pddTabStatus) return false;
-    if (pddTabCfc && r.cfc !== pddTabCfc) return false;
-    if (pddTabLt && r.svc !== pddTabLt) return false;
+    if (pddTabFinal.length && pddTabFinal.indexOf(r.final) < 0) return false;
+    if (pddTabShip.length && pddTabShip.indexOf(r.cfc) < 0) return false;
+    if (pddTabLt.length && pddTabLt.indexOf(r.svc) < 0) return false;
     return true;
 }
 
 /* Export: the sheet's own 13 columns, every AWB row — cut down to the rows
-   the active filters keep. With both boxes on "All" this is the untouched
-   raw PDD tab. */
+   the active filters keep. With every box empty this is the untouched raw
+   PDD tab. */
 function pddTabExportCsv(){
     if (!pddTabRawRows.length){
         showToast('Nothing to export yet — the PDD tab has not loaded', 'danger');
         return;
     }
-    const filtering = !!(pddTabStatus || pddTabCfc || pddTabLt);
+    pddTabReadFilters();
+    const filtering = !!(pddTabFinal.length || pddTabShip.length || pddTabLt.length);
     const rows = [];
     pddTabRows.forEach(function(r, i){
         if (pddTabMatch(r) && pddTabRawRows[i]) rows.push(pddTabRawRows[i]);
@@ -10560,75 +10637,85 @@ function pddTabExportCsv(){
     showToast('Exported ' + fmt(rows.length) + ' PDD rows to CSV' + (filtering ? ' (filtered)' : ''));
 }
 
-/* Status filter — the options come from the sheet, so a new flag value
-   shows up without touching the code. Keeps the current pick when it is
-   still valid. */
-function pddTabFillStatus(wanted){
-    const host = document.getElementById('pddTabStatus');
+/* ---------- Multi-select filter boxes (checkbox panels, like the other tabs) ---------- */
+
+const pddTabAlpha = function(a, b){
+    return String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
+};
+
+/* Read the three boxes into the state used by the pivots and the export. */
+function pddTabSel(id){
+    const el = document.getElementById(id);
+    if (!el) return [];
+    return Array.from(el.options).filter(function(o){ return o.selected; }).map(function(o){ return o.value; });
+}
+
+function pddTabReadFilters(){
+    pddTabFinal = pddTabSel('pddTabFinal');
+    pddTabShip  = pddTabSel('pddTabShip');
+    pddTabLt    = pddTabSel('pddTabLt');
+}
+
+function pddTabFiltersChanged(){
+    pddTabReadFilters();
+    renderPddTab();
+}
+
+/* Rebuild one box's options from the sheet, keeping the ticks that still exist. */
+function pddTabFillBox(id, values, sortFn){
+    const host = document.getElementById(id);
     if (!host) return;
-    const keep = wanted === undefined ? (host.value || pddTabStatus) : wanted;
-    const vals = Array.from(new Set(pddTabRows.map(function(r){ return r.flag; })))
-        .filter(function(v){ return v && v !== '(blank)'; })
-        .sort(function(a, b){
-            const ac = /^current/i.test(a), bc = /^current/i.test(b);
-            if (ac !== bc) return ac ? -1 : 1;
-            return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    const keep = new Set(Array.from(host.options).filter(function(o){ return o.selected; })
+        .map(function(o){ return o.value; }));
+    const vals = Array.from(new Set(values)).filter(function(v){ return v && v !== '(blank)'; }).sort(sortFn);
+    host.innerHTML = vals.map(function(v){
+        return '<option value="' + esc(v) + '"' + (keep.has(v) ? ' selected' : '') + '>' + esc(v) + '</option>';
+    }).join('');
+    if (host.__mcs) mcsSync(host);
+}
+
+function pddTabFillFinal(){
+    pddTabFillBox('pddTabFinal', pddTabRows.map(function(r){ return r.final; }),
+        function(a, b){ return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }); });
+}
+
+function pddTabFillShip(){
+    pddTabFillBox('pddTabShip', pddTabRows.map(function(r){ return r.cfc; }), pddTabAlpha);
+}
+
+function pddTabFillLt(){
+    pddTabFillBox('pddTabLt', pddTabRows.map(function(r){ return r.svc; }),
+        function(a, b){ return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }); });
+}
+
+/* Live count per option, counted against the OTHER two boxes only — the same
+   faceted behaviour as the dashboard and manpower filters. */
+function pddTabFacetCount(which){
+    const rows = pddTabRows || [];
+    const cache = {};
+    return function(v){
+        if (cache[v] !== undefined) return cache[v];
+        let n = 0;
+        rows.forEach(function(r){
+            if (which !== 'ship'  && pddTabShip.length  && pddTabShip.indexOf(r.cfc) < 0) return;
+            if (which !== 'lt'    && pddTabLt.length    && pddTabLt.indexOf(r.svc) < 0) return;
+            if (which !== 'final' && pddTabFinal.length && pddTabFinal.indexOf(r.final) < 0) return;
+            const val = which === 'ship' ? r.cfc : (which === 'lt' ? r.svc : r.final);
+            if (val === v) n++;
         });
-    host.innerHTML = '<option value="">All flags</option>' + vals.map(function(v){
-        return '<option value="' + esc(v) + '">' + esc(v) + '</option>';
-    }).join('');
-    host.value = vals.indexOf(keep) >= 0 ? keep : '';
-    pddTabStatus = host.value;
+        cache[v] = n;
+        return n;
+    };
 }
 
-function pddTabSetStatus(v){
-    pddTabStatus = v || '';
-    renderPddTab();
-}
-
-/* Shipping flag filter — options also come from the sheet (CFC_Flag),
-   independent of the PDD flag box; both narrow every pivot together. */
-function pddTabFillCfc(wanted){
-    const host = document.getElementById('pddTabCfc');
-    if (!host) return;
-    const keep = wanted === undefined ? (host.value || pddTabCfc) : wanted;
-    const vals = Array.from(new Set(pddTabRows.map(function(r){ return r.cfc; })))
-        .filter(function(v){ return v && v !== '(blank)'; })
-        .sort(function(a, b){ return String(a).localeCompare(String(b), undefined, { sensitivity: 'base' }); });
-    host.innerHTML = '<option value="">All shipping flags</option>' + vals.map(function(v){
-        return '<option value="' + esc(v) + '">' + esc(v) + '</option>';
-    }).join('');
-    host.value = vals.indexOf(keep) >= 0 ? keep : '';
-    pddTabCfc = host.value;
-}
-
-function pddTabSetCfc(v){
-    pddTabCfc = v || '';
-    renderPddTab();
-}
-
-/* LT filter — same idea, options read from id_service_logistics. */
-function pddTabFillLt(wanted){
-    const host = document.getElementById('pddTabLt');
-    if (!host) return;
-    const keep = wanted === undefined ? (host.value || pddTabLt) : wanted;
-    const vals = Array.from(new Set(pddTabRows.map(function(r){ return r.svc; })))
-        .filter(function(v){ return v && v !== '(blank)'; })
-        .sort(function(a, b){ return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' }); });
-    host.innerHTML = '<option value="">All LT</option>' + vals.map(function(v){
-        return '<option value="' + esc(v) + '">' + esc(v) + '</option>';
-    }).join('');
-    host.value = vals.indexOf(keep) >= 0 ? keep : '';
-    pddTabLt = host.value;
-}
-
-function pddTabSetLt(v){
-    pddTabLt = v || '';
-    renderPddTab();
+function pddTabInitFilters(){
+    mcsInit(document.getElementById('pddTabFinal'), pddTabFiltersChanged, pddTabFacetCount('final'));
+    mcsInit(document.getElementById('pddTabShip'),  pddTabFiltersChanged, pddTabFacetCount('ship'));
+    mcsInit(document.getElementById('pddTabLt'),    pddTabFiltersChanged, pddTabFacetCount('lt'));
 }
 
 /* Pick the option that best matches `want` from a filter box. Exact value
-   first, then a value that starts with it, then the visible label — so the
+   first, then a value that starts with it, then the visible label — so a
    default always matches the sheet's own spelling. */
 function pddTabOptionValue(host, want){
     if (!host) return '';
@@ -10639,18 +10726,19 @@ function pddTabOptionValue(host, want){
     return hit ? hit.value : '';
 }
 
-/* The tab opens on the two flags the floor watches every day: Current PDD and
-   Ship on Time. Only on the first load — reloads and refreshes keep whatever
-   the user picked afterwards, and "All …" still clears a default. */
+/* The tab opens on Ship on Time. Only on the first load — reloads and
+   refreshes keep whatever the user ticked afterwards, and “Clear” still
+   empties a box. */
 function pddTabApplyDefaults(){
     if (pddTabDefaulted) return;
     pddTabDefaulted = true;
-    const status = document.getElementById('pddTabStatus');
-    const cfc = document.getElementById('pddTabCfc');
-    if (status && !status.value) status.value = pddTabOptionValue(status, 'current');
-    if (cfc && !cfc.value) cfc.value = pddTabOptionValue(cfc, 'ship on time');
-    pddTabStatus = status ? status.value : '';
-    pddTabCfc = cfc ? cfc.value : '';
+    const ship = document.getElementById('pddTabShip');
+    if (ship){
+        const want = pddTabOptionValue(ship, 'ship on time');
+        Array.from(ship.options).forEach(function(o){ o.selected = (want !== '' && o.value === want); });
+        if (ship.__mcs) mcsSync(ship);
+    }
+    pddTabReadFilters();
 }
 
 /* Counts per (row value × column value). The column list is taken from
@@ -10839,9 +10927,12 @@ function renderPddTab(){
         rowOf: function(r){ return r.type; }, label: 'Location type',
         noteWord: 'location types', noteOne: 'location type'
     }));
-    pddTabTable('pddTabFlagTable', 'pddTabFlagNote', Object.assign({}, common, {
-        rowOf: function(r){ return r.flag; }, label: 'PDD flag',
-        noteWord: 'PDD statuses', noteOne: 'PDD status'
+    pddTabTable('pddTabFinalTable', 'pddTabFinalNote', Object.assign({}, common, {
+        rowOf: function(r){ return r.final; }, label: 'Final status',
+        noteWord: 'final statuses', noteOne: 'final status',
+        order: function(a, b){
+            return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+        }
     }));
     pddTabTable('pddTabFwdTable', 'pddTabFwdNote', Object.assign({}, common, {
         rowOf: function(r){ return r.fwd; }, label: 'FWD hub',
@@ -10864,16 +10955,16 @@ function renderPddTab(){
     const badge = document.getElementById('pddTabBadge');
     if (badge){
         badge.className = 'badge text-bg-info';
-        badge.textContent = (pddTabStatus || pddTabCfc || pddTabLt)
+        badge.textContent = (pddTabFinal.length || pddTabShip.length || pddTabLt.length)
             ? fmt(total) + ' / ' + fmt(allRows.length) + ' AWB'
             : fmt(allRows.length) + ' AWB';
     }
     const note = document.getElementById('pddTabNote');
     if (note){
         const picked = [];
-        if (pddTabStatus) picked.push('PDD flag: ' + pddTabStatus);
-        if (pddTabCfc) picked.push('Shipping flag: ' + pddTabCfc);
-        if (pddTabLt) picked.push('LT: ' + pddTabLt);
+        if (pddTabFinal.length) picked.push('Final status: ' + pddTabFinal.join(', '));
+        if (pddTabShip.length) picked.push('Shipping flag: ' + pddTabShip.join(', '));
+        if (pddTabLt.length) picked.push('LT: ' + pddTabLt.join(', '));
         if (picked.length){
             note.textContent = picked.join(' · ') + ' · ' + fmt(total) + ' AWB · ' +
                 fmt(allRows.length - total) + ' hidden by the filter';
