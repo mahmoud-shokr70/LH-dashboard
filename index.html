@@ -548,9 +548,15 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
     /* Sticky table headers get a soft shadow when the page scrolls */
     .rep-table th { box-shadow: 0 2px 0 rgba(22,23,27,.12); }
 
-    /* Page title strips — bold uppercase tab with a yellow underline dash */
+    /* Page title strips — bold uppercase tab with a yellow underline dash.
+       The strip stays pinned while the tab scrolls, so the title and the
+       Refresh / Export actions are always in reach; the inner view switch
+       parks underneath it (offset set by ctFreezeHeaders). */
     .page-strip { display:flex; justify-content:space-between; align-items:flex-end; gap:14px; flex-wrap:wrap;
-        margin: 2px 0 18px; padding-bottom: 10px; border-bottom: 3px solid var(--ink); position: relative; }
+        margin: -6px 0 18px; padding-top: 8px; padding-bottom: 10px; border-bottom: 3px solid var(--ink);
+        position: sticky; top: 0; z-index: 945;
+        background: #FFF9E8;
+        box-shadow: 0 10px 12px -12px rgba(22, 23, 27, .45); }
     .page-strip::after { content:''; position:absolute; left:0; bottom:-3px; width:88px; height:3px; background: var(--ink); border-bottom-left-radius:3px; }
     .page-strip .k { font-family: var(--font-head); font-weight: 900; font-size: 1.5rem; letter-spacing: -.6px; text-transform: uppercase; color: var(--ink); line-height: 1.1; }
     .page-strip .k i { color:#16171B; margin-right: 9px; background: var(--noon); border-radius: 10px; padding: 5px 7px; font-size: 1rem; vertical-align: 2px; }
@@ -799,9 +805,12 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
     .inner-tabs { display: inline-flex; gap: 4px; flex-wrap: wrap; margin: 0 0 18px; padding: 5px 6px;
         background: #FFFDF2; border: 1px solid var(--warm-line); border-radius: 999px;
         box-shadow: var(--shadow-card); }
-    /* Right-hand scope chip living in the same bar */
+    /* Right-hand scope chip living in the same bar. The row carries the page
+       tint so it reads as a second frozen line under the pinned page strip;
+       its top offset is measured in ctFreezeHeaders(). */
     .inner-tabs-row { display: flex; align-items: center; justify-content: space-between;
-        gap: 10px; flex-wrap: wrap; margin-bottom: 18px; position: sticky; top: 6px; z-index: 940; }
+        gap: 10px; flex-wrap: wrap; margin-bottom: 18px; padding-top: 6px;
+        background: #FFF9E8; position: sticky; top: 0; z-index: 940; }
     .inner-tabs-row .inner-tabs { margin-bottom: 0; }
     .inner-tabs-row .it-meta { font-family: var(--font-num); font-size: .68rem; font-weight: 700;
         color: #6b6353; background: #FFFDF2; border: 1px solid var(--warm-line); border-radius: 999px;
@@ -4323,6 +4332,7 @@ function bootApp() {
     document.querySelectorAll('#pageTabs .nav-link').forEach(function(btn){
         btn.addEventListener('shown.bs.tab', function(){
             syncFilterBarVisibility(btn.getAttribute('data-bs-target'));
+            if (typeof ctFreezeHeaders === 'function') ctFreezeHeaders();
             setTimeout(function(){
                 Object.keys(charts).forEach(function(k){
                     try { charts[k].resize(); } catch(e){ console.warn('[chart resize] failed for', k, e); }
@@ -4583,6 +4593,46 @@ function railToggleFn(){
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', railApply);
 else railApply();
+
+/* ===== Freeze every tab's header =======================================
+   The page strip (title + Refresh / Export) is sticky, so it stays at the
+   top of the viewport while the tab scrolls. The inner view switch parks
+   just under it: the offset is measured from the live strip height, so it
+   follows the strip when the title wraps on a narrow screen. Table headers
+   are already frozen by the sticky-thead rules. */
+function ctFreezeHeaders(){
+    let pending = 0;
+    const strips = document.querySelectorAll('.tab-pane > .page-strip');
+    Array.prototype.forEach.call(strips, function(strip){
+        const pane = strip.parentElement;
+        const row = pane && pane.querySelector('.inner-tabs-row');
+        if (!row) return;
+        /* Hidden tabs are measured when their tab is shown (shown.bs.tab),
+           so they never hold the retry loop open. */
+        if (getComputedStyle(pane).display === 'none') return;
+        const h = strip.offsetHeight;
+        /* A half-painted tab measures 0 — ask for another pass. */
+        if (!h) { pending++; return; }
+        /* The row's own 6px top padding provides the visual gap, so it parks
+           flush under the strip — no seam for rows to show through. */
+        row.style.top = h + 'px';
+    });
+    return pending;
+}
+/* The app can sit behind the welcome gate for a moment, so the first pass
+   often measures nothing. Re-measure until every strip has a height, then
+   keep tracking reflows (title wrapping, rail collapse, window resize). */
+function ctFreezeWatch(){
+    let tries = 0;
+    (function tick(){
+        const pending = ctFreezeHeaders();
+        if (pending && tries++ < 60) setTimeout(tick, 250);
+    })();
+}
+window.addEventListener('resize', ctFreezeHeaders);
+window.addEventListener('load', ctFreezeHeaders);
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ctFreezeWatch);
+else ctFreezeWatch();
 
 // Start as soon as the DOM is parsed (the script sits at the end of <body>,
 // so every element it touches already exists).
