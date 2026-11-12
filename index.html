@@ -4318,10 +4318,47 @@ function showBootDiagnostics(missing){
     loader.style.display = 'block';
 }
 
+/* ===== Tab deep links ==================================================
+   Each page gets a short hash (#lh, #live, #pdd, …) so the address bar says
+   where you are, a refresh lands back on the same page, and the link can be
+   shared. Switching tabs replaces the hash rather than pushing it, so the
+   Back button never walks through tab history. */
+const CT_TAB_HASHES = {
+    'page-dashboard': 'lh',
+    'page-live': 'live',
+    'page-dock': 'dock',
+    'page-mp': 'manpower',
+    'page-mm': 'mm',
+    'page-pending': 'receiving',
+    'page-pddtab': 'pdd',
+    'page-rca': 'rca'
+};
+function ctTabHash(paneId){ return CT_TAB_HASHES[paneId] || ''; }
+function ctHashPaneId(){
+    const h = (location.hash || '').replace(/^#/, '').toLowerCase();
+    if (!h) return '';
+    return Object.keys(CT_TAB_HASHES).find(function(k){ return CT_TAB_HASHES[k] === h; }) || '';
+}
+function ctWriteTabHash(paneId){
+    const h = ctTabHash(paneId);
+    if (!h) return;
+    try {
+        if (location.hash !== '#' + h) history.replaceState(null, '', '#' + h);
+    } catch (e) { /* file:// or sandboxed context — tabs still work */ }
+}
+function ctApplyHashTab(){
+    const paneId = ctHashPaneId();
+    if (!paneId) return false;
+    const btn = document.querySelector('#pageTabs [data-bs-target="#' + paneId + '"]');
+    if (!btn || btn.classList.contains('active')) return false;
+    try { bootstrap.Tab.getOrCreateInstance(btn).show(); } catch (e) { btn.click(); }
+    return true;
+}
+window.addEventListener('hashchange', ctApplyHashTab);
+
 function bootApp() {
     if (window.__ctBooted) return;
     window.__ctBooted = true;
-
     const missing = diagnoseLibs();
     if (missing.length) { showBootDiagnostics(missing); return; }
 
@@ -4331,7 +4368,9 @@ function bootApp() {
     // switch re-measures all charts of the newly shown page.
     document.querySelectorAll('#pageTabs .nav-link').forEach(function(btn){
         btn.addEventListener('shown.bs.tab', function(){
-            syncFilterBarVisibility(btn.getAttribute('data-bs-target'));
+            const target = btn.getAttribute('data-bs-target');
+            syncFilterBarVisibility(target);
+            ctWriteTabHash(target ? target.slice(1) : '');
             if (typeof ctFreezeHeaders === 'function') ctFreezeHeaders();
             setTimeout(function(){
                 Object.keys(charts).forEach(function(k){
@@ -4393,6 +4432,10 @@ function bootApp() {
     if (typeof populateDashFilters === 'function') {
         try { populateDashFilters(); } catch(e){ console.warn('[bootApp] populateDashFilters failed:', e); }
     }
+
+    /* A shared / refreshed link with a tab hash opens straight into that page
+       (its data loads through the same shown.bs.tab handlers as a click). */
+    ctApplyHashTab();
 }
 
 /* ===== Inner tabs (Dashboard view vs Data view) ======================
