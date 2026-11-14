@@ -2025,7 +2025,8 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 </div>
                 <div class="strip-actions">
                     <span class="m">WAREHOUSE · RECEIVING</span>
-                    <button type="button" class="btn ct-act" onclick="pdExportCsv('all')" title="Download every row of the Pending sheet as a CSV"><i class="bi bi-filetype-csv"></i>Export CSV</button>
+                    <button type="button" class="btn ct-act" onclick="pdExportCsv('mf')" title="Export CSV · MF — one row per pending shipment that already sits on a manifest, with its manifest number"><i class="bi bi-filetype-csv"></i>Export CSV · MF</button>
+                    <button type="button" class="btn ct-act" onclick="jtExportCsv()" title="Export CSV · J&amp;T — every J&amp;T AWB with its aging range, PDD aging, PDD and hubs"><i class="bi bi-filetype-csv"></i>Export CSV · J&amp;T</button>
                     <button type="button" class="btn ct-act ct-act-primary" onclick="tabRefresh('pending')" title="Reload the receiving, WH receiving and J&amp;T sheets"><i class="bi bi-arrow-clockwise"></i>Refresh</button>
                 </div>
             </div>
@@ -2271,6 +2272,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                         <div class="d-flex align-items-center gap-2">
                             <span class="small text-muted" id="jtNote">—</span>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadJtCsv(true)" title="Refresh the J&amp;T pending sheet"><i class="bi bi-arrow-clockwise me-1"></i>Refresh J&amp;T</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="jtExportCsv()" title="Export CSV · J&amp;T — every J&amp;T AWB with date, Aging_Range, PDD_Aging, PDD, current and destination hub"><i class="bi bi-filetype-csv me-1"></i>Export CSV · J&amp;T</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('jtTable','J&amp;T pending — aging × PDD aging','jt_pending_aging')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
                         </div>
                     </div>
@@ -2285,6 +2287,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                         <h6 class="fw-bold m-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>Pipeline pending WH</h6>
                         <div class="d-flex align-items-center gap-2">
                             <span class="small text-muted" id="pdPipeNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdExportCsv('nomf')" title="Download the pending rows that still have no manifest — one row per shipment: WH, aging, AWB, PDD, forward hub"><i class="bi bi-filetype-csv me-1"></i>Export CSV · no MF</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('pdPipeTable','Pipeline pending WH — WH × aging','pipeline_pending_wh')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
                         </div>
                     </div>
@@ -2297,6 +2300,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                         <h6 class="fw-bold m-0"><i class="bi bi-box-seam me-2 text-primary"></i>Pending MF</h6>
                         <div class="d-flex align-items-center gap-2">
                             <span class="small text-muted" id="pdMfNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdExportCsv('mf')" title="Download the pending rows that already sit on a manifest — one row per shipment, with its manifest number, WH, aging, AWB, PDD and forward hub"><i class="bi bi-filetype-csv me-1"></i>Export CSV · MF</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('pdMfTable','Pending MF — WH × aging','pending_mf')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
                         </div>
                     </div>
@@ -2825,7 +2829,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'V32';
+const BUILD = 'V35';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -9822,12 +9826,20 @@ function pdDetailSorted(rows){
             String(a.mf || '').localeCompare(String(b.mf || ''), undefined, { numeric: true, sensitivity: 'base' });
     });
 }
-/* Download every pending row as CSV (the strip's Export CSV button). */
+/* Download pending rows as CSV. Three cuts, matching the buttons:
+     'all'  — every row on the Pending sheet (the tab header button)
+     'mf'   — rows that already sit on a manifest (the Pending MF card)
+     'nomf' — rows still waiting for a manifest (the Pipeline card) */
 function pdExportCsv(which){
-    const isAll = which === 'all';
-    const rows = isAll ? pdRows : pdRows.filter(function(r){ return r.mf; });
+    const kind = which === 'nomf' ? 'nomf' : (which === 'all' ? 'all' : 'mf');
+    const rows = kind === 'all' ? pdRows
+               : (kind === 'nomf' ? pdRows.filter(function(r){ return !r.mf; })
+                                  : pdRows.filter(function(r){ return r.mf; }));
+    const label = kind === 'all' ? 'pending' : (kind === 'nomf' ? 'no-manifest pending' : 'MF pending');
     if (!rows.length){
-        showToast('Nothing to export' + (isAll ? '' : ' — no shipment sits on a manifest'), 'danger');
+        showToast('Nothing to export — ' + (kind === 'nomf'
+            ? 'every pending row already has a manifest'
+            : 'no shipment sits on a manifest'), 'danger');
         return;
     }
     const headers = ['Manifest Nr', 'WH', 'Aging', 'AWB', 'Manifest type', 'PDD', 'Forward hub', 'Updated at'];
@@ -9840,10 +9852,33 @@ function pdExportCsv(which){
     const a = document.createElement('a');
     const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
     a.href = URL.createObjectURL(blob);
-    a.download = (isAll ? 'pending_all_' : 'pending_mf_') + stamp + '.csv';
+    a.download = 'pending_' + kind + '_' + stamp + '.csv';
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(a.href);
-    showToast('Exported ' + fmt(rows.length) + ' ' + (isAll ? 'pending' : 'manifest') + ' rows to CSV');
+    showToast('Exported ' + fmt(rows.length) + ' ' + label + ' rows to CSV');
+}
+
+/* Download the J&T pending AWBs — the rows behind the aging × PDD pivot. */
+function jtExportCsv(){
+    const rows = jtRows || [];
+    if (!rows.length){
+        showToast('Nothing to export — the J&T pending sheet has not loaded', 'danger');
+        return;
+    }
+    const headers = ['Date', 'AWB', 'Aging_Range', 'PDD_Aging', 'PDD', 'Current hub', 'Dst hub'];
+    const lines = [headers.map(csvCell).join(',')];
+    rows.forEach(function(r){
+        lines.push([r.date, r.awb, r.aging, r.pddAge, r.pdd, r.hub, r.dst]
+            .map(csvCell).join(','));
+    });
+    const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'jt_pending_' + stamp + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+    showToast('Exported ' + fmt(rows.length) + ' J&T AWBs to CSV');
 }
 
 /* Download the MM Pendency snapshot as CSV — every loaded row, one column per
