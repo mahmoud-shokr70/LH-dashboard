@@ -350,6 +350,10 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 .table tbody tr:hover > * { background-color: #FFFAE6 !important; }
 .table tbody tr:nth-child(odd) > * { background-color: var(--brand-white); }
     .fs-7 { font-size:.82rem; }
+    /* Present-by-shift table: 11 columns inside one card, so it runs a step
+       smaller than the other manpower tables (which sit two-up). */
+    .mp-sft { font-size: .72rem; }
+    .mp-sft th, .mp-sft td { padding-left: 5px; padding-right: 5px; }
     .rca-box-fail { background: #fdecea; border-left: 4px solid var(--brand-red); padding: 12px; border-radius: 6px; margin-bottom: 12px; }
     .rca-box-pass { background: #f0fdf4; border-left: 4px solid #22c55e; padding: 10px; border-radius: 6px; margin-bottom: 12px; }
 
@@ -875,7 +879,23 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
     .wl-note strong { color: #4f4736; }
     .wl-foot { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
         margin-top: 20px; padding-top: 14px; border-top: 1px dashed var(--warm-line); }
+    /* The sticky table heads park under the frozen strip + view switch; the
+       offset is measured per tab by ctFreezeHeaders() and written to
+       --ct-thead-top (strip height + switch height). Without it they stuck
+       at viewport 0 and slid behind the opaque strip.
+       Tables that live inside their own scrolling box keep top:0 — inside
+       that box the header already pins correctly, and a page offset there
+       would push it down. ctFreezeHeaders() tags those it can prove are
+       page-scrolled with .ct-page-scroll. */
+    .ct-page-scroll thead,
+    .ct-page-scroll.rep-table th,
+    .ct-page-scroll.pd-detail thead th,
+    .ct-page-scroll.mm-overdue-table thead th {
+        top: var(--ct-thead-top, 0px) !important;
+    }
+
     .wl-skip { font-size: .74rem; color: var(--warm-sub); display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; }
+
 
 </style>
 </head>
@@ -1365,6 +1385,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
             <div class="inner-tabs-row">
                 <div class="inner-tabs">
                     <button type="button" class="it-btn active" data-iview="main" onclick="innerTab(this)"><i class="bi bi-grid-1x2"></i>Manpower</button>
+                    <button type="button" class="it-btn" data-iview="shift" onclick="innerTab(this)"><i class="bi bi-clock-history"></i>Shift Level</button>
                 </div>
                 <span class="it-meta" id="mpTabMeta">—</span>
             </div>
@@ -1453,7 +1474,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
             </div>
 
             <!-- CONTENT -->
-            <div id="mpContent" style="display:none;">
+            <div id="mpContent" data-view="main" style="display:none;">
                 <div class="sec-head"><span class="n">1</span>Attendance at a glance <span class="hint">— roster, present rate, leave and no-shows</span></div>
                 <!-- KPI STRIP (manpower) -->
                 <div class="row g-3 mb-4">
@@ -1631,6 +1652,59 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                 </div>
             </div>
+
+            <!-- ============ MANPOWER / SHIFT LEVEL ============ -->
+            <div data-view="shift" class="iview-hidden">
+                <div class="sec-head"><span class="n">1</span>Present by shift <span class="hint">— day over day (DOD) and month to date (MTD) for CAI-G1 and LPC</span></div>
+
+                <div class="row g-2 mb-4" id="mpShiftKpis"></div>
+
+                <div class="card p-3 mb-4 border-0 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-calendar3 me-2 text-primary"></i>DOD — present by shift, day over day <span class="text-muted fw-normal" style="font-size:.75rem" id="mpDodNote"></span></h6>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge bg-success-subtle text-success">Present / WPH</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('mpDodTable','Manpower shift level — DOD','mp_shift_dod')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto; max-height:460px; overflow-y:auto">
+                        <table class="table table-sm align-middle mb-0 mp-sft" id="mpDodTable">
+                            <thead class="table-light" id="mpDodHead"></thead>
+                            <tbody id="mpDodBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card p-3 mb-4 border-0 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-calendar-range me-2 text-primary"></i>MTD — month to date <span class="text-muted fw-normal" style="font-size:.75rem" id="mpMtdNote"></span></h6>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge bg-light text-dark border" id="mpMtdWindow">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('mpMtdTable','Manpower shift level — MTD','mp_shift_mtd')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-lg-7">
+                            <div style="overflow-x:auto">
+                                <table class="table table-sm align-middle mb-0 mp-sft" id="mpMtdTable">
+                                    <thead class="table-light" id="mpMtdHead"></thead>
+                                    <tbody id="mpMtdBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-lg-5">
+                            <div class="small text-muted" id="mpMtdSide"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-3 mb-4 border-0 shadow-sm">
+                    <div class="pd-mf-legend" style="margin-top:0">
+                        <i class="bi bi-info-circle me-1"></i><strong>Present</strong> = the sheet's Present statuses plus WPH / Working Public Holiday. The shift is the one written on that day's cell — <code>Present Morning</code>, <code>WPH Night</code> — so a person moved between shifts is counted where they actually worked. <strong>CAI-G1</strong> = Hub <code>CAI-G1</code>; <strong>LPC</strong> = Facility Leg <code>LPC</code> (hub <code>CAI-Z2</code>).
+                        <br><strong>DOD</strong> follows the Day From → Day To range at the top. <strong>MTD</strong> always starts at the first day of that month and runs to the Day To column. Hub / leg / title / vendor / aging / workforce-type / search filters apply to both; the Shift filter is ignored so the split always shows all three shifts.
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- ============ PAGE: MM PENDENCY ============ -->
@@ -1656,9 +1730,9 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
             <div class="card p-3 mb-4 border-0 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2" style="border-bottom:1px solid #ece7d5">
                     <div>
-                        <h6 class="fw-bold m-0"><i class="bi bi-calendar3 me-2 text-primary"></i>Snapshot date
-                            <span class="text-muted fw-normal" style="font-size:.78rem">— one row per pending shipment on that day</span></h6>
-                        <div class="small text-muted mt-1" id="mmScopeLine">Choose a snapshot to summarise its pendency.</div>
+                        <h6 class="fw-bold m-0"><i class="bi bi-calendar3 me-2 text-primary"></i>Daily snapshot
+                            <span class="text-muted fw-normal" style="font-size:.78rem">— one row per pending shipment on the sheet's latest day</span></h6>
+                        <div class="small text-muted mt-1" id="mmScopeLine">The sheet exports one daily snapshot, so there is no date to pick.</div>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge text-bg-warning" id="mmBadge">No data yet</span>
@@ -1667,8 +1741,8 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 </div>
                 <div class="row g-3 align-items-end">
                     <div class="col-12 col-md-3">
-                        <label class="form-label fw-bold small text-muted mb-1">Date</label>
-                        <select id="mm-date" class="form-select form-select-sm" onchange="mmDate=this.value;renderMmPendency()"></select>
+                        <label class="form-label fw-bold small text-muted mb-1">Snapshot date</label>
+                        <div class="form-control form-control-sm bg-light fw-semibold" id="mmDateLabel" title="The sheet now exports one daily snapshot">—</div>
                     </div>
                     <div class="col-12 col-md-4">
                         <label class="form-label fw-bold small text-muted mb-1">Facility <span class="fw-normal">— click to toggle</span></label>
@@ -1911,6 +1985,33 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 <div style="overflow-x:auto" id="dkAdmHubTable"></div>
                 <div class="pd-mf-legend mt-2">
                     <i class="bi bi-building me-1"></i>ADM Dock rows: <code>shipments</code>, <code>Open_to_seal_in_Minutes</code> (min / avg / max) and <code>Dock_Adherence</code> adhered vs not adhered, rolled up per <strong>src → dst</strong> lane.
+                </div>
+            </div>
+
+            <div class="sec-head"><span class="n">6</span>CAI-G1 dock usage · arrivals by hour <span class="hint">— every truck that used the G1 dock, as source or destination</span></div>
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-building-check me-2 text-primary"></i>CAI-G1 — how many dock uses</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted" id="g1DockNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('g1DockHourTable','CAI-G1 dock usage by hour','g1_dock_hour')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
+                </div>
+                <div class="row g-2 mb-3" id="g1DockKpis"></div>
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <div class="sec-head" style="margin-bottom:8px"><span class="n">H</span>By arrival hour <span class="hint">— 24-hour clock</span></div>
+                        <div style="overflow-x:auto" id="g1DockHourTable"></div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="sec-head" style="margin-bottom:8px"><span class="n">B</span>By hub <span class="hint">— the other end of the lane</span></div>
+                        <div style="overflow-x:auto" id="g1DockHubTable"></div>
+                        <div class="sec-head" style="margin:16px 0 8px"><span class="n">V</span>By vendor</div>
+                        <div style="overflow-x:auto" id="g1DockVendorTable"></div>
+                    </div>
+                </div>
+                <div class="pd-mf-legend mt-2">
+                    <i class="bi bi-clock-history me-1"></i>One row per truck using the G1 dock. When G1 is the <strong>source</strong> the hour comes from <code>Src_Arrived_at_Dock_ts</code>; when G1 is the <strong>destination</strong> it comes from <code>Dst_Arrived_at_Dock_ts</code>. ADM rows carry no arrival timestamp, so they use the sheet's <code>hour dispatch</code>. Follows the <strong>From / To</strong> dates and the <strong>Vendor</strong> filter above.
                 </div>
             </div>
         </div>
@@ -2226,7 +2327,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 
                 </div><!-- /pending reports -->            </div>
 
-            <div id="pdEmpty" class="card p-5 border-0 shadow-sm text-center mb-4">
+            <div id="pdEmpty" data-view="pending" class="card p-5 border-0 shadow-sm text-center mb-4">
                 <div class="spinner-border text-warning mx-auto mb-2" id="pdEmptySpin" role="status"></div>
                 <div class="fw-bold" id="pdEmptyTitle">Reading the Pending sheet…</div>
                 <div class="small text-muted" id="pdEmptyMsg">The reports appear as soon as the published CSV answers.</div>
@@ -2743,7 +2844,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'V25';
+const BUILD = 'V27';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -2780,6 +2881,24 @@ function xhrCsvText(url, timeoutMs){
         xhr.onabort   = function(){ reject(new Error('request aborted (XHR)')); };
         xhr.send();
     });
+}
+
+/* A published tab can answer with a single spreadsheet error cell instead of
+   rows — "#ERROR!" is what Google writes when a formula feeding the published
+   range is broken. Retrying or cache-busting cannot fix that, so treat it as a
+   fatal answer: fail once, immediately, and tell the reader what to fix. */
+function csvSheetErrorText(text){
+    const t = String(text || '').trim().replace(/^"+|"+$/g, '').trim();
+    if (!t || t.length > 64) return '';
+    if (t.indexOf(',') !== -1 || t.indexOf('\n') !== -1) return '';
+    return /^#[A-Z0-9\/\?]+!?$/.test(t) ? t : '';
+}
+function csvFatalError(tag){
+    const err = new Error('the published tab answers ' + tag +
+        ' instead of rows — a formula that feeds that tab is failing in the Google Sheet');
+    err.csvFatal = true;
+    err.csvErrorTag = tag;
+    return err;
 }
 
 // Tries fetch() first, then XMLHttpRequest (some proxies/ad-blockers filter one
@@ -2820,6 +2939,8 @@ async function fetchCsvText(url, onProgress){
             }
             const trimmed = String(text || '').trim();
             if (!trimmed) throw new Error('empty response body');
+            const sheetErr = csvSheetErrorText(trimmed);
+            if (sheetErr) throw csvFatalError(sheetErr);
             if (/^<\s*(!doctype|html)/i.test(trimmed.slice(0, 64))) {
                 throw new Error('the sheet returned an HTML page instead of CSV — the tab is probably no longer published to the web');
             }
@@ -2833,6 +2954,10 @@ async function fetchCsvText(url, onProgress){
             return text;
         } catch (e) {
             lastErr = String((e && e.message) ? e.message : e);
+            if (e && e.csvFatal){                 // a broken tab: retrying is pointless
+                console.warn('[CSV fetch] ' + e.csvErrorTag + ' from the sheet — not retrying:', lastErr);
+                throw e;
+            }
             console.warn('[CSV fetch] attempt ' + (i+1) + '/' + transports.length + ' via ' + transport +
                          ' failed after ' + (Date.now()-started) + 'ms:', lastErr);
             if (onProgress) onProgress('Attempt ' + (i+1) + ' of ' + transports.length + ' did not complete (' + lastErr + '). Retrying…');
@@ -2914,8 +3039,10 @@ function csvCacheSet(name, body, lines){
 /* A source that came back short is retried later without blocking the page.
    Each loader registers how to re-run itself, forced past the saved copy. */
 const csvHealHandlers = {}, csvHealTimers = {}, csvHealTries = {};
+const csvFatal = {};        // name -> spreadsheet error tag; retries are pointless
 function csvOnHeal(name, fn){ csvHealHandlers[name] = fn; }
 function csvScheduleHeal(name, delay){
+    if (csvFatal[name]) return;               // "#ERROR!" tab: do not hammer the sheet
     if (csvHealTimers[name]) return;
     if ((csvHealTries[name] || 0) >= 5){       // give up quietly after ~2 minutes of trying
         return;
@@ -2938,6 +3065,7 @@ const csvFresh = {};        // name -> a background result waiting to be shown
    one. Google's partial exports are transient; a sheet edited by its owner is
    not. Pretending a genuinely trimmed sheet is "partial" was hiding edits. */
 function csvAccept(name, res){
+    delete csvFatal[name];                 // the sheet answers again — allow retries once more
     csvRemember(name, res.lines);
     csvCacheSet(name, res.body, res.lines);
     csvState[name] = { from: 'network', at: Date.now(), lines: res.lines, partial: !!res.partial };
@@ -2976,6 +3104,10 @@ async function fetchCsvFull(url, name, minLines, onProgress, force){
                              floor + '+) — checking again');
             } catch (e) {
                 lastErr = e;
+                if (e && e.csvFatal){                 // a broken tab — retrying cannot fix it
+                    csvFatal[name] = e.csvErrorTag || '#ERROR!';
+                    break;
+                }
                 if (best) break;
             }
         }
@@ -3075,6 +3207,9 @@ async function fetchSheetCsv(pubUrl, name, minLines, onProgress, force){
             if (body && body.charAt(0) !== '<' && body.indexOf(',') > 0) return text;
             console.warn('[CSV] ' + name + ' — the live endpoint did not answer with CSV; using the published copy');
         } catch (e) {
+            /* Both endpoints read the same tab, so a spreadsheet error here is
+               not worth a second round-trip: report it and stop. */
+            if (e && e.csvFatal) throw e;
             console.warn('[CSV] ' + name + ' — live endpoint failed; using the published copy:', (e && e.message) || e);
         }
     }
@@ -4649,7 +4784,6 @@ function ctFreezeHeaders(){
     Array.prototype.forEach.call(strips, function(strip){
         const pane = strip.parentElement;
         const row = pane && pane.querySelector('.inner-tabs-row');
-        if (!row) return;
         /* Hidden tabs are measured when their tab is shown (shown.bs.tab),
            so they never hold the retry loop open. */
         if (getComputedStyle(pane).display === 'none') return;
@@ -4658,7 +4792,24 @@ function ctFreezeHeaders(){
         if (!h) { pending++; return; }
         /* The row's own 6px top padding provides the visual gap, so it parks
            flush under the strip — no seam for rows to show through. */
-        row.style.top = h + 'px';
+        let offset = h;
+        if (row){
+            row.style.top = h + 'px';
+            offset = h + row.offsetHeight;
+        }
+        /* Table heads stick below the strip *and* the row (see CSS). */
+        pane.style.setProperty('--ct-thead-top', offset + 'px');
+        /* Only tables that scroll with the page take that offset; the ones
+           in their own overflow:auto box pin at the box's top edge. */
+        Array.prototype.forEach.call(pane.querySelectorAll('table'), function(tbl){
+            let a = tbl.parentElement, boxed = false;
+            while (a && a !== pane){
+                const cs = getComputedStyle(a);
+                if (cs.overflowY === 'auto' || cs.overflowY === 'scroll'){ boxed = true; break; }
+                a = a.parentElement;
+            }
+            tbl.classList.toggle('ct-page-scroll', !boxed);
+        });
     });
     return pending;
 }
@@ -4674,6 +4825,17 @@ function ctFreezeWatch(){
 }
 window.addEventListener('resize', ctFreezeHeaders);
 window.addEventListener('load', ctFreezeHeaders);
+/* Tables are rebuilt whenever a sheet lands, so re-tag/measure the new ones.
+   One pass per animation frame at most, and class flips don't retrigger it. */
+(function(){
+    let queued = false;
+    const kick = function(){
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(function(){ queued = false; ctFreezeHeaders(); });
+    };
+    try { new MutationObserver(kick).observe(document.body, { childList: true, subtree: true }); } catch(e){}
+})();
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ctFreezeWatch);
 else ctFreezeWatch();
 
@@ -5155,6 +5317,7 @@ function loadDataFromCSV(force) {
                     ctPlanRaw: row['CT_plan_time'] || '',
                     dstGateInRaw: row['Dst_gate_in_ts'] || '',
                     dstDockRaw: row['Dst_Arrived_at_Dock_ts'] || '',
+                    srcDockRaw: row['Src_Arrived_at_Dock_ts'] || '',
                     ctArrivalRaw: row['CT_arrival_time'] || '',
                     srcGateOut: null, ctPlan: null, dstArrival: null, ctArrival: null,
 
@@ -5178,6 +5341,8 @@ function loadDataFromCSV(force) {
                 t.ctPlan     = parseTimeOn(t.ctPlanRaw, base);
                 const din    = parseSheetTs(t.dstGateInRaw);
                 const dock   = parseSheetTs(t.dstDockRaw);
+                t.srcDock    = parseSheetTs(t.srcDockRaw);
+                t.dstDock    = dock;
                 t.dstArrival = din || dock;
                 t.ctArrival  = parseTimeOn(t.ctArrivalRaw, base);
                 t.dateKey    = normDateKey(t.date);
@@ -5929,6 +6094,162 @@ function dockAdmTrips(){
     });
 }
 
+/* ================================================================
+   CAI-G1 DOCK USAGE — arrivals by hour, hub and vendor
+   One event = one truck using the G1 dock.
+   • G1 as source      → hour of Src_Arrived_at_Dock_ts
+   • G1 as destination → hour of Dst_Arrived_at_Dock_ts
+   The ADM Dock sheet has no arrival timestamps, so its rows use the
+   sheet's `hour dispatch`; a trip already counted from the LH sheet is
+   not counted twice. Follows the From/To range + Vendor filter.
+================================================================ */
+const G1_DOCK_HUB = 'CAI-G1';
+
+function g1HourOf(ts){
+    if (!ts) return null;
+    const d = (ts instanceof Date) ? ts : new Date(ts);
+    return isFinite(d.getTime()) ? d.getHours() : null;
+}
+function g1IsHub(v){ return String(v || '').trim().toUpperCase() === G1_DOCK_HUB; }
+
+function g1DockEvents(){
+    const r = dockRange();
+    const vSel = dockPick('dock-vendor');
+    const inRange = function(d){ return !(r.from || r.to) || inDateRange(normDateKey(d), r.from, r.to); };
+    const venOk = function(v){ return !vSel.length || vSel.indexOf(String(v || '').trim()) !== -1; };
+    const ev = [];
+    const seen = Object.create(null);
+
+    (rawTrips || []).forEach(function(t){
+        if (!t || !inRange(t.date) || !venOk(t.vendor)) return;
+        const s = g1IsHub(t.srcHub), d = g1IsHub(t.dstHub);
+        if (!s && !d) return;
+        const key = String(t.tripCode || t.tripId || '') + '|' + normDateKey(t.date);
+        if (key !== '|') seen[key] = 1;
+        if (s) ev.push({ dir:'out', hour:g1HourOf(t.srcDock), hub:t.dstHub, vendor:t.vendor, feed:'LH' });
+        if (d) ev.push({ dir:'in',  hour:g1HourOf(t.dstDock), hub:t.srcHub, vendor:t.vendor, feed:'LH' });
+    });
+
+    (admRows || []).forEach(function(t){
+        if (!t || !inRange(t.date) || !venOk(t.vendor)) return;
+        const s = g1IsHub(t.srcHub), d = g1IsHub(t.dstHub);
+        if (!s && !d) return;
+        const key = String(t.tripCode || '') + '|' + normDateKey(t.date);
+        if (seen[key]) return;                     // already counted from the LH sheet
+        const m = dockTimeMin(t.dispatch);
+        const hour = m === null ? null : Math.floor(m / 60);
+        if (s) ev.push({ dir:'out', hour:hour, hub:t.dstHub, vendor:t.vendor, feed:'ADM' });
+        if (d) ev.push({ dir:'in',  hour:hour, hub:t.srcHub, vendor:t.vendor, feed:'ADM' });
+    });
+    return ev;
+}
+
+function g1DockGroup(events, keyFn){
+    const map = new Map();
+    (events || []).forEach(function(e){
+        const k = String(keyFn(e) || '').trim() || '(blank)';
+        if (!map.has(k)) map.set(k, { label:k, out:0, in:0, total:0 });
+        const g = map.get(k);
+        g[e.dir] += 1;
+        g.total += 1;
+    });
+    return Array.from(map.values()).sort(function(a, b){
+        return (b.total - a.total) || String(a.label).localeCompare(String(b.label));
+    });
+}
+
+/* rows: [{label, out, in, total, peak?}] */
+function g1DockTableHTML(rows, label){
+    const max = rows.reduce(function(m, r){ return Math.max(m, r.total); }, 0) || 1;
+    const head = '<tr><th>' + esc(label) + '</th>' +
+        '<th class="text-center">G1 src</th><th class="text-center">G1 dst</th>' +
+        '<th class="text-center">Dock uses</th><th style="width:108px">Share</th></tr>';
+    const body = rows.map(function(r){
+        const w = Math.max(2, Math.round((r.total / max) * 100));
+        return '<tr' + (r.peak ? ' class="fw-bold"' : '') + '>' +
+            '<td class="fw-semibold">' + esc(r.label) +
+                (r.peak ? ' <span class="badge text-bg-warning">peak</span>' : '') + '</td>' +
+            '<td class="text-center">' + fmt(r.out) + '</td>' +
+            '<td class="text-center">' + fmt(r.in) + '</td>' +
+            '<td class="text-center fw-bold">' + fmt(r.total) + '</td>' +
+            '<td><div class="mm-bar"><span style="width:' + w + '%"></span></div></td>' +
+            '</tr>';
+    }).join('');
+    const tot = rows.reduce(function(a, r){ return { out:a.out + r.out, in:a.in + r.in, total:a.total + r.total }; },
+                             { out:0, in:0, total:0 });
+    const foot = '<tr class="table-light fw-bold"><td>Grand Total</td>' +
+        '<td class="text-center">' + fmt(tot.out) + '</td>' +
+        '<td class="text-center">' + fmt(tot.in) + '</td>' +
+        '<td class="text-center">' + fmt(tot.total) + '</td><td></td></tr>';
+    return '<table class="table table-sm align-middle fs-7 mb-0">' +
+        '<thead class="table-light">' + head + '</thead><tbody>' + body + foot + '</tbody></table>';
+}
+
+function g1DockKpiTile(label, value, sub){
+    return '<div class="col-6 col-lg-3"><div class="mini-tile">' +
+        '<div class="l">' + esc(label) + '</div>' +
+        '<div class="v">' + value + '</div>' +
+        (sub ? '<div class="text-muted" style="font-size:.65rem">' + esc(sub) + '</div>' : '') +
+        '</div></div>';
+}
+
+function renderG1Dock(){
+    const hourHost = document.getElementById('g1DockHourTable');
+    if (!hourHost) return;
+    const kpiHost = document.getElementById('g1DockKpis');
+    const hubHost = document.getElementById('g1DockHubTable');
+    const venHost = document.getElementById('g1DockVendorTable');
+    const note = document.getElementById('g1DockNote');
+    const ev = g1DockEvents();
+
+    if (!ev.length){
+        if (kpiHost) kpiHost.innerHTML = '';
+        if (hubHost) hubHost.innerHTML = dockEmptyBox('No CAI-G1 dock uses in this range.');
+        if (venHost) venHost.innerHTML = dockEmptyBox('No CAI-G1 dock uses in this range.');
+        hourHost.innerHTML = dockEmptyBox('No CAI-G1 dock uses in this range.');
+        if (note) note.textContent = 'nothing in this range';
+        return;
+    }
+
+    const outN = ev.filter(function(e){ return e.dir === 'out'; }).length;
+    const inN  = ev.filter(function(e){ return e.dir === 'in';  }).length;
+    const lhN  = ev.filter(function(e){ return e.feed === 'LH'; }).length;
+    const admN = ev.length - lhN;
+
+    /* Hour buckets: 00:00 … 23:00, then "No time" for rows without a clock. */
+    const hours = [];
+    for (let h = 0; h < 24; h++) hours.push({ label:String(h).padStart(2, '0') + ':00', out:0, in:0, total:0 });
+    const noTime = { label:'No time recorded', out:0, in:0, total:0 };
+    ev.forEach(function(e){
+        const bucket = (e.hour === null || e.hour === undefined) ? noTime : hours[e.hour];
+        bucket[e.dir] += 1;
+        bucket.total += 1;
+    });
+    const hourRows = hours.filter(function(r){ return r.total; });
+    if (noTime.total) hourRows.push(noTime);
+
+    let peak = null;
+    hours.forEach(function(r){ if (r.total && (!peak || r.total > peak.total)) peak = r; });
+    if (peak) peak.peak = true;
+
+    if (kpiHost){
+        kpiHost.innerHTML =
+            g1DockKpiTile('Dock uses', fmt(ev.length), fmt(outN) + ' out · ' + fmt(inN) + ' in') +
+            g1DockKpiTile('G1 as source', fmt(outN), 'Src_Arrived_at_Dock') +
+            g1DockKpiTile('G1 as destination', fmt(inN), 'Dst_Arrived_at_Dock') +
+            g1DockKpiTile('Busiest hour', peak ? peak.label : '—',
+                          peak ? fmt(peak.total) + ' dock uses' : '');
+    }
+
+    hourHost.innerHTML = g1DockTableHTML(hourRows, 'Arrival hour');
+    if (hubHost) hubHost.innerHTML = g1DockTableHTML(g1DockGroup(ev, function(e){ return e.hub; }), 'Hub');
+    if (venHost) venHost.innerHTML = g1DockTableHTML(g1DockGroup(ev, function(e){ return e.vendor; }), 'Vendor');
+
+    if (note){
+        note.textContent = fmt(ev.length) + ' dock uses · ' + fmt(lhN) + ' LH + ' + fmt(admN) + ' ADM (dispatch hour)';
+    }
+}
+
 function renderDockUtil(){
     if (!document.getElementById('dkLhHubTable')) return;
     const lhTrips = dockLhTrips();
@@ -5981,6 +6302,7 @@ function renderDockUtil(){
     if (document.getElementById('dkAdmHubNote')) document.getElementById('dkAdmHubNote').textContent = admLoaded ? dockNoteText(admHubG, true, false) + admSuffix : '—';
     if (document.getElementById('dkAdmVendorNote')) document.getElementById('dkAdmVendorNote').textContent = admLoaded ? dockNoteText(admVenG, true, false) + admSuffix : '—';
     renderDockPlan(admTrips);
+    renderG1Dock();
 
     const meta = document.getElementById('dockMeta');
     if (meta){
@@ -8544,6 +8866,277 @@ function renderMpAging(rows, dayCols){
 }
 
 /* --- main render --------------------------------------------- */
+/* ================================================================
+   PRESENT BY SHIFT — CAI-G1 and LPC
+   The sheet writes one phrase per person per day ("Present Morning",
+   "WPH Night", "Present - Maintenance"…). Every Present mark is counted
+   under the shift written on that day's cell — the roster Shift column is
+   only the fallback, because a person can be moved between shifts mid-month.
+   G1  = Hub CAI-G1
+   LPC = Facility Leg LPC (lives on hub CAI-Z2)
+   The Shift filter is deliberately not applied here: the point of the table
+   is the split across all three shifts.
+================================================================ */
+const MP_SHIFT_KEYS  = ['morning', 'night', 'between'];
+const MP_SHIFT_NAMES = { morning: 'Morning', night: 'Night', between: 'Between', other: 'Other' };
+const MP_SHIFT_SHORT = { morning: 'Morn', night: 'Night', between: 'Betw', other: 'Other' };
+
+function mpShiftOfCell(x, t){
+    const m = String((x && x.raw) || '').match(/(morning|night|between)\s*$/i);
+    if (m) return m[1].toLowerCase();
+    const r = String((t && t.shift) || '').trim().toLowerCase();
+    return MP_SHIFT_KEYS.indexOf(r) === -1 ? 'other' : r;
+}
+function mpFacilityKey(t){
+    if (String((t && t.hub) || '').trim().toUpperCase() === 'CAI-G1') return 'g1';
+    if (String((t && t.leg) || '').trim().toUpperCase() === 'LPC') return 'lpc';
+    return '';
+}
+
+/* Roster scope for the shift tables: every manpower filter except Statuses
+   (we count Present) and Shift (the split must show all three shifts). */
+function mpShiftPeople(){
+    const people = { g1: [], lpc: [] };
+    mpAll.forEach(function(t){
+        if (!mpTypeOk(t)) return;
+        if (!mpIn(mpState.hub, t.hub) || !mpIn(mpState.leg, t.leg) ||
+            !mpIn(mpState.title, t.title) || !mpIn(mpState.vendor, t.vendor) ||
+            !mpIn(mpState.band, t.band === null ? 'na' : t.band)) return;
+        if (mpState.search && mpHay(t).indexOf(mpState.search.toLowerCase()) === -1) return;
+        const f = mpFacilityKey(t);
+        if (f) people[f].push(t);
+    });
+    return people;
+}
+
+/* Present marks per day per shift, for one day window. */
+function mpShiftTally(people, dayCols){
+    const zero = function(){ return { morning: 0, night: 0, between: 0, other: 0, total: 0 }; };
+    const dayMap = {};
+    dayCols.forEach(function(d){ dayMap[d] = { g1: zero(), lpc: zero(), total: 0 }; });
+    const all = { g1: zero(), lpc: zero() };
+    const heads = { g1: 0, lpc: 0 };
+    let otherOn = false;
+    ['g1', 'lpc'].forEach(function(f){
+        people[f].forEach(function(t){
+            let any = false;
+            dayCols.forEach(function(d){
+                const x = t.days[d];
+                if (!x || x.bucket !== 'present') return;
+                const s = mpShiftOfCell(x, t);
+                const cell = dayMap[d][f];
+                cell[s] += 1; cell.total += 1;
+                all[f][s] += 1; all[f].total += 1;
+                dayMap[d].total += 1;
+                if (s === 'other') otherOn = true;
+                any = true;
+            });
+            if (any) heads[f] += 1;
+        });
+    });
+    return { dayMap: dayMap, all: all, heads: heads, otherOn: otherOn,
+             days: dayCols.length, total: all.g1.total + all.lpc.total };
+}
+
+/* "1-Nov" -> "nov", so MTD can find the first column of the same month. */
+function mpMonthOfCol(c){
+    const m = String(c || '').match(/-\s*([A-Za-z]{3})/);
+    return m ? m[1].toLowerCase() : '';
+}
+function mpMtdCols(endCol){
+    if (!endCol) return mpCols.slice();
+    const mon = mpMonthOfCol(endCol);
+    const same = mpCols.filter(function(c){ return mpMonthOfCol(c) === mon; });
+    const i = same.indexOf(endCol);
+    return i === -1 ? mpDayCols() : same.slice(0, i + 1);
+}
+function mpShiftTile(label, value, sub){
+    return '<div class="col-6 col-lg-3"><div class="mini-tile">' +
+        '<div class="l">' + esc(label) + '</div>' +
+        '<div class="v">' + value + '</div>' +
+        (sub ? '<div class="text-muted" style="font-size:.65rem">' + esc(sub) + '</div>' : '') +
+        '</div></div>';
+}
+
+function renderMpShift(){
+    const dodHead = document.getElementById('mpDodHead');
+    const dodBody = document.getElementById('mpDodBody');
+    if (!dodHead || !dodBody) return;
+    const kpiHost  = document.getElementById('mpShiftKpis');
+    const dodNote  = document.getElementById('mpDodNote');
+    const mtdHead  = document.getElementById('mpMtdHead');
+    const mtdBody  = document.getElementById('mpMtdBody');
+    const mtdNote  = document.getElementById('mpMtdNote');
+    const mtdWin   = document.getElementById('mpMtdWindow');
+    const mtdSide  = document.getElementById('mpMtdSide');
+
+    if (!mpLoaded){
+        if (kpiHost) kpiHost.innerHTML = '';
+        dodHead.innerHTML = '';
+        dodBody.innerHTML = '<tr><td class="text-center text-muted py-3">Reading the roster…</td></tr>';
+        if (mtdHead) mtdHead.innerHTML = '';
+        if (mtdBody) mtdBody.innerHTML = '';
+        if (mtdWin)  mtdWin.textContent = '—';
+        if (mtdSide) mtdSide.innerHTML = '';
+        return;
+    }
+
+    const dodCols = mpDayCols();
+    const mtdCols = mpMtdCols(dodCols[dodCols.length - 1] || mpCols[mpCols.length - 1]);
+    const people  = mpShiftPeople();
+    const dod     = mpShiftTally(people, dodCols);
+    const mtd     = mpShiftTally(people, mtdCols);
+
+    const dodLabel = dodCols.length > 1
+        ? mpPrettyDay(dodCols[0]) + ' – ' + mpPrettyDay(dodCols[dodCols.length - 1])
+        : mpPrettyDay(dodCols[0] || '');
+    const mtdLabel = mtdCols.length
+        ? mpPrettyDay(mtdCols[0]) + ' – ' + mpPrettyDay(mtdCols[mtdCols.length - 1])
+        : '—';
+
+    if (dodNote) dodNote.textContent = dod.total ? '· ' + dodLabel + ' · ' + fmt(dod.days) + ' day' + (dod.days === 1 ? '' : 's') : '· ' + dodLabel;
+    if (mtdNote) mtdNote.textContent = mtd.total ? '· ' + mtdLabel : '· ' + mtdLabel;
+    if (mtdWin)  mtdWin.textContent  = mtdLabel + ' · ' + fmt(mtd.days) + ' day' + (mtd.days === 1 ? '' : 's');
+
+    /* ---- KPI tiles (MTD + latest DOD day) ---- */
+    const lastDay    = dodCols.length ? dodCols[dodCols.length - 1] : null;
+    const prevDay    = dodCols.length > 1 ? dodCols[dodCols.length - 2] : null;
+    const lastTotal  = lastDay ? dod.dayMap[lastDay].total : 0;
+    const prevTotal  = prevDay ? dod.dayMap[prevDay].total : null;
+    const lastDelta  = prevTotal === null ? null : lastTotal - prevTotal;
+    const busiestKey = MP_SHIFT_KEYS.concat(mtd.otherOn ? ['other'] : []).reduce(function(best, k){
+        const v = mtd.all.g1[k] + mtd.all.lpc[k];
+        return (!best || v > best.v) ? { k: k, v: v } : best;
+    }, null);
+    const avgDay = mtd.days ? Math.round(mtd.total / mtd.days) : 0;
+
+    if (kpiHost){
+        if (!mtd.total && !dod.total){
+            kpiHost.innerHTML = '<div class="col-12"><div class="mini-tile"><div class="l">Shift level</div>' +
+                '<div class="text-muted small">No Present marks for CAI-G1 or LPC in this scope.</div></div></div>';
+        } else {
+            kpiHost.innerHTML =
+                mpShiftTile('Present · MTD', fmt(mtd.total), mtdLabel) +
+                mpShiftTile('Avg / day', fmt(avgDay), fmt(mtd.days) + ' days') +
+                mpShiftTile('Busiest shift', busiestKey && busiestKey.v ? MP_SHIFT_NAMES[busiestKey.k] : '—',
+                            busiestKey && busiestKey.v ? fmt(busiestKey.v) + ' present · ' + Math.round(busiestKey.v / (mtd.total || 1) * 100) + '% of MTD' : '') +
+                mpShiftTile('Latest day', lastDay ? fmt(lastTotal) : '—',
+                            lastDelta === null ? mpPrettyDay(lastDay || '')
+                                               : (lastDelta > 0 ? '+' : (lastDelta < 0 ? '−' : '±')) + fmt(Math.abs(lastDelta)) + ' vs ' + mpPrettyDay(prevDay));
+        }
+    }
+
+    const cols = MP_SHIFT_KEYS.concat((mtd.otherOn || dod.otherOn) ? ['other'] : []);
+
+    /* =============== DOD — day over day =============== */
+    if (!dod.total){
+        dodHead.innerHTML = '';
+        dodBody.innerHTML = '<tr><td class="text-center text-muted py-3">No Present marks for CAI-G1 or LPC in this range</td></tr>';
+    } else {
+        const block = function(){
+            return cols.map(function(c){
+                return '<th class="text-center fw-normal" title="' + MP_SHIFT_NAMES[c] + '">' + MP_SHIFT_SHORT[c] + '</th>';
+            }).join('') + '<th class="text-center fw-bold">Total</th>';
+        };
+        dodHead.innerHTML = '<tr>' +
+            '<th rowspan="2" class="align-middle">Day</th>' +
+            '<th colspan="' + (cols.length + 1) + '" class="text-center">CAI-G1</th>' +
+            '<th colspan="' + (cols.length + 1) + '" class="text-center">LPC</th>' +
+            '<th rowspan="2" class="text-center align-middle">Day total</th>' +
+            '<th rowspan="2" class="text-center align-middle" title="Day total compared with the previous day in this range">Δ prev</th>' +
+            '</tr><tr>' + block() + block() + '</tr>';
+
+        const num = function(v, strong){
+            return v ? '<td class="text-center' + (strong ? ' fw-bold' : '') + '">' + fmt(v) + '</td>'
+                     : '<td class="text-center text-muted">–</td>';
+        };
+        dodBody.innerHTML = dodCols.map(function(d, i){
+            const r = dod.dayMap[d];
+            const prev = i ? dod.dayMap[dodCols[i - 1]].total : null;
+            let delta;
+            if (prev === null)      delta = '<td class="text-center text-muted">–</td>';
+            else if (!r.total && !prev) delta = '<td class="text-center text-muted">–</td>';
+            else if (r.total === prev)  delta = '<td class="text-center text-muted">±0</td>';
+            else {
+                const up = r.total > prev;
+                delta = '<td class="text-center fw-bold ' + (up ? 'text-success' : 'text-danger') + '">' +
+                        (up ? '+' : '−') + fmt(Math.abs(r.total - prev)) + '</td>';
+            }
+            return '<tr' + (r.total ? '' : ' class="text-muted"') + '>' +
+                '<td class="fw-semibold text-nowrap">' + esc(mpPrettyDay(d)) + '</td>' +
+                cols.map(function(c){ return num(r.g1[c]); }).join('') + num(r.g1.total, true) +
+                cols.map(function(c){ return num(r.lpc[c]); }).join('') + num(r.lpc.total, true) +
+                num(r.total, true) + delta +
+                '</tr>';
+        }).join('') +
+        '<tr class="table-light fw-bold">' +
+            '<td>Total</td>' +
+            cols.map(function(c){ return '<td class="text-center">' + fmt(dod.all.g1[c]) + '</td>'; }).join('') +
+            '<td class="text-center">' + fmt(dod.all.g1.total) + '</td>' +
+            cols.map(function(c){ return '<td class="text-center">' + fmt(dod.all.lpc[c]) + '</td>'; }).join('') +
+            '<td class="text-center">' + fmt(dod.all.lpc.total) + '</td>' +
+            '<td class="text-center">' + fmt(dod.total) + '</td>' +
+            '<td class="text-center text-muted">–</td>' +
+        '</tr>';
+    }
+
+    /* =============== MTD — month to date =============== */
+    if (!mtdHead || !mtdBody) return;
+    if (!mtd.total){
+        mtdHead.innerHTML = '';
+        mtdBody.innerHTML = '<tr><td class="text-center text-muted py-3">No Present marks yet this month</td></tr>';
+        if (mtdSide) mtdSide.innerHTML = '';
+        return;
+    }
+
+    const pct = function(v, tot){ return tot ? Math.round(v / tot * 100) + '%' : '–'; };
+    const maxAll = Math.max(mtd.all.g1.morning, mtd.all.g1.night, mtd.all.g1.between, mtd.all.g1.other,
+                            mtd.all.lpc.morning, mtd.all.lpc.night, mtd.all.lpc.between, mtd.all.lpc.other) || 1;
+    mtdHead.innerHTML = '<tr>' +
+        '<th>Shift</th>' +
+        '<th class="text-center">CAI-G1</th><th class="text-center">G1 %</th>' +
+        '<th class="text-center">LPC</th><th class="text-center">LPC %</th>' +
+        '<th class="text-center">Total</th><th class="text-center">Avg / day</th>' +
+        '<th style="width:110px">Share</th>' +
+        '</tr>';
+    const mtdRow = function(k, label, strong){
+        const g = mtd.all.g1[k], l = mtd.all.lpc[k], tot = g + l;
+        const w = Math.max(2, Math.round(tot / maxAll * 100));
+        return '<tr' + (strong ? ' class="table-light fw-bold"' : '') + '>' +
+            '<td class="fw-semibold">' + esc(label) + '</td>' +
+            '<td class="text-center">' + fmt(g) + '</td>' +
+            '<td class="text-center text-muted">' + pct(g, mtd.all.g1.total) + '</td>' +
+            '<td class="text-center">' + fmt(l) + '</td>' +
+            '<td class="text-center text-muted">' + pct(l, mtd.all.lpc.total) + '</td>' +
+            '<td class="text-center fw-bold">' + fmt(tot) + '</td>' +
+            '<td class="text-center">' + fmt(Math.round(tot / (mtd.days || 1))) + '</td>' +
+            '<td><div class="mm-bar"><span style="width:' + w + '%"></span></div></td>' +
+            '</tr>';
+    };
+    mtdBody.innerHTML = cols.map(function(c){ return mtdRow(c, MP_SHIFT_NAMES[c]); }).join('') +
+        mtdRow('total', 'Total', true);
+
+    if (mtdSide){
+        let peak = null, low = null;
+        mtdCols.forEach(function(d){
+            const v = mtd.dayMap[d].total;
+            if (!v) return;
+            if (!peak || v > peak.v) peak = { d: d, v: v };
+            if (!low  || v < low.v)  low  = { d: d, v: v };
+        });
+        const g1Avg = mtd.days ? Math.round(mtd.all.g1.total / mtd.days) : 0;
+        const lpcAvg = mtd.days ? Math.round(mtd.all.lpc.total / mtd.days) : 0;
+        mtdSide.innerHTML =
+            '<div class="d-flex flex-column gap-1" style="font-size:.8rem">' +
+            '<div><span class="text-muted">Window</span> <strong>' + esc(mtdLabel) + '</strong> · ' + fmt(mtd.days) + ' days</div>' +
+            '<div><span class="text-muted">People present</span> <strong>' + fmt(mtd.heads.g1) + '</strong> at CAI-G1 · <strong>' + fmt(mtd.heads.lpc) + '</strong> at LPC</div>' +
+            '<div><span class="text-muted">Avg / day</span> <strong>' + fmt(g1Avg) + '</strong> at CAI-G1 · <strong>' + fmt(lpcAvg) + '</strong> at LPC</div>' +
+            (peak ? '<div><span class="text-muted">Peak day</span> <strong>' + esc(mpPrettyDay(peak.d)) + '</strong> — ' + fmt(peak.v) + ' present</div>' : '') +
+            (low  ? '<div><span class="text-muted">Lowest day</span> <strong>' + esc(mpPrettyDay(low.d)) + '</strong> — ' + fmt(low.v) + ' present</div>' : '') +
+            '</div>';
+    }
+}
+
 function renderManpower(){
     if (!mpLoaded) return;
     bumpMpFacets();
@@ -8620,6 +9213,7 @@ function renderManpower(){
     renderMpAging(presentOnly, dayCols);
     renderMpGrid(gridded, dayCols);
     renderMpPlanVsActual();
+    renderMpShift();
     refreshMpCounts();
 }
 
@@ -8719,21 +9313,21 @@ function mmAgingRank(label){
     return 99;
 }
 
-function buildMmDateOptions(){
-    const sel = document.getElementById('mm-date');
-    if (!sel) return;
+/* The sheet now exports one daily snapshot (the date filter was removed), so
+   there is nothing to pick: the newest date in the file is the snapshot, shown
+   as a label, and every pivot uses it. An older multi-day file still works —
+   it simply reports the newest day it carries. */
+function mmShowSnapshotDate(){
     const labels = new Map();
     mmRows.forEach(function(r){ if (!labels.has(r.date)) labels.set(r.date, r.dateLabel); });
-    // Newest snapshot first, so the fresh date is the default on first load.
     mmDates = Array.from(labels.keys()).sort().reverse();
-    const keep = mmDate || sel.value;
-    sel.innerHTML = mmDates.map(function(k){
-        return '<option value="' + esc(k) + '">' + esc(labels.get(k)) + '</option>';
-    }).join('');
-    // A reload must not move a date the operator already picked; only a
-    // vanished snapshot (or first load) falls back to the newest one.
-    mmDate = mmDates.indexOf(keep) >= 0 ? keep : (mmDates[0] || '');
-    sel.value = mmDate;
+    mmDate = mmDates[0] || '';
+    const el = document.getElementById('mmDateLabel');
+    if (!el) return;
+    el.textContent = mmDate
+        ? (labels.get(mmDate) || mmDate) + ' · daily snapshot' +
+          (mmDates.length > 1 ? ' · file holds ' + fmt(mmDates.length) + ' days' : '')
+        : '—';
 }
 
 /* Rows of the chosen snapshot; the chip filters narrow them further. */
@@ -9044,7 +9638,7 @@ async function loadMmCsv(force){
             };
         });
         mmLoaded = true;
-        buildMmDateOptions();
+        mmShowSnapshotDate();
         renderMmPendency();
         console.log('[MM Pendency] loaded', mmRows.length, 'rows across', mmDates.length, 'snapshots');
         tabStatusFromCsv('page-mm', 'mm', 'Pendency', mmRows.length, 'rows');
@@ -9206,6 +9800,11 @@ function pdTabMetaUpdate(){
     if (title) title.textContent = 'Manifest pending';
     if (sub) sub.textContent = '— one row per shipment still open in a warehouse';
     if (icon) icon.className = 'bi bi-hourglass-split me-2 text-primary';
+    if (!pdRows.length && csvFatal.pending){
+        if (badge){ badge.className = 'badge text-bg-danger'; badge.textContent = 'Pending MF tab is broken (' + csvFatal.pending + ')'; }
+        el.textContent = 'Pending MF tab is broken in the sheet';
+        return;
+    }
     if (!pdRows.length){ el.textContent = '—'; return; }
     if (badge){ badge.className = 'badge text-bg-success'; badge.textContent = fmt(pdRows.length) + ' pending shipments'; }
     const withMf = pdRows.filter(function(r){ return r.mf; });
@@ -9359,15 +9958,26 @@ function renderPendingTab(){
     pdTabMetaUpdate();
 }
 
+/* The badge above the reports belongs to whichever inner view is open, so the
+   Pending loader must not paint "Loading pending…" while the reader is looking
+   at the WH receiving tables. */
+function pdBadgeSay(cls, txt){
+    const pane = document.getElementById('page-pending');
+    const active = pane && pane.querySelector('.inner-tabs .it-btn.active');
+    const view = active ? active.getAttribute('data-iview') : 'receiving';
+    if (view !== 'pending'){ pdTabMetaUpdate(); return; }
+    const badge = document.getElementById('pdBadge');
+    if (badge){ badge.className = cls; badge.textContent = txt; }
+}
+
 async function loadPendingCsv(force){
     if (pdLoading || (pdLoaded && !force)) return;
     pdLoading = true;
-    const badge = document.getElementById('pdBadge');
     const empty = document.getElementById('pdEmpty');
     const spin  = document.getElementById('pdEmptySpin');
     const title = document.getElementById('pdEmptyTitle');
     const msg   = document.getElementById('pdEmptyMsg');
-    if (badge) { badge.className = 'badge text-bg-info'; badge.textContent = 'Loading pending…'; }
+    pdBadgeSay('badge text-bg-info', 'Loading pending…');
     if (empty && !pdLoaded){
         empty.style.display = '';
         if (spin) spin.style.display = '';
@@ -9423,14 +10033,34 @@ async function loadPendingCsv(force){
                     pdRows.filter(r => !r.mf).length, 'awaiting one');
     } catch (e) {
         const m = (e && e.message) ? e.message : String(e);
+        const brokenTab = !!(e && e.csvFatal);
+        const tag = (e && e.csvErrorTag) || '#ERROR!';
         console.warn('[Pending] load failed:', e);
-        setTabStatus('page-pending', 'err', 'Pending sheet failed: ' + m);
-        if (badge) { badge.className = 'badge text-bg-danger'; badge.textContent = 'Load failed — press Reload'; }
-        if (empty){
-            empty.style.display = '';
-            if (spin) spin.style.display = 'none';
-            if (title) title.textContent = 'Could not load the Pending sheet';
-            if (msg) msg.innerHTML = esc(m) + ' — <button class="btn btn-sm btn-outline-secondary mt-2" onclick="loadPendingCsv(true)"><i class="bi bi-arrow-repeat me-1"></i>Retry</button>';
+        setTabStatus('page-pending', 'err',
+            (brokenTab ? 'Pending MF tab is broken in the sheet: ' : 'Pending sheet failed: ') + m);
+        if (brokenTab){
+            pdBadgeSay('badge text-bg-danger', 'Pending MF tab is broken (' + tag + ')');
+            if (empty){
+                empty.style.display = '';
+                if (spin) spin.style.display = 'none';
+                if (title) title.textContent = 'The “Pending MF” tab is broken in Google Sheets';
+                if (msg) msg.innerHTML =
+                    '<div class="text-start mx-auto" style="max-width:660px">' +
+                    '<p class="mb-2">The dashboard asked the sheet for the <strong>Pending MF</strong> tab (gid <code>1537679619</code>) and Google answered with a single <code>' + esc(tag) + '</code> cell instead of rows. ' +
+                    'That is what Google writes when a formula feeding the published range fails — <strong>the dashboard is fine, and retrying cannot fix it</strong>.</p>' +
+                    '<p class="mb-2"><strong>Fix it in the sheet:</strong> open the <code>Pending MF</code> tab, find the cell (or the pivot column) showing <code>' + esc(tag) + '</code> — usually a <code>QUERY</code>, <code>IMPORTRANGE</code> or lookup behind it — repair or delete that formula, wait for the published CSV to regenerate, then press Retry.</p>' +
+                    '<p class="mb-0 text-muted">The other tabs (WH Receiving live, J&amp;T pending, Manpower…) come from their own tabs of the same sheet and are unaffected.</p>' +
+                    '<button class="btn btn-sm btn-outline-secondary mt-3" onclick="loadPendingCsv(true)"><i class="bi bi-arrow-repeat me-1"></i>Retry</button>' +
+                    '</div>';
+            }
+        } else {
+            pdBadgeSay('badge text-bg-danger', 'Load failed — press Reload');
+            if (empty){
+                empty.style.display = '';
+                if (spin) spin.style.display = 'none';
+                if (title) title.textContent = 'Could not load the Pending sheet';
+                if (msg) msg.innerHTML = esc(m) + ' — <button class="btn btn-sm btn-outline-secondary mt-2" onclick="loadPendingCsv(true)"><i class="bi bi-arrow-repeat me-1"></i>Retry</button>';
+            }
         }
     } finally {
         pdLoading = false;
@@ -9592,6 +10222,17 @@ async function loadJtCsv(force){
    Cols G/H are blank spacers, hence the fixed index offsets.
 ================================================================ */
 const WR_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=115783227&single=true&output=csv';
+/* The receiving workbook now also publishes one small tab per table, so each
+   block can be read on its own instead of depending on the wide combined tab:
+     WH receiving by LM    Wh_grouped, forward_hub, flag, forward_hub_flag,
+                           total_Shipments, unpack_date
+     Bulk rec              … family … Facility Receiving, WH Type, product_catg
+     WH receiving DOD      Wh_grouped, unpack_date, SUM of total_Shipments, Plan
+     WH receiving PDD      WH_name, total_Shipments, Receiving_Date, PDD   */
+const WR_LM_CSV_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=1947978028&single=true&output=csv';
+const WR_BULK_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=2094957265&single=true&output=csv';
+const WR_DOD_CSV_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=132003479&single=true&output=csv';
+const WR_PDD_CSV_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=2054902317&single=true&output=csv';
 /* The gateway block lives on its own tab: LM_Hub | sh_count | Rec_Date | leg_type. */
 const GW_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=1450202726&single=true&output=csv';
 /* The PDD tab is not published to the web, but the document itself is shared,
@@ -11209,6 +11850,122 @@ async function loadGwRecvCsv(force){
     return gw;
 }
 
+/* --- one small tab per table ----------------------------------------
+   The workbook publishes a dedicated tab for each receiving table now:
+   LM forward, bulky family, the DOD pivot and the PDD profile. Each is read
+   on its own (in parallel, independently cached), so a slow or broken block
+   cannot hold the whole page. A block that fails simply keeps whatever the
+   combined "WH Receiving live" tab already parsed for it. */
+function wrHeaderCol(rows){
+    const H = Object.create(null);
+    ((rows && rows[0]) || []).forEach(function(v, i){
+        const k = String(v || '').trim().toLowerCase();
+        if (k && H[k] === undefined) H[k] = i;
+    });
+    return function(name){
+        const i = H[String(name).trim().toLowerCase()];
+        return i === undefined ? -1 : i;
+    };
+}
+function wrAt(row, i){
+    if (i < 0) return '';
+    const v = row ? row[i] : '';
+    return v === null || v === undefined ? '' : String(v).trim();
+}
+async function loadWhSplitCsv(force){
+    const job = async function(name, url, apply){
+        try {
+            const text = await fetchSheetCsv(url, name, 2, null, !!force);
+            const rows = (Papa.parse(String(text || ''), { header: false, skipEmptyLines: 'greedy' }).data) || [];
+            if (rows.length < 2) return false;
+            return !!apply(rows.slice(1), wrHeaderCol(rows));
+        } catch (e) {
+            console.warn('[WhRecv] ' + name + ' tab failed:', (e && e.message) || e);
+            return false;
+        }
+    };
+    const got = await Promise.all([
+        /* LM forward — the hub × flag pivot, today only. */
+        job('wrlm', WR_LM_CSV_URL, function(rows, col){
+            const iWh = col('Wh_grouped'), iHub = col('forward_hub'), iFl = col('flag'),
+                  iHF = col('forward_hub_flag'), iN = col('total_Shipments'), iD = col('unpack_date');
+            const out = [];
+            rows.forEach(function(r){
+                const wh = wrAt(r, iWh);
+                if (!wh || !wrIsToday(wrAt(r, iD))) return;
+                out.push({ wh: wh, hub: wrAt(r, iHub), flag: wrAt(r, iFl),
+                           hubFlag: wrAt(r, iHF), total: wrNum(wrAt(r, iN)) });
+            });
+            if (!out.length) return false;
+            wrPivotRows = out;
+            return true;
+        }),
+        /* Bulky family — product category × WH type, today only. */
+        job('wrbuk', WR_BULK_CSV_URL, function(rows, col){
+            const iWh = col('Wh_grouped'), iHub = col('forward_hub'), iFam = col('family'),
+                  iN = col('total_Shipments'), iD = col('unpack_date'),
+                  iFac = col('Facility Receiving'), iType = col('WH Type'), iCat = col('product_catg');
+            const out = [];
+            rows.forEach(function(r){
+                const wh = wrAt(r, iWh);
+                if (!wh || !wrIsToday(wrAt(r, iD))) return;
+                const fam = wrAt(r, iFam);
+                const ty = wrAt(r, iType);
+                if (ty && wh) wrDodTypeOf[wh] = ty;
+                out.push({ wh: wh, hub: wrAt(r, iHub), family: fam,
+                           cat: wrAt(r, iCat) || fam,
+                           facility: wrAt(r, iFac), whType: ty,
+                           flag: '', hubFlag: '', total: wrNum(wrAt(r, iN)) });
+            });
+            if (!out.length) return false;
+            wrBulkyRows = out;
+            return true;
+        }),
+        /* DOD pivot — every unpack day at once. */
+        job('wrdod', WR_DOD_CSV_URL, function(rows, col){
+            const iWh = col('Wh_grouped'), iD = col('unpack_date'),
+                  iN = col('SUM of total_Shipments'), iP = col('Plan');
+            const out = [];
+            rows.forEach(function(r){
+                const grp = wrAt(r, iWh);
+                const dd = wrDay(wrAt(r, iD));
+                if (!grp || !dd) return;
+                out.push({ grp: grp, key: dd.y * 10000 + dd.a * 100 + dd.b,
+                           actual: wrNum(wrAt(r, iN)), plan: wrNum(wrAt(r, iP)) });
+            });
+            if (!out.length) return false;
+            wrDodRows = out;
+            return true;
+        }),
+        /* PDD profile — one row per warehouse × receiving date. */
+        job('wrpdd', WR_PDD_CSV_URL, function(rows, col){
+            const iWh = col('WH_name'), iN = col('total_Shipments'), iD = col('Receiving_Date');
+            const out = [];
+            rows.forEach(function(r){
+                const wh = wrAt(r, iWh);
+                if (!wh) return;
+                const pd = wrDay(wrAt(r, iD));
+                out.push({ wh: wh, n: wrNum(wrAt(r, iN)),
+                           key: pd ? (pd.y * 10000 + pd.a * 100 + pd.b) : 0 });
+            });
+            if (!out.length) return false;
+            wrPddRows = out;
+            return true;
+        })
+    ]);
+    const names = ['wrlm', 'wrbuk', 'wrdod', 'wrpdd'].filter(function(n, i){ return got[i]; });
+    if (names.length){
+        renderWhRecv();
+        renderWrDod();
+        renderWrPdd();
+        wrPddBuildFilter();
+        console.log('[WhRecv] split tabs painted:', names.join(', '),
+                    '·', wrPivotRows.length, 'LM rows,', wrBulkyRows.length, 'bulky rows,',
+                    wrDodRows.length, 'DOD rows,', wrPddRows.length, 'PDD rows');
+    }
+    return names;
+}
+
 async function loadWhRecvCsv(force){
     if (wrLoading || (wrLoaded && !force)) return;
     wrLoading = true;
@@ -11221,6 +11978,9 @@ async function loadWhRecvCsv(force){
         /* The gateway block is a separate tab and often the slowest read of
            the lot — start it now and let it paint when it lands. */
         loadGwRecvCsv(!!force).catch(function(e){ console.warn('[WhRecv] gateway block failed:', e); });
+        /* The four per-table tabs (LM, bulky, DOD, PDD) also start now and
+           repaint their own cards the moment they answer. */
+        loadWhSplitCsv(!!force).catch(function(e){ console.warn('[WhRecv] split tabs failed:', e); });
         let parsed = null, data = [];
         for (let attempt = 0; attempt < 3 && !data.length; attempt++){
             if (attempt) await sleep(700 * attempt);
