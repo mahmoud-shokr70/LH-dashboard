@@ -2844,7 +2844,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'V27';
+const BUILD = 'V31';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -3087,7 +3087,7 @@ async function fetchCsvFull(url, name, minLines, onProgress, force){
     }
 
     const download = (async function(){
-        let best = '', bestLines = -1, firstLines = -1, lastErr = null;
+        let best = '', bestLines = -1, firstLines = -1, lastErr = null, stable = false;
         for (let i = 0; i < 3; i++){
             if (i) await sleep(i === 1 ? 1500 : 3500);
             try {
@@ -3099,7 +3099,14 @@ async function fetchCsvFull(url, name, minLines, onProgress, force){
                 /* A short body that repeats almost exactly is a real edit
                    (rows deleted), not a half-written export — accept it. */
                 if (i >= 1 && firstLines > 0 &&
-                    Math.abs(bestLines - firstLines) <= Math.max(2, firstLines * 0.05)) break;
+                    Math.abs(bestLines - firstLines) <= Math.max(2, firstLines * 0.05)){
+                    /* The sheet really is this small now (rows or columns were
+                       moved to their own tabs). Treat it as complete — flagging
+                       it partial made the app refetch it every few seconds for
+                       as long as the tab stayed small. */
+                    stable = true;
+                    break;
+                }
                 console.warn('[CSV] ' + name + ' returned ' + bestLines + ' lines (last copy had ' +
                              floor + '+) — checking again');
             } catch (e) {
@@ -3112,7 +3119,7 @@ async function fetchCsvFull(url, name, minLines, onProgress, force){
             }
         }
         if (!best) throw (lastErr || new Error('the sheet returned an empty body'));
-        return { body: best, lines: bestLines, partial: bestLines < floor };
+        return { body: best, lines: bestLines, partial: stable ? false : bestLines < floor };
     })();
 
     if (!force && cached && cached.lines >= minLines){
@@ -11937,15 +11944,23 @@ async function loadWhSplitCsv(force){
             wrDodRows = out;
             return true;
         }),
-        /* PDD profile — one row per warehouse × receiving date. */
+        /* PDD profile — one row per warehouse × PDD date. The column that
+           labels the date axis is PDD, not Receiving_Date (every row shares
+           the same receiving day, so keying on it collapses the whole profile
+           into a single column). A row with no PDD lands under "(no PDD)". */
         job('wrpdd', WR_PDD_CSV_URL, function(rows, col){
-            const iWh = col('WH_name'), iN = col('total_Shipments'), iD = col('Receiving_Date');
+            const iWh = col('WH_name'), iN = col('total_Shipments'),
+                  iD = col('Receiving_Date'), iP = col('PDD');
             const out = [];
             rows.forEach(function(r){
-                const wh = wrAt(r, iWh);
-                if (!wh) return;
-                const pd = wrDay(wrAt(r, iD));
-                out.push({ wh: wh, n: wrNum(wrAt(r, iN)),
+                const name = wrAt(r, iWh);
+                const n = wrNum(wrAt(r, iN));
+                if (!name && !n) return;                 // fully blank line
+                /* The sheet carries volume with no warehouse attached; show it
+                   as its own row instead of silently dropping the shipments. */
+                const wh = name || '(blank)';
+                const pd = wrDay(wrAt(r, iP >= 0 ? iP : iD));
+                out.push({ wh: wh, n: n,
                            key: pd ? (pd.y * 10000 + pd.a * 100 + pd.b) : 0 });
             });
             if (!out.length) return false;
@@ -11984,7 +11999,10 @@ async function loadWhRecvCsv(force){
         let parsed = null, data = [];
         for (let attempt = 0; attempt < 3 && !data.length; attempt++){
             if (attempt) await sleep(700 * attempt);
-            const text = await fetchSheetCsv(WR_CSV_URL, 'whrecv', 20, null, !!force);
+            /* This tab now carries only the A–F warehouse block (11 rows); the
+               pivot blocks moved to their own tabs, so expecting 20+ lines just
+               bought a pointless retry on every load. */
+            const text = await fetchSheetCsv(WR_CSV_URL, 'whrecv', 8, null, !!force);
             const body = String(text || '').trim();
             if (body.length < 200 || /^loading\b/i.test(body)) continue;   // stub, try again
             parsed = Papa.parse(text, { header: false, skipEmptyLines: 'greedy' });
@@ -12121,11 +12139,17 @@ async function loadWhRecvCsv(force){
         wrTodayLabel = (now.getMonth() + 1) + '/' + now.getDate() + '/' + now.getFullYear();
 
         wrRows = Array.from(A.values());
-        wrPivotRows = B;
-        wrBulkyRows = C;
-        wrDodRows = D;
-        wrDodTypeOf = typeOf;
-        wrPddRows = P;
+        /* Each of these blocks also has its own tab now (wrlm / wrbuk / wrdod /
+           wrpdd) which often lands first. This parse reads the same blocks out
+           of the wide tab by column offset, so when that tab is published narrow
+           — or a retry lands after the dedicated tabs — it finds nothing here.
+           Only take a block when this parse actually produced rows, otherwise a
+           passing retry would blank cards that were already painted. */
+        if (B.length) wrPivotRows = B;
+        if (C.length) wrBulkyRows = C;
+        if (D.length) wrDodRows = D;
+        if (Object.keys(typeOf).length) wrDodTypeOf = typeOf;
+        if (P.length) wrPddRows = P;
         wrLoaded = true;
         renderWrDod();
         renderWhRecv();
