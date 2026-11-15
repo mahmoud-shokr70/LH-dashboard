@@ -605,27 +605,11 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 /* Info lines under the tables are hidden on request — card titles and the
    counters beside them still describe each table. */
 .pd-mf-legend { display: none !important; }
-    /* Row-level manifest detail: aging chips */
-    .pd-age { display: inline-block; font-family: var(--font-num); font-size: .62rem; font-weight: 800;
-        padding: 1px 7px; border-radius: 999px; white-space: nowrap;
-        background: #F5F3EA; border: 1px solid #E7E2D2; color: #6B6549; }
-    .pd-age.mid { background: #FFF3E0; border-color: #F7DDB5; color: #B54708; }
-    .pd-age.old { background: #FDECEA; border-color: #F6C9C4; color: #B42318; }
-    .pd-detail td, .pd-detail th { white-space: nowrap; }
-    .pd-detail thead th { position: sticky; top: 0; z-index: 2; }
-    /* Click-to-copy manifest number in the MF pending details table */
-    .pd-mf-copy { border: 0; background: transparent; padding: 0; font: inherit; font-weight: 800;
-        color: #16171B; text-align: left; cursor: copy; border-bottom: 1px dashed #C9BE97; }
-    .pd-mf-copy:hover { color: #8A6D1A; border-bottom-color: #8A6D1A; }
-    .pd-mf-copy.copied { color: #067647; border-bottom-color: #067647; }
     /* Pending / receiving tables: compact cells, hugging their content.
        A table that fits on screen also fits in a snapshot you can send. */
     #page-pending .mm-pivot { width: auto; }
     #page-pending .mm-pivot > thead > tr > th { padding: 4px 9px; font-size: .72rem; white-space: nowrap; }
     #page-pending .mm-pivot > tbody > tr > td { padding: 3px 9px; font-size: .72rem; }
-    #page-pending .pd-detail { width: auto; }
-    #page-pending .pd-detail > thead > tr > th { padding: 4px 9px; font-size: .72rem; }
-    #page-pending .pd-detail > tbody > tr > td { padding: 3px 9px; font-size: .72rem; }
     /* WH receiving — plan vs actual */
     .wr-pill { display: inline-block; min-width: 48px; padding: 1px 7px; border-radius: 999px;
         font-size: .7rem; font-weight: 800; font-family: var(--font-num); }
@@ -889,7 +873,6 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
        page-scrolled with .ct-page-scroll. */
     .ct-page-scroll thead,
     .ct-page-scroll.rep-table th,
-    .ct-page-scroll.pd-detail thead th,
     .ct-page-scroll.mm-overdue-table thead th {
         top: var(--ct-thead-top, 0px) !important;
     }
@@ -1655,7 +1638,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 
             <!-- ============ MANPOWER / SHIFT LEVEL ============ -->
             <div data-view="shift" class="iview-hidden">
-                <div class="sec-head"><span class="n">1</span>Present by shift <span class="hint">— day over day (DOD) and month to date (MTD) for CAI-G1 and LPC</span></div>
+                <div class="sec-head"><span class="n">1</span>Present by shift <span class="hint">— day over day (DOD) and month to date (MTD) for GWH and LPC</span></div>
 
                 <div class="row g-2 mb-4" id="mpShiftKpis"></div>
 
@@ -1699,9 +1682,25 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 </div>
 
                 <div class="card p-3 mb-4 border-0 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-bullseye me-2 text-primary"></i>Plan vs actual — shift level <span class="text-muted fw-normal" style="font-size:.75rem" id="mpPlanSftNote"></span></h6>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge bg-light text-dark border" id="mpPlanSftWindow">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('mpPlanSftTable','Manpower shift level — plan vs actual','mp_shift_plan')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table class="table table-sm align-middle mb-0 mp-sft" id="mpPlanSftTable">
+                            <thead class="table-light" id="mpPlanSftHead"></thead>
+                            <tbody id="mpPlanSftBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card p-3 mb-4 border-0 shadow-sm">
                     <div class="pd-mf-legend" style="margin-top:0">
-                        <i class="bi bi-info-circle me-1"></i><strong>Present</strong> = the sheet's Present statuses plus WPH / Working Public Holiday. The shift is the one written on that day's cell — <code>Present Morning</code>, <code>WPH Night</code> — so a person moved between shifts is counted where they actually worked. <strong>CAI-G1</strong> = Hub <code>CAI-G1</code>; <strong>LPC</strong> = Facility Leg <code>LPC</code> (hub <code>CAI-Z2</code>).
-                        <br><strong>DOD</strong> follows the Day From → Day To range at the top. <strong>MTD</strong> always starts at the first day of that month and runs to the Day To column. Hub / leg / title / vendor / aging / workforce-type / search filters apply to both; the Shift filter is ignored so the split always shows all three shifts.
+                        <i class="bi bi-info-circle me-1"></i><strong>Present</strong> = the sheet's Present statuses plus WPH / Working Public Holiday. The shift is the one written on that day's cell — <code>Present Morning</code>, <code>WPH Night</code> — so a person moved between shifts is counted where they actually worked. <strong>GWH</strong> = Hub <code>CAI-G1</code>; <strong>LPC</strong> = Facility Leg <code>LPC</code> (hub <code>CAI-Z2</code>).
+                        <br><strong>DOD</strong> follows the Day From → Day To range at the top. <strong>MTD</strong> always starts at the first day of that month and runs to the Day To column. <strong>Plan vs actual</strong> takes the shift headcount from the <strong>Plan Manpower</strong> tab (Morning · Between · Night × GWH / LPC) and compares it with the average present per active day in the Day From → Day To range. Hub / leg / title / vendor / aging / workforce-type / search filters apply to all three; the Shift filter is ignored so the split always shows all three shifts.
                     </div>
                 </div>
             </div>
@@ -1737,6 +1736,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge text-bg-warning" id="mmBadge">No data yet</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="mmExportCsv()" title="Download the MM Pendency rows as a CSV"><i class="bi bi-filetype-csv me-1"></i>Export CSV</button>
                         <button class="btn btn-sm btn-outline-secondary" onclick="loadMmCsv(true)" title="Refresh the MM Pendency sheet"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
                     </div>
                 </div>
@@ -2048,6 +2048,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge text-bg-warning" id="pdBadge">No data yet</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="pdExportBtn" onclick="pdExportCurrent()" title="Export CSV — the rows behind this view"><i class="bi bi-filetype-csv me-1"></i>Export CSV</button>
                         <button class="btn btn-sm btn-outline-secondary" onclick="loadPendingCsv(true);loadWhRecvCsv(true);loadJtCsv(true)" title="Refresh the Pending sheet"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
                     </div>
                 </div>
@@ -2829,7 +2830,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'V35';
+const BUILD = 'V37';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -8859,12 +8860,12 @@ function renderMpAging(rows, dayCols){
 
 /* --- main render --------------------------------------------- */
 /* ================================================================
-   PRESENT BY SHIFT — CAI-G1 and LPC
+   PRESENT BY SHIFT — GWH and LPC
    The sheet writes one phrase per person per day ("Present Morning",
    "WPH Night", "Present - Maintenance"…). Every Present mark is counted
    under the shift written on that day's cell — the roster Shift column is
    only the fallback, because a person can be moved between shifts mid-month.
-   G1  = Hub CAI-G1
+   GWH = Hub CAI-G1 (the sheet's plan block calls it GWH)
    LPC = Facility Leg LPC (lives on hub CAI-Z2)
    The Shift filter is deliberately not applied here: the point of the table
    is the split across all three shifts.
@@ -8950,6 +8951,101 @@ function mpShiftTile(label, value, sub){
         '</div></div>';
 }
 
+/* Attainment pill for the shift plan: Actual ÷ Plan, 90–110% on target —
+   the same bands the receiving tables use. */
+function mpShiftPlanAttain(plan, actual){
+    if (!plan) return '<span class="wr-pill na" title="the plan has no headcount for this shift">—</span>';
+    const pct = Math.round(actual / plan * 100);
+    const cls = (pct >= 90 && pct <= 110) ? 'ok' : (pct > 110 ? 'high' : 'low');
+    return '<span class="wr-pill ' + cls + '" title="' +
+        fmt(Math.round(actual * 10) / 10) + ' present per day of ' + fmt(plan) + ' planned">' +
+        pct + '%</span>';
+}
+
+/* Plan vs actual at shift level. The plan is a daily headcount per shift and
+   centre, so Actual is the average present per day in the selected range —
+   the same "avg/day" reading the MTD card prints. */
+function renderMpShiftPlan(tally, rangeLabel){
+    const head = document.getElementById('mpPlanSftHead');
+    const body = document.getElementById('mpPlanSftBody');
+    const note = document.getElementById('mpPlanSftNote');
+    const win  = document.getElementById('mpPlanSftWindow');
+    if (!head || !body) return;
+    if (win) win.textContent = rangeLabel || '—';
+
+    if (!pvaShiftOk){
+        head.innerHTML = '';
+        body.innerHTML = '<tr><td class="text-center text-muted py-3">' +
+            (!pvaShiftOk && !pvaLoaded
+                ? 'Reading the plan from the Plan Manpower sheet…'
+                : 'The Plan Manpower sheet has no shift block — add Morning · Between · Night under <code>Function · GWH · LPC</code>.') +
+            '</td></tr>';
+        if (note) note.textContent = '';
+        return;
+    }
+
+    /* Average over the days that actually carry attendance, not every calendar
+       column in the range: a month still in progress (or a To date in the
+       future) has trailing columns holding nothing but week-offs, which would
+       drag the average — and the attainment — down for no reason. A day counts
+       when it holds at least half the busiest day's present marks, the same
+       "real day" rule the Plan vs Actual tab uses. */
+    const dayTotals = Object.keys(tally.dayMap).map(function(k){ return tally.dayMap[k].total || 0; });
+    const peakDay = Math.max.apply(null, dayTotals.concat([0]));
+    const activeDays = Math.max(1, dayTotals.filter(function(v){
+        return v > 0 && v >= Math.max(1, peakDay * 0.5);
+    }).length);
+    const keys = MP_SHIFT_KEYS.concat(tally.otherOn ? ['other'] : []);
+    const avgOf = function(f, k){ return (tally.all[f][k] || 0) / activeDays; };
+    const planCell = function(v){
+        return '<td class="text-center">' + (v ? fmt(v) : '<span class="text-muted">–</span>') + '</td>';
+    };
+    const actCell = function(v, plan){
+        const r = Math.round(v * 10) / 10;
+        const cls = !plan ? 'text-muted' : (r >= plan ? 'text-success' : 'text-danger');
+        return '<td class="text-center fw-semibold ' + cls + '" title="' +
+            fmt(activeDays) + ' active day' + (activeDays === 1 ? '' : 's') + ' in range">' + fmt(r) + '</td>';
+    };
+
+    head.innerHTML = '<tr>' +
+        '<th>Shift</th>' +
+        '<th class="text-center">Plan · GWH</th><th class="text-center">Actual · GWH</th>' +
+        '<th class="text-center">Plan · LPC</th><th class="text-center">Actual · LPC</th>' +
+        '<th class="text-center">Plan total</th><th class="text-center">Actual total</th>' +
+        '<th class="text-center">Attainment</th>' +
+        '</tr>';
+
+    let pg = 0, pl = 0, ag = 0, al = 0;
+    const rows = keys.map(function(k){
+        const p = pvaShiftPlan[k] || { gwh: 0, lpc: 0 };
+        const g1 = avgOf('g1', k), lpc = avgOf('lpc', k);
+        pg += p.gwh; pl += p.lpc; ag += g1; al += lpc;
+        const pTot = p.gwh + p.lpc, aTot = g1 + lpc;
+        return '<tr>' +
+            '<td class="fw-semibold">' + esc(MP_SHIFT_NAMES[k]) + '</td>' +
+            planCell(p.gwh) + actCell(g1, p.gwh) +
+            planCell(p.lpc) + actCell(lpc, p.lpc) +
+            '<td class="text-center">' + fmt(pTot) + '</td>' +
+            '<td class="text-center fw-bold">' + fmt(Math.round(aTot * 10) / 10) + '</td>' +
+            '<td class="text-center">' + mpShiftPlanAttain(pTot, aTot) + '</td>' +
+            '</tr>';
+    }).join('');
+    const pgTot = pg + pl, agTot = ag + al;
+    body.innerHTML = rows +
+        '<tr class="table-light fw-bold">' +
+            '<td>Total</td>' +
+            '<td class="text-center">' + fmt(pg) + '</td>' +
+            '<td class="text-center">' + fmt(Math.round(ag * 10) / 10) + '</td>' +
+            '<td class="text-center">' + fmt(pl) + '</td>' +
+            '<td class="text-center">' + fmt(Math.round(al * 10) / 10) + '</td>' +
+            '<td class="text-center">' + fmt(pgTot) + '</td>' +
+            '<td class="text-center">' + fmt(Math.round(agTot * 10) / 10) + '</td>' +
+            '<td class="text-center">' + mpShiftPlanAttain(pgTot, agTot) + '</td>' +
+        '</tr>';
+    if (note) note.textContent = '· plan ' + fmt(pgTot) + ' per day · actual = avg present per active day (' +
+        fmt(activeDays) + ' of ' + fmt(tally.days) + ')';
+}
+
 function renderMpShift(){
     const dodHead = document.getElementById('mpDodHead');
     const dodBody = document.getElementById('mpDodBody');
@@ -9005,7 +9101,7 @@ function renderMpShift(){
     if (kpiHost){
         if (!mtd.total && !dod.total){
             kpiHost.innerHTML = '<div class="col-12"><div class="mini-tile"><div class="l">Shift level</div>' +
-                '<div class="text-muted small">No Present marks for CAI-G1 or LPC in this scope.</div></div></div>';
+                '<div class="text-muted small">No Present marks for GWH or LPC in this scope.</div></div></div>';
         } else {
             kpiHost.innerHTML =
                 mpShiftTile('Present · MTD', fmt(mtd.total), mtdLabel) +
@@ -9020,10 +9116,15 @@ function renderMpShift(){
 
     const cols = MP_SHIFT_KEYS.concat((mtd.otherOn || dod.otherOn) ? ['other'] : []);
 
+    /* ---- plan vs actual, from the Plan Manpower shift block ----
+       Uses the Day From → Day To range: one day gives that day's reading,
+       a wider range gives the average present per active day. */
+    renderMpShiftPlan(dod, dodLabel + ' · ' + fmt(dod.days) + ' day' + (dod.days === 1 ? '' : 's'));
+
     /* =============== DOD — day over day =============== */
     if (!dod.total){
         dodHead.innerHTML = '';
-        dodBody.innerHTML = '<tr><td class="text-center text-muted py-3">No Present marks for CAI-G1 or LPC in this range</td></tr>';
+        dodBody.innerHTML = '<tr><td class="text-center text-muted py-3">No Present marks for GWH or LPC in this range</td></tr>';
     } else {
         const block = function(){
             return cols.map(function(c){
@@ -9032,7 +9133,7 @@ function renderMpShift(){
         };
         dodHead.innerHTML = '<tr>' +
             '<th rowspan="2" class="align-middle">Day</th>' +
-            '<th colspan="' + (cols.length + 1) + '" class="text-center">CAI-G1</th>' +
+            '<th colspan="' + (cols.length + 1) + '" class="text-center">GWH</th>' +
             '<th colspan="' + (cols.length + 1) + '" class="text-center">LPC</th>' +
             '<th rowspan="2" class="text-center align-middle">Day total</th>' +
             '<th rowspan="2" class="text-center align-middle" title="Day total compared with the previous day in this range">Δ prev</th>' +
@@ -9086,7 +9187,7 @@ function renderMpShift(){
                             mtd.all.lpc.morning, mtd.all.lpc.night, mtd.all.lpc.between, mtd.all.lpc.other) || 1;
     mtdHead.innerHTML = '<tr>' +
         '<th>Shift</th>' +
-        '<th class="text-center">CAI-G1</th><th class="text-center">G1 %</th>' +
+        '<th class="text-center">GWH</th><th class="text-center">GWH %</th>' +
         '<th class="text-center">LPC</th><th class="text-center">LPC %</th>' +
         '<th class="text-center">Total</th><th class="text-center">Avg / day</th>' +
         '<th style="width:110px">Share</th>' +
@@ -9121,8 +9222,8 @@ function renderMpShift(){
         mtdSide.innerHTML =
             '<div class="d-flex flex-column gap-1" style="font-size:.8rem">' +
             '<div><span class="text-muted">Window</span> <strong>' + esc(mtdLabel) + '</strong> · ' + fmt(mtd.days) + ' days</div>' +
-            '<div><span class="text-muted">People present</span> <strong>' + fmt(mtd.heads.g1) + '</strong> at CAI-G1 · <strong>' + fmt(mtd.heads.lpc) + '</strong> at LPC</div>' +
-            '<div><span class="text-muted">Avg / day</span> <strong>' + fmt(g1Avg) + '</strong> at CAI-G1 · <strong>' + fmt(lpcAvg) + '</strong> at LPC</div>' +
+            '<div><span class="text-muted">People present</span> <strong>' + fmt(mtd.heads.g1) + '</strong> at GWH · <strong>' + fmt(mtd.heads.lpc) + '</strong> at LPC</div>' +
+            '<div><span class="text-muted">Avg / day</span> <strong>' + fmt(g1Avg) + '</strong> at GWH · <strong>' + fmt(lpcAvg) + '</strong> at LPC</div>' +
             (peak ? '<div><span class="text-muted">Peak day</span> <strong>' + esc(mpPrettyDay(peak.d)) + '</strong> — ' + fmt(peak.v) + ' present</div>' : '') +
             (low  ? '<div><span class="text-muted">Lowest day</span> <strong>' + esc(mpPrettyDay(low.d)) + '</strong> — ' + fmt(low.v) + ' present</div>' : '') +
             '</div>';
@@ -9759,6 +9860,14 @@ function pdTabMetaUpdate(){
     const sub = document.getElementById('pdHeadSub');
     const icon = document.getElementById('pdHeadIcon');
     const badge = document.getElementById('pdBadge');
+    /* The Export CSV button sits beside Refresh, so it exports whatever the
+       view on screen is showing — not just the pending rows. */
+    const exp = document.getElementById('pdExportBtn');
+    if (exp) exp.title = view === 'pending'
+        ? 'Export CSV — every row of the Pending sheet'
+        : (view === 'dod'
+            ? 'Export CSV — the DOD rows in the selected day range'
+            : "Export CSV — today's plan vs actual, exactly as the table shows it");
     if (view === 'receiving'){
         if (title) title.textContent = 'Facility receiving';
         if (sub) sub.textContent = '— what the warehouses unpacked today';
@@ -9805,16 +9914,6 @@ function pdTabMetaUpdate(){
         ' · ' + fmt(pdRows.length - withMf.length) + ' awaiting MF';
 }
 
-/* Row-level MF detail: one line per shipment that already sits on a manifest.
-   Aging is the sheet's own aging_range label; oldest bucket first, then WH,
-   then manifest number, so the worst rows are always at the top. */
-function pdAgeClass(aging){
-    if (!aging) return '';
-    const h = pdAgingStart(aging);
-    if (h >= 24) return 'old';
-    if (h >= 8) return 'mid';
-    return '';
-}
 /* Blank/unknown aging labels sort BELOW 0-2Hrs, never above 24Hrs+. */
 function pdAgeRank(aging){
     return aging ? Math.min(pdAgingStart(aging), 1e9 - 1) : -1;
@@ -9837,9 +9936,11 @@ function pdExportCsv(which){
                                   : pdRows.filter(function(r){ return r.mf; }));
     const label = kind === 'all' ? 'pending' : (kind === 'nomf' ? 'no-manifest pending' : 'MF pending');
     if (!rows.length){
-        showToast('Nothing to export — ' + (kind === 'nomf'
-            ? 'every pending row already has a manifest'
-            : 'no shipment sits on a manifest'), 'danger');
+        showToast(kind === 'all'
+            ? 'Nothing to export — the Pending sheet has no rows yet'
+            : 'Nothing to export — ' + (kind === 'nomf'
+                ? 'every pending row already has a manifest'
+                : 'no shipment sits on a manifest'), 'danger');
         return;
     }
     const headers = ['Manifest Nr', 'WH', 'Aging', 'AWB', 'Manifest type', 'PDD', 'Forward hub', 'Updated at'];
@@ -9856,6 +9957,92 @@ function pdExportCsv(which){
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(a.href);
     showToast('Exported ' + fmt(rows.length) + ' ' + label + ' rows to CSV');
+}
+
+/* One place for the BOM + object-URL dance every export repeats, so a new
+   report cannot forget the BOM and land garbled in Excel. */
+function csvDownload(baseName, lines){
+    const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+    a.href = URL.createObjectURL(blob);
+    a.download = baseName + '_' + stamp + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+}
+
+/* The card above the reports follows the inner view, so its Export CSV does
+   too: pending rows for Pending reports, the DOD rows for the DOD view, and
+   today's plan vs actual for the receiving view. */
+function pdExportCurrent(){
+    const pane = document.getElementById('page-pending');
+    const active = pane && pane.querySelector('.inner-tabs .it-btn.active');
+    const view = active ? active.getAttribute('data-iview') : 'receiving';
+    if (view === 'pending'){ pdExportCsv('all'); return; }
+    if (view === 'dod'){ wrExportDodCsv(); return; }
+    wrExportPlanCsv();
+}
+
+/* Plan vs actual — one line per warehouse in the table's own order, plus the
+   Total row the card prints, so the file reconciles without extra work. */
+function wrExportPlanCsv(){
+    const rows = (wrRows || []).slice().sort(function(a, b){
+        return String(a.facility || '').localeCompare(String(b.facility || ''), undefined, { sensitivity: 'base' }) ||
+            String(a.whType || '').localeCompare(String(b.whType || ''), undefined, { sensitivity: 'base' }) ||
+            ((b.total || 0) - (a.total || 0)) ||
+            String(a.wh || '').localeCompare(String(b.wh || ''), undefined, { numeric: true, sensitivity: 'base' });
+    });
+    if (!rows.length){
+        showToast('Nothing to export — the receiving sheet has no rows dated today', 'danger');
+        return;
+    }
+    const lines = [['Facility Receiving', 'WH Type', 'Warehouse', 'Plan', 'Actual', 'Attainment %'].map(csvCell).join(',')];
+    let plan = 0, actual = 0;
+    rows.forEach(function(r){
+        plan += r.plan || 0;
+        actual += r.total || 0;
+        lines.push([r.facility, r.whType, r.wh, r.plan || 0, r.total || 0,
+                    r.plan ? Math.round((r.total / r.plan) * 100) : ''].map(csvCell).join(','));
+    });
+    lines.push(['Total', '', '', plan, actual, plan ? Math.round((actual / plan) * 100) : ''].map(csvCell).join(','));
+    csvDownload('wh_receiving_plan_vs_actual', lines);
+    showToast('Exported ' + fmt(rows.length) + ' warehouses to CSV');
+}
+
+/* DOD — the rows inside the selected From / To range, long form (one line per
+   warehouse per day), which is what an Excel pivot wants. The card keeps its
+   wide day-by-day grid; this file is the same numbers underneath it. */
+function wrExportDodCsv(){
+    const allRows = wrDodRows || [];
+    if (!allRows.length){
+        showToast('Nothing to export — the DOD tab has not loaded', 'danger');
+        return;
+    }
+    const allDates = Array.from(new Set(allRows.map(function(r){ return r.key; })))
+        .sort(function(a, b){ return a - b; });
+    const range = wrDodRange(allDates);
+    const rows = allRows.filter(function(r){ return r.key >= range.from && r.key <= range.to; })
+        .slice()
+        .sort(function(a, b){
+            const ta = (wrDodTypeOf && wrDodTypeOf[a.grp]) || a.grp;
+            const tb = (wrDodTypeOf && wrDodTypeOf[b.grp]) || b.grp;
+            return String(ta).localeCompare(String(tb), undefined, { sensitivity: 'base' }) ||
+                String(a.grp).localeCompare(String(b.grp), undefined, { numeric: true, sensitivity: 'base' }) ||
+                (a.key - b.key);
+        });
+    if (!rows.length){
+        showToast('No DOD rows between ' + wrDodDate(range.from) + ' and ' + wrDodDate(range.to), 'warning');
+        return;
+    }
+    const lines = [['WH Type', 'Warehouse', 'Date', 'Day', 'Plan', 'Actual', 'Attainment %'].map(csvCell).join(',')];
+    rows.forEach(function(r){
+        const type = (wrDodTypeOf && wrDodTypeOf[r.grp]) || r.grp;
+        lines.push([type, r.grp, wrKeyIso(r.key), wrDodDow(r.key), r.plan || 0, r.actual || 0,
+                    r.plan ? Math.round((r.actual / r.plan) * 100) : ''].map(csvCell).join(','));
+    });
+    csvDownload('wh_receiving_dod', lines);
+    showToast('Exported ' + fmt(rows.length) + ' DOD rows (' +
+        wrDodDate(range.from) + ' – ' + wrDodDate(range.to) + ') to CSV');
 }
 
 /* Download the J&T pending AWBs — the rows behind the aging × PDD pivot. */
@@ -12217,6 +12404,11 @@ let pvaV2 = false;
 const PVA_EXCLUDE_HUBS = ['cai-z5'];         // hubs never shown in Plan vs Actual
 let pvaV2Plan = { out: {}, in: {} };        // hub -> {func, total}
 let pvaV2Order = { out: [], in: [] };       // hub codes in sheet order
+/* Shift headcount block on the same tab: Function · GWH · LPC · Total, with a
+   row per shift (Morning / Between / Night). This is the daily headcount the
+   shift-level plan-vs-actual table compares against. */
+let pvaShiftPlan = {};                      // 'morning'|'night'|'between' -> {gwh, lpc}
+let pvaShiftOk = false;
 const PVA_GROUP_ORDER = ['MM', 'LM', 'Sub GWH', 'Bulky', 'Reseller', 'Other'];
 
 function pvaV2NormFunc(f){
@@ -12271,9 +12463,62 @@ function parsePvaPlanV2(rows){
     });
 }
 
+/* Shift headcount block on the Plan Manpower tab. It sits to the right of the
+   per-hub blocks under a header row like:
+       … Function | GWH | LPC | Total
+       … Morning  |  96 |  39 |  135
+       … Between  | 110 |  39 |  149
+       … Nigh     | 108 |  41 |  149
+   The block is located by its header (Function followed by GWH and LPC), not
+   by a fixed cell, so a moved column cannot shift the numbers. Sheet typos
+   ("Mornig", "Nigh") are accepted; only the GWH / LPC counts are kept and the
+   total is recomputed so the table always adds up. */
+function pvaShiftKeyOf(label){
+    const s = String(label || '').trim().toLowerCase();
+    if (/^mor/.test(s)) return 'morning';
+    if (/^nig/.test(s)) return 'night';
+    if (/^bet/.test(s)) return 'between';
+    return '';
+}
+function parsePvaShiftPlan(rows){
+    pvaShiftPlan = {};
+    pvaShiftOk = false;
+    let hdr = -1, fx = -1, gx = -1, lx = -1;
+    for (let i = 0; i < rows.length && hdr < 0; i++){
+        const r = rows[i] || [];
+        for (let j = 0; j < r.length; j++){
+            if (String(r[j] || '').trim().toLowerCase() !== 'function') continue;
+            let g = -1, l = -1;
+            for (let k = j + 1; k < r.length; k++){
+                const v = String(r[k] || '').trim().toLowerCase();
+                if (g < 0 && v === 'gwh') g = k;
+                else if (g >= 0 && l < 0 && v === 'lpc') l = k;
+                if (g >= 0 && l >= 0) break;
+            }
+            if (g >= 0 && l >= 0){ hdr = i; fx = j; gx = g; lx = l; break; }
+        }
+    }
+    if (hdr < 0) return;
+    const num = function(v){
+        const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g, ''));
+        return isFinite(n) ? n : 0;
+    };
+    for (let i = hdr + 1; i < rows.length; i++){
+        const r = rows[i] || [];
+        const lbl = String(r[fx] || '').trim();
+        if (!lbl) continue;
+        if (/^total\b/i.test(lbl)) break;
+        const key = pvaShiftKeyOf(lbl);
+        if (!key) continue;
+        pvaShiftPlan[key] = { gwh: num(r[gx]), lpc: num(r[lx]) };
+    }
+    pvaShiftOk = Object.keys(pvaShiftPlan).length > 0;
+}
+
 function parsePvaPlan(text){
     const parsed = Papa.parse(String(text || ''), { skipEmptyLines: false });
     const rows = (parsed.data || []).filter(r => r.some(c => String(c || '').trim() !== ''));
+    parsePvaShiftPlan(rows);
     pvaV2 = rows.some(r => /^hub$/i.test(String(r[0] || '').trim()) && /^function$/i.test(String(r[1] || '').trim()));
     pvaPlan = { out: {}, in: {} };
     pvaDays = [];
@@ -12320,6 +12565,9 @@ async function loadPvaPlan(force){
     }
     pvaLoading = false;
     renderMpPlanVsActual();
+    /* The shift-level plan table reads the same tab — repaint it as soon as
+       the plan lands, even if the roster was already on screen. */
+    if (typeof renderMpShift === 'function') renderMpShift();
 }
 
 function pvaSetSection(sec){
