@@ -338,6 +338,13 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 .adh-bad { background:#fdecea; color:var(--brand-red); } .adh-na { background:#efece2; color:#6b6353; }
 .adh-pending { background:#fdf3ce; color:#8a6d1a; }
 .live-pending-arr { color:#8a6d1a; font-style:italic; font-size:.72rem; white-space:nowrap; }
+/* Small square badge with the trip's transit duration (Out → Arriv),
+   shown in the live board next to the arrival time. */
+.dur-sq { display:inline-block; min-width:42px; margin-left:6px; padding:1px 5px;
+    border-radius:5px; background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE;
+    font-family:var(--font-num); font-size:.66rem; font-weight:800; text-align:center;
+    vertical-align:middle; white-space:nowrap; }
+.dur-sq .dur-unit { font-weight:600; font-size:.56rem; opacity:.75; margin-left:2px; }
 
 .table-container { background: var(--brand-white); border-radius: var(--radius-xl); border: 1px solid var(--warm-line); padding: 20px; box-shadow: var(--shadow-card); }
 
@@ -2391,6 +2398,14 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                         <label class="form-label fw-bold small text-muted" title="FLAG_HUBS column from the live sheet">Flag Hubs</label>
                         <select id="live-flag" class="form-select select2-live" multiple="multiple"></select>
                     </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label fw-bold small text-muted">Arrival</label>
+                        <select id="live-arrival" class="form-select form-select-sm" onchange="renderLiveTracking()">
+                            <option value="all" selected>All trips</option>
+                            <option value="pending">Not arrived yet</option>
+                            <option value="arrived">Arrived</option>
+                        </select>
+                    </div>
                     <div class="col-6 col-md-2 d-flex align-items-end">
                         <div class="form-check ms-2">
                             <input type="checkbox" class="form-check-input" id="live-auto" onchange="toggleAutoRefresh()">
@@ -2501,6 +2516,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                                 <th>Source</th><th>Destination</th><th>DOD</th><th>Vendor</th><th>Trip Code</th><th>Seq</th>
                                 <th>Out Time</th><th>Plan Out</th><th>Dispatch Adherence</th>
                                 <th>Arriv Time</th><th>Plan Arr</th><th>Arrival Adherence</th>
+                                <th title="Sheet column: transit_duration — Out_Time to Arriv_Time">Transit Duration</th>
                             </tr></thead>
                             <tbody id="liveReportBody"></tbody>
                         </table>
@@ -2885,7 +2901,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'V68';
+const BUILD = 'V71';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -4954,6 +4970,8 @@ function loadLiveCsv(force) {
                 planArrRaw: row['arrival time'] || '',
                 arrAdhRaw:  row['Arrival_adherence'] || '',
                 flagHubs:   row['FLAG_HUBS'] || '',
+                /* The sheet's own out → arriv transit clock (H:MM). */
+                transitRaw: row['transit_duration'] || '',
                 // Signed variance in minutes (negative = early, positive = late),
                 // derived from the two clocks in the sheet.
                 outVarMin:  hhmmDiff(row['Out_Time'], row['plan time']),
@@ -5683,10 +5701,14 @@ function liveOccTable(rowGroups, firstColLabel){
             const t = g.occ[i];
             if (!t) { cells += `<td colspan="4" class="text-muted">—</td>`; continue; }
             const pending = liveIsPendingArrival(t);
+            const dur = String(t.transitRaw || '').trim();
             cells += `
                 <td class="time-cell">${esc(String(t.outRaw || '').trim() || '—')}</td>
                 <td>${liveAdhChip(t.outAdhRaw)}</td>
-                <td class="time-cell">${pending ? '<span class="live-pending-arr">not arrived yet</span>' : esc(String(t.arrRaw || '').trim() || '—')}</td>
+                <td class="time-cell">${pending
+                    ? '<span class="live-pending-arr">not arrived yet</span>'
+                    : esc(String(t.arrRaw || '').trim() || '—') +
+                      (dur ? `<span class="dur-sq" title="Transit duration (Out_Time to Arriv_Time)">${esc(dur)}<span class="dur-unit">hrs</span></span>` : '')}</td>
                 <td>${liveAdhChip(pending ? 'pending' : t.arrAdhRaw)}</td>`;
         }
         return `<tr><td class="dest-cell">${esc(g.label)}</td>${cells}</tr>`;
@@ -6484,6 +6506,8 @@ function resetLiveFilters(){
     if(f) f.value = '';
     if(t) t.value = '';
     ['#live-src','#live-dst','#live-vendor','#live-flag'].forEach(id => setSelectValues(id, []));
+    const arr = document.getElementById('live-arrival');
+    if (arr) arr.value = 'all';
     renderLiveTracking();
 }
 
@@ -6513,6 +6537,12 @@ function getLiveScopeRows(except){
     if (except !== 'dst'    && dstSel.length)  rows = rows.filter(t => dstSel.includes(t.dstHub));
     if (except !== 'vendor' && venSel.length)  rows = rows.filter(t => venSel.includes(t.vendor));
     if (except !== 'flag'   && flagSel.length) rows = rows.filter(t => flagSel.includes(String(t.flagHubs).trim()));
+    /* Arrival state filter: "not arrived yet" = still en route on the live
+       feed; "arrived" = everything that already has an arrival. */
+    const arrEl = document.getElementById('live-arrival');
+    const arrMode = arrEl ? arrEl.value : 'all';
+    if (except !== 'arrival' && arrMode === 'pending')       rows = rows.filter(t => liveIsPendingArrival(t));
+    else if (except !== 'arrival' && arrMode === 'arrived')  rows = rows.filter(t => !liveIsPendingArrival(t));
     return rows;
 }
 
@@ -6765,11 +6795,13 @@ function renderLiveTracking(){
     const dstSel  = selValues('#live-dst');
     const venSel  = selValues('#live-vendor');
     const flagSel = selValues('#live-flag');
+    const arrEl = document.getElementById('live-arrival');
+    const arrMode = arrEl ? arrEl.value : 'all';
     const rows = getLiveScopeRows();
     // The last-connection report always covers the four fixed hubs, so its
     // scope leaves the source-hub filter out (every other filter still applies).
     const lcRows = getLiveScopeRows('src');
-    setViewMeta('liveTabMeta', fmt(rows.length) + ' occurrences · ' + rangeLabel);
+    setViewMeta('liveTabMeta', fmt(rows.length) + ' occurrences' + (arrMode === 'pending' ? ' · not arrived yet' : arrMode === 'arrived' ? ' · arrived' : '') + ' · ' + rangeLabel);
 
     // Summary KPIs (Extra rows have no plan → excluded from adherence)
     const planned  = rows.filter(t => String(t.outAdhRaw).trim() !== '' && String(t.outAdhRaw).trim().toLowerCase() !== 'extra');
@@ -6812,7 +6844,7 @@ function renderLiveTracking(){
     if (!rows.length) {
         const dodKeys = liveRows.map(t => normDateKey(t.dod)).filter(Boolean).sort();
         html.push(`<div class="alert alert-light border text-center">
-            <i class="bi bi-calendar-x me-1"></i> No occurrences found for <strong>${esc(rangeLabel)}</strong>${(srcSel.length||dstSel.length||venSel.length)?` with the selected hubs/vendors`:''}.
+            <i class="bi bi-calendar-x me-1"></i> No occurrences found for <strong>${esc(rangeLabel)}</strong>${(srcSel.length||dstSel.length||venSel.length)?` with the selected hubs/vendors`:''}${(arrMode && arrMode !== 'all')?(arrMode === 'pending' ? ' that have not arrived yet':' that have arrived'):''}.
             Pick another date range (sheet data range: ${esc(dodKeys.length? dodKeys[0] : '')} → ${esc(dodKeys.length? dodKeys[dodKeys.length-1] : '')}).</div>`);
     }
 
@@ -6923,8 +6955,9 @@ function renderLiveReport(scopeRows){
             <td class="time-cell">${esc(String(t.arrRaw||'').trim()||'—')}</td>
             <td class="time-cell">${esc(String(t.planArrRaw||'').trim()||'—')}</td>
             <td><span class="score-pill ${sa.cls}">${esc(sa.label)}</span></td>
+            <td class="time-cell">${esc(String(t.transitRaw||'').trim()||'—')}</td>
         </tr>`;
-    }).join('') : `<tr><td colspan="12" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>No occurrences match this report mode</td></tr>`;
+    }).join('') : `<tr><td colspan="13" class="text-center text-muted py-3"><i class="bi bi-check-circle me-1"></i>No occurrences match this report mode</td></tr>`;
     renderLiveWeakVendors(rows);
 }
 
