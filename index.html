@@ -1421,16 +1421,12 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                         <select id="mp-vendor" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted mb-1" title="Backend = Core Colleague + Associate + Senior Associate · click the active option again to clear this filter">Workforce Type</label>
-                        <div class="btn-group btn-group-sm w-100" id="mpTypeBtns" role="group" title="Click an option to narrow the roster to that workforce type; click it again to clear">
-                            <button type="button" class="btn btn-outline-primary" data-mptype="backend" title="Core Colleague + Associate + Senior Associate">Backend</button>
+                        <label class="form-label fw-bold small text-muted mb-1" title="Attendance is calculated for Core Colleague + Associate + Senior Associate only — other titles are always excluded. Insource / Outsource narrow inside that scope.">Workforce Type</label>
+                        <div class="btn-group btn-group-sm w-100" id="mpTypeBtns" role="group" title="Insource / Outsource narrow inside the Backend scope; click Backend to see the whole scope again">
+                            <button type="button" class="btn btn-outline-primary" data-mptype="backend" title="Core Colleague + Associate + Senior Associate — the full scope">Backend</button>
                             <button type="button" class="btn btn-outline-primary" data-mptype="in" title="Senior Associate / Associate">Insource</button>
                             <button type="button" class="btn btn-outline-primary" data-mptype="out" title="Core Colleague">Outsource</button>
                         </div>
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted mb-1" title="Days worked in the 9 months before this month (from the sheet ageing column)">Aging</label>
-                        <select id="mp-band" class="form-select" multiple="multiple"></select>
                     </div>
                     <div class="col-md-3">
                         <button class="btn btn-sm btn-outline-danger w-100" onclick="resetMpFilters()"><i class="bi bi-x-circle me-1"></i>Clear filters</button>
@@ -1440,7 +1436,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                 </div>
                 <div class="small text-muted mt-2" id="mpLegend">
-                    <i class="bi bi-question-circle me-1"></i>All figures count one person once per day. <strong>Roster</strong> is every employee with at least one marked day in the range — a Resigned / Terminate day is counted as an exit but keeps the person on the roster, and a No-Show-only person is still listed. <strong>Share from roster</strong> and the By hub <strong>Rate</strong> are present ÷ marked days, so they never pass 100%. Option counts update against the other filters, like the dashboard.
+                    <i class="bi bi-question-circle me-1"></i>Attendance counts <strong>Core Colleague, Associate and Senior Associate only</strong> — every other title is excluded from the roster, the KPIs and all tables. All figures count one person once per day. <strong>Roster</strong> is every employee with at least one marked day in the range — a Resigned / Terminate day is counted as an exit but keeps the person on the roster, and a No-Show-only person is still listed. <strong>Share from roster</strong> and the By hub <strong>Rate</strong> are present ÷ marked days, so they never pass 100%. Option counts update against the other filters, like the dashboard.
                 </div>
             </div>
 
@@ -1561,14 +1557,14 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                                         <th class="text-center">31 – 60</th>
                                         <th class="text-center">&gt; 60</th>
                                         <th class="text-center">Grand Total</th>
-                                        <th class="text-center" id="mpAgingExtraHead" title="Vendors working at this hub">Vendors</th>
+                                        <th class="text-center" id="mpAgingExtraHead" title="Vendors working at this facility">Count of vendors</th>
                                     </tr></thead>
                                     <tbody id="mpVaBody"></tbody>
                                 </table>
                             </div>
                             <div class="small text-muted mt-2" id="mpVaNote"></div>
 
-                            <h6 class="small fw-bold text-muted mt-3 mb-1">Aging share
+                            <h6 class="small fw-bold text-muted mt-3 mb-1">Life cycle manpower share
                                 <span class="fw-normal" style="font-size:.72rem">— same table as % of each row's grand total</span></h6>
                             <div style="max-height:320px;overflow-y:auto">
                                 <table class="table table-sm align-middle fs-7 mb-0" id="mpAgingPctTable">
@@ -1583,7 +1579,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                                         <th class="text-center">31 – 60</th>
                                         <th class="text-center">&gt; 60</th>
                                         <th class="text-center">Grand Total</th>
-                                        <th class="text-center" id="mpAgingPctExtraHead" title="Vendors working at this hub">Vendors</th>
+                                        <th class="text-center" id="mpAgingPctExtraHead" title="Vendors working at this facility">Count of vendors</th>
                                     </tr></thead>
                                     <tbody id="mpVaPctBody"></tbody>
                                 </table>
@@ -1670,6 +1666,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 <div class="inner-tabs">
                     <button type="button" class="it-btn active" data-iview="summary" onclick="innerTab(this)"><i class="bi bi-pie-chart"></i>MM Pendency Summary</button>
                     <button type="button" class="it-btn" data-iview="overdue" onclick="innerTab(this)"><i class="bi bi-alarm"></i>Overdue (PDD) <span class="mm-tab-n" id="mmOverdueTabCount">0</span></button>
+                    <button type="button" class="it-btn" data-iview="g56" onclick="innerTab(this)"><i class="bi bi-boxes"></i>G5 &amp; G6 pendency</button>
                 </div>
                 <span class="it-meta" id="mmTabMeta">—</span>
             </div>
@@ -1788,6 +1785,92 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                             </table>
                         </div>
                         <div class="small text-muted mt-2" id="mmOverdueFoot"></div>
+                    </div>
+                </div>
+
+                <div data-view="g56" class="iview-hidden">
+                    <div class="card p-3 mb-4 border-0 shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <h6 class="fw-bold m-0"><i class="bi bi-boxes me-2 text-primary"></i>G5 &amp; G6 pendency
+                                    <span class="text-muted fw-normal" style="font-size:.78rem" id="g56DateLabel">—</span></h6>
+                                <div class="small text-muted mt-1" id="g56ScopeLine">—</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge text-bg-warning" id="g56Badge">No data yet</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hero-band">
+                        <div class="row g-3">
+                            <div class="col-6 col-md"><div class="kpi-mini">
+                                <div class="lbl">Total Pending</div>
+                                <div class="val" id="k-g56-total">0</div>
+                                <div class="sub" id="k-g56-total-sub">shipments on this snapshot</div>
+                            </div></div>
+                            <div class="col-6 col-md"><div class="kpi-mini">
+                                <div class="lbl">CAI-G5</div>
+                                <div class="val" id="k-g56-g5">0</div>
+                                <div class="sub" id="k-g56-g5-sub">pending on this snapshot</div>
+                            </div></div>
+                            <div class="col-6 col-md"><div class="kpi-mini">
+                                <div class="lbl">CAI-G6</div>
+                                <div class="val" id="k-g56-g6">0</div>
+                                <div class="sub" id="k-g56-g6-sub">pending on this snapshot</div>
+                            </div></div>
+                            <div class="col-6 col-md"><div class="kpi-mini">
+                                <div class="lbl">Fresh</div>
+                                <div class="val text-success" id="k-g56-fresh">0</div>
+                                <div class="sub" id="k-g56-fresh-sub">pending aging 0 days</div>
+                            </div></div>
+                            <div class="col-6 col-md"><div class="kpi-mini">
+                                <div class="lbl">Stale Scans</div>
+                                <div class="val text-danger" id="k-g56-stale">0</div>
+                                <div class="sub" id="k-g56-stale-sub">last update over 24 hrs</div>
+                            </div></div>
+                            <div class="col-6 col-md"><div class="kpi-mini">
+                                <div class="lbl">Overdue (PDD)</div>
+                                <div class="val text-danger" id="k-g56-overdue">0</div>
+                                <div class="sub" id="k-g56-overdue-sub">past PDD on this snapshot</div>
+                            </div></div>
+                        </div>
+                    </div>
+
+                    <div class="sec-head"><span class="n">3</span>G5 &amp; G6 pendency pivots <span class="hint">— final status, shipping aging and last scan aging, each split by hub</span></div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <div class="card p-3 border-0 shadow-sm h-100">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-tags me-2 text-primary"></i>Final status <span class="text-muted fw-normal" style="font-size:.72rem">— each hub side by side</span></h6>
+                                <div style="max-height:440px;overflow:auto">
+                                <table class="table table-sm align-middle fs-7 mb-0 mm-pivot">
+                                    <thead class="table-light" id="g56StatusHead"></thead>
+                                    <tbody id="g56StatusBody"></tbody>
+                                </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="card p-3 border-0 shadow-sm h-100">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-inboxes me-2 text-primary"></i>Shipping aging</h6>
+                                <div style="max-height:420px;overflow:auto">
+                                <table class="table table-sm align-middle fs-7 mb-0 mm-pivot">
+                                    <thead class="table-light" id="g56ShipHead"></thead>
+                                    <tbody id="g56ShipBody"></tbody>
+                                </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="card p-3 border-0 shadow-sm h-100">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-clock-history me-2 text-primary"></i>Last scan aging</h6>
+                                <div style="max-height:420px;overflow:auto">
+                                <table class="table table-sm align-middle fs-7 mb-0 mm-pivot">
+                                    <thead class="table-light" id="g56LuHead"></thead>
+                                    <tbody id="g56LuBody"></tbody>
+                                </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2802,7 +2885,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'V63';
+const BUILD = 'V68';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -4487,9 +4570,11 @@ function bootApp() {
     });
 
     // MM Pendency is a 2.4k-row sheet, so it also loads on first open.
+    // The G5 & G6 pendency tab rides along with it.
     const mmTab = document.querySelector('[data-bs-target="#page-mm"]');
     if (mmTab) mmTab.addEventListener('shown.bs.tab', function(){
         if (typeof loadMmCsv === 'function') loadMmCsv(false);
+        if (typeof loadG56Csv === 'function') loadG56Csv(false);
     });
 
     // Pending is a ~6.6k-row sheet; load it the first time the tab is opened.
@@ -5394,7 +5479,7 @@ function tabRefresh(which){
         if (which === 'live'){ loadLiveCsv(true); return; }
         if (which === 'dock'){ reloadDockUtil(); return; }
         if (which === 'mp'){ loadManpowerCsv(true); return; }
-        if (which === 'mm'){ loadMmCsv(true); return; }
+        if (which === 'mm'){ loadMmCsv(true); if (typeof loadG56Csv === 'function') loadG56Csv(true); return; }
         if (which === 'pending'){ loadPendingCsv(true); loadWhRecvCsv(true); loadJtCsv(true); return; }
         if (which === 'pdd'){ loadPddTabCsv(true); loadJtCsv(true); return; }
         refreshData();
@@ -6370,6 +6455,7 @@ function autoRefreshBoth(){
     try{ loadLiveCsv && loadLiveCsv(true); }catch(e){ console.error('[autoRefresh] live threw:', e); }
     try{ if (typeof loadPvaPlan === 'function') loadPvaPlan(true); }catch(e){ console.error('[autoRefresh] plan threw:', e); }
     try{ if (mmLoaded && typeof loadMmCsv === 'function') loadMmCsv(true); }catch(e){ console.error('[autoRefresh] mm threw:', e); }
+    try{ if (g56Loaded && typeof loadG56Csv === 'function') loadG56Csv(true); }catch(e){ console.error('[autoRefresh] mmg56 threw:', e); }
     try{ if (pdLoaded && typeof loadPendingCsv === 'function') loadPendingCsv(true); }catch(e){ console.error('[autoRefresh] pending threw:', e); }
     try{ if (wrLoaded && typeof loadWhRecvCsv === 'function') loadWhRecvCsv(true); }catch(e){ console.error('[autoRefresh] whrecv threw:', e); }
     try{ if (jtLoaded && typeof loadJtCsv === 'function') loadJtCsv(true); }catch(e){ console.error('[autoRefresh] jt threw:', e); }
@@ -8064,23 +8150,22 @@ const MP_META = [
 
 let mpAll = [], mpCols = [], mpStatuses = [], mpLoaded = false, mpLoading = false, mpSearchTimer = null;
 const MP_ALL = '__all';
-let mpState = { dayFrom: MP_ALL, dayTo: MP_ALL, cat: [], band: [], hub: [], leg: [], title: [], shift: [], vendor: [], search: '' };
+let mpState = { dayFrom: MP_ALL, dayTo: MP_ALL, cat: [], hub: [], leg: [], title: [], shift: [], vendor: [], search: '' };
 /* Workforce type: 'backend' (Core Colleague + Associate + Senior Associate —
-   the default) | 'in' (Insource = Senior Associate / Associate) | 'out'
-   (Outsource = Core Colleague). null = filter cleared (clicking the active
-   option again), which shows every title on the roster (Team Leaders,
-   supervisors, cleaners…). The roster shows Associate & Senior Associate on
-   the Noon vendor (own staff = insource), while the "Core Colleague" title is
-   the agency-supplied headcount (outsource). */
-/* Workforce Type filter removed: Backend / Outsource / Insource now live in the
-   Plan vs Actual tabs, so the roster and KPIs are no longer cut by title. */
-let mpTypeFilter = null;
+   the permanent scope) | 'in' (Insource = Senior Associate / Associate) |
+   'out' (Outsource = Core Colleague). The roster itself is hard-scoped to
+   Backend: mpTypeOk drops every other title (Team Leaders, supervisors,
+   cleaners…) before any count is made, so attendance is only ever calculated
+   for Core Colleague + Associate + Senior Associate. 'in' / 'out' are sub-
+   filters inside that scope; the Backend button re-asserts the full scope. */
+let mpTypeFilter = 'backend';
 function mpTypeOk(t){
-    if (!mpTypeFilter) return true;
     const s = String(t.title || '').toLowerCase().trim();
     const isIn  = s.indexOf('associate') !== -1;   // Senior Associate, Associate
     const isOut = s.indexOf('core') !== -1;        // Core Colleague
-    if (mpTypeFilter === 'backend') return isIn || isOut;
+    /* Hard scope — anything else on the roster is ignored everywhere. */
+    if (!isIn && !isOut) return false;
+    if (!mpTypeFilter || mpTypeFilter === 'backend') return true;
     return mpTypeFilter === 'in' ? isIn : isOut;
 }
 
@@ -8088,7 +8173,7 @@ function mpTypeOk(t){
    the dashboard and Live Tracking filters: every option is counted against
    all the OTHER filters, options that can no longer return a row are hidden,
    and selections are pruned when they stop matching. */
-const MP_FACET = { 'mp-cat':'cat', 'mp-band':'band', 'mp-hub':'hub', 'mp-leg':'leg', 'mp-title':'title', 'mp-shift':'shift', 'mp-vendor':'vendor' };
+const MP_FACET = { 'mp-cat':'cat', 'mp-hub':'hub', 'mp-leg':'leg', 'mp-title':'title', 'mp-shift':'shift', 'mp-vendor':'vendor' };
 /* The mcs component shows option VALUES as their label, so category options
    carry the status text itself as the value; aging still maps back to its
    band key. */
@@ -8121,7 +8206,6 @@ function mpSel(id){
 }
 function syncMpState(){
     mpState.cat    = mpSel('mp-cat').map(v => MP_CAT_BY_LABEL[v] || v);
-    mpState.band   = mpSel('mp-band').map(v => MP_BAND_BY_LABEL[v] || v);
     mpState.hub    = mpSel('mp-hub');
     mpState.leg    = mpSel('mp-leg');
     mpState.title  = mpSel('mp-title');
@@ -8154,7 +8238,6 @@ function mpFacetRows(except){
         if (except !== 'title'  && !mpIn(mpState.title,  t.title))  return false;
         if (except !== 'shift'  && !mpIn(mpState.shift,  t.shift))  return false;
         if (except !== 'vendor' && !mpIn(mpState.vendor, t.vendor)) return false;
-        if (except !== 'band'   && !mpIn(mpState.band,   t.band))   return false;
         if (except !== 'cat' && !mpAny(mpState.cat) &&
             !dayCols.some(c => t.days[c] && mpState.cat.indexOf(t.days[c].status) !== -1)) return false;
         if (mpState.search && mpHay(t).indexOf(mpState.search.toLowerCase()) === -1) return false;
@@ -8175,10 +8258,6 @@ function mpCountFn(facet){
             const dayCols = mpDayCols();
             return rows.filter(t => dayCols.some(c => t.days[c] && t.days[c].status === value)).length;
         }
-        if (facet === 'band'){
-            const k = MP_BAND_BY_LABEL[value] || value;
-            return rows.filter(t => t.band === k).length;
-        }
         return rows.filter(t => (get(t) || '—') === value).length;
     };
 }
@@ -8193,8 +8272,10 @@ function mpExitFlagged(t, dayCols){
    "week off" and "Working Public Holiday" contains "holiday", so the
    worked variants are tested before the generic off-day keywords.
    "Present" means the sheet's own Present* statuses — that is the number the
-   ops sheet reports — while a week-off that was worked stays a week-off day
-   (code WO+), and WPH counts as present because the person was at work. --- */
+   ops sheet reports. Both worked variants count as present: WPH (Working
+   Public Holiday) and WO+ (Work on Week Off) are people who were at work,
+   so the Actual card includes them; only a pure week-off stays a week-off
+   day. --- */
 function mpBucket(raw){
     const n = String(raw || '').toLowerCase().replace(/[^a-z]/g, '');
     if (!n) return '';
@@ -8202,7 +8283,7 @@ function mpBucket(raw){
        on is not an attendance mark, but every earlier day still counts — a
        person who resigned on the 20th was working on the 19th. */
     if (n.includes('resign') || n.includes('terminat')) return 'exit';
-    if (n.includes('workonweekoff')) return 'weekoff';
+    if (n.includes('workonweekoff')) return 'present';
     if (n.includes('workingpublic') || n.startsWith('wph')) return 'present';
     if (n.includes('present')) return 'present';
     if (n.includes('weekoff'))  return 'weekoff';
@@ -8213,7 +8294,9 @@ function mpBucket(raw){
 
 /* Short code shown inside a day cell (✓ = present). */
 function mpCode(bucket, raw){
-    if (bucket === 'present') return '\u2713';
+    /* WO+ counts as present, but the day cell keeps its own code so the
+       grid still shows who worked on their week off. */
+    if (bucket === 'present') return /workonweekoff/i.test(String(raw || '').toLowerCase().replace(/[^a-z]/g, '')) ? 'WO+' : '\u2713';
     if (bucket === 'weekoff') return /workonweekoff/i.test(String(raw || '')) ? 'WO+' : 'WO';
     if (bucket === 'noshow')  return 'NS';
     if (bucket === 'exit')    return /terminat/i.test(String(raw || '')) ? 'TR' : 'RS';
@@ -8476,8 +8559,6 @@ function buildMpStaticOptions(){
     if (dtEl) dtEl.onchange = onDayChange;
 
     mpFillMulti('mp-cat',    mpStatuses.map(s => ({ v: s, l: s })), mpState.cat);
-    mpFillMulti('mp-band',   MP_BANDS.map(b => ({ v: b.k, l: b.label })),
-                             mpState.band.map(k => (MP_BANDS.find(b => b.k === k) || { label: k }).label));
     mpFillMulti('mp-hub',    uniq(t => t.hub).map(v => ({ v: v, l: v })), mpState.hub);
     mpFillMulti('mp-leg',    uniq(t => t.leg).map(v => ({ v: v, l: v })), mpState.leg);
     mpFillMulti('mp-title',  uniq(t => t.title).map(v => ({ v: v, l: v })), mpState.title);
@@ -8538,7 +8619,6 @@ function mpMatch(t, ignoreCat, ignoreType){
     if (!mpIn(mpState.title,  t.title))  return false;
     if (!mpIn(mpState.shift,  t.shift))  return false;
     if (!mpIn(mpState.vendor, t.vendor)) return false;
-    if (!mpIn(mpState.band,   t.band === null ? 'na' : t.band)) return false;
     if (!ignoreCat && !mpAny(mpState.cat)){
         const dayCols = mpDayCols();
         if (!dayCols.some(c => t.days[c] && mpState.cat.indexOf(t.days[c].status) !== -1)) return false;
@@ -8621,7 +8701,7 @@ function mpRowHtml(row){
 }
 
 function resetMpFilters(){
-    mpState = { dayFrom: MP_ALL, dayTo: MP_ALL, cat: [], band: [], hub: [], leg: [], title: [], shift: [], vendor: [], search: '' };
+    mpState = { dayFrom: MP_ALL, dayTo: MP_ALL, cat: [], hub: [], leg: [], title: [], shift: [], vendor: [], search: '' };
     document.querySelectorAll('#mpFilterCard select[multiple]').forEach(function(el){
         Array.prototype.slice.call(el.options).forEach(o => { o.selected = false; });
         if (el.__mcs) mcsSync(el);
@@ -8639,7 +8719,10 @@ function resetMpFilters(){
    filter entirely and shows every title on the roster. */
 function mpSetType(type, rerender, force){
     const next = (type === 'in' || type === 'out' || type === 'backend') ? type : 'backend';
-    mpTypeFilter = (!force && mpTypeFilter === next) ? null : next;
+    /* Backend is the permanent scope, so it never toggles off — clicking it
+       just re-asserts the full Core Colleague + Associate + Senior Associate
+       scope. In / Out still toggle back to the full scope when re-clicked. */
+    mpTypeFilter = (next === 'backend' || (!force && mpTypeFilter !== next)) ? next : null;
     document.querySelectorAll('#mpTypeBtns [data-mptype]').forEach(b => {
         b.classList.toggle('active', b.getAttribute('data-mptype') === mpTypeFilter);
     });
@@ -8649,6 +8732,10 @@ function mpTypeInit(){
     document.querySelectorAll('#mpTypeBtns [data-mptype]').forEach(b => {
         b.addEventListener('click', () => mpSetType(b.getAttribute('data-mptype')));
     });
+    /* Backend is pre-applied the moment the tab is entered, so the roster
+       opens scoped to Core Colleague + Associate + Senior Associate without
+       anyone clicking. Clicking the active option still clears the filter. */
+    mpSetType('backend', false, true);
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mpTypeInit);
 else mpTypeInit();
@@ -8727,7 +8814,7 @@ function renderMpAging(rows, dayCols){
     const isFac = mpAgingMode === 'facility';
     const level = isFac ? 'facility' : (isHub ? 'hub' : 'vendor');
     const levelName = isFac ? 'Facility' : (isHub ? 'Hub' : 'Vendor');
-    const otherName = isFac ? 'Vendors' : (isHub ? 'Vendors' : 'Hubs');
+    const otherName = isFac ? 'Count of vendors' : (isHub ? 'Count of vendors' : 'Hubs');
     const va = mpAgingPivot(rows, dayCols, mpAgingMode);
     const bandKeys = MP_BANDS.map(b => b.k);
     const colTotals = {};
@@ -8901,8 +8988,7 @@ function mpShiftPeople(){
     mpAll.forEach(function(t){
         if (!mpIsOutsource(t)) return;
         if (!mpIn(mpState.hub, t.hub) || !mpIn(mpState.leg, t.leg) ||
-            !mpIn(mpState.title, t.title) || !mpIn(mpState.vendor, t.vendor) ||
-            !mpIn(mpState.band, t.band === null ? 'na' : t.band)) return;
+            !mpIn(mpState.title, t.title) || !mpIn(mpState.vendor, t.vendor)) return;
         if (mpState.search && mpHay(t).indexOf(mpState.search.toLowerCase()) === -1) return;
         const f = mpFacilityKey(t);
         if (f) people[f].push(t);
@@ -9325,10 +9411,9 @@ function renderManpower(){
         const bits = [isWhole ? 'Scope: whole month' : 'Scope: ' + mpRangeLabel()];
         if (mpTypeFilter === 'in') bits.push('Type Insource (Senior Associate / Associate)');
         else if (mpTypeFilter === 'out') bits.push('Type Outsource (Core Colleague)');
-        else if (mpTypeFilter === 'backend') bits.push('Type Backend (Core Colleague + Associate + Senior Associate)');
+        else bits.push('Type Backend (Core Colleague + Associate + Senior Associate only)');
         const lbl = { hub: 'Hub', leg: 'Facility leg', title: 'Title', shift: 'Shift', vendor: 'Vendor' };
         Object.keys(lbl).forEach(k => { if (!mpAny(mpState[k])) bits.push(lbl[k] + ' ' + mpState[k].join(', ')); });
-        if (!mpAny(mpState.band)) bits.push('Aging ' + mpState.band.map(k => (MP_BANDS.find(b => b.k === k) || { label: k }).label).join(', '));
         if (!mpAny(mpState.cat))  bits.push('Status ' + mpState.cat.join(', '));
         if (mpState.search) bits.push('Search "' + mpState.search + '"');
         scope.textContent = bits.join('  |  ');
@@ -9346,8 +9431,9 @@ function renderManpower(){
         if (!arr || !arr.length) return;                       // empty = every option
         fBits.push(label + ' ' + (arr.length > 2 ? arr.length + ' selected' : arr.join(' · ')));
     };
-    if (mpTypeFilter) fBits.push('type ' + (mpTypeFilter === 'in' ? 'Insource'
-        : mpTypeFilter === 'out' ? 'Outsource' : 'Backend'));
+    /* The Backend scope is permanent, so it is always named on the tiles. */
+    fBits.push('Backend only');
+    if (mpTypeFilter === 'in' || mpTypeFilter === 'out') fBits.push('type ' + (mpTypeFilter === 'in' ? 'Insource' : 'Outsource'));
     fPick(mpState.hub, 'hub'); fPick(mpState.leg, 'leg');
     fPick(mpState.vendor, 'vendor'); fPick(mpState.title, 'title');
     const fNote = fBits.length ? fBits.join(' · ') : 'all filters';
@@ -9368,12 +9454,19 @@ function renderManpower(){
     /* Card order: Roster → Plan → Actual → Share from plan → Share from roster,
        then week off / leave / no-show. The plan is one headcount per hub per
        day, so it is compared with the average present per selected day. */
+    /* Every share tile divides the SAME actual the Actual tile shows, so two
+       tiles never quote two different numerators:
+       · Share from plan   = actual ÷ planned headcount (the plan is per day)
+       · Share from roster = actual ÷ the scope's roster headcount
+       On a single selected day actual is a headcount. On a multi-day range the
+       Actual tile sums present-days, so the shares use the average present per
+       selected day instead — a month must not read 2,000%. Week off / leave /
+       no-show keep their own marked-days base. The tiles are painted inside
+       mpSyncPlanKpis so they refresh again when the plan sheet lands. */
+    mpShareActual = isMonth ? c.present / dayCols.length : c.present;
+    mpShareIsMonth = isMonth;
+    mpShareRoster = c.roster;
     mpSyncPlanKpis();
-    /* Share from roster = present ÷ the scope's marked days — the V37 rate.
-       Present and marked are both day counts, so a month stays a percentage. */
-    const rosterRate = shareBase ? Math.round(c.present / shareBase * 100) : 0;
-    set('mp-k-ar', rosterRate + '%');
-    set('mp-k-ar-sub', c.marked ? 'present of ' + fmt(c.marked) + ' marked days' : '');
 
     /* Aging follows Present, not the roster: only employees with at least
        one Present day inside the selected range feed the aging KPIs, the
@@ -9875,6 +9968,171 @@ async function loadMmCsv(force){
     } finally {
         mmLoading = false;
     }
+}
+
+/* ================================================================
+   G5 & G6 PENDENCY — the sheet's own "G5 & G6 pendency" tab
+   (gid 652983948): one row per pending shipment at CAI-G5 / CAI-G6.
+   Reported like the MM pendency summary: the newest date in the file is
+   the snapshot, and every pivot splits the hub columns side by side.
+     date, current_hub, Final_Status, current_location, loc_type,
+     User_Last_Scan, awb_nr, client_ref, creq_leg_type,
+     payment_method_code, PDD, Shipping_date, Shipping_TS,
+     last_location_update_ts, Aging_From_Shipping, Pending_aging_days,
+     Shipping_Aging_Range, LastUpdate_Aging_Range, PID, wh_code, …
+   ================================================================ */
+const MM_G56_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=652983948&single=true&output=csv';
+
+let g56Rows = [], g56Loaded = false, g56Loading = false, g56Date = '', g56DateLabel = '';
+
+async function loadG56Csv(force){
+    if (g56Loading || (g56Loaded && !force)) return;
+    g56Loading = true;
+    const badge = document.getElementById('g56Badge');
+    if (badge) { badge.className = 'badge text-bg-info'; badge.textContent = 'Loading G5 & G6…'; }
+    try {
+        /* Same defences as the MM sheet: a stub or partial CSV retries. */
+        csvOnHeal('mmg56', function(){ loadG56Csv(true); });
+        const text = await fetchSheetCsv(MM_G56_CSV_URL, 'mmg56', 20, null, !!force);
+        const parsed = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: false });
+        const rows = (parsed.data || []).filter(function(r){ return r && String(r.date || '').trim() !== ''; });
+        if (!rows.length) throw new Error('The published CSV returned no dated rows.');
+        g56Rows = rows.map(function(r){
+            const d = mmDateParts(r.date);
+            const rawPdd = String(r.PDD || '').trim();
+            const pddIso = /^\d{4}-\d{2}-\d{2}/.test(rawPdd) ? rawPdd.slice(0, 10)
+                         : (rawPdd ? mmDateParts(rawPdd).key : '');
+            return {
+                date: d.key, dateLabel: d.label,
+                hub: mmText(r.current_hub),
+                status: mmText(r.Final_Status),
+                pay: mmText(r.payment_method_code),
+                shipAging: mmText(r.Shipping_Aging_Range),
+                luAging: mmText(r.LastUpdate_Aging_Range),
+                pendingDays: parseInt(String(r.Pending_aging_days || '').trim(), 10) || 0,
+                awb: mmSoft(r.awb_nr),
+                pdd: pddIso
+            };
+        });
+        /* Newest day in the file is the snapshot — same rule as MM. */
+        g56Date = g56Rows.reduce(function(m, r){ return r.date > m ? r.date : m; }, '');
+        g56DateLabel = (g56Rows.find(function(r){ return r.date === g56Date; }) || {}).dateLabel || g56Date;
+        g56Loaded = true;
+        renderG56();
+        console.log('[G5&G6] loaded', g56Rows.length, 'rows · snapshot', g56DateLabel);
+    } catch (e) {
+        console.warn('[G5&G6] load failed:', e);
+        if (badge) { badge.className = 'badge text-bg-danger'; badge.textContent = 'Load failed — check publish'; }
+    } finally {
+        g56Loading = false;
+    }
+}
+
+function renderG56(){
+    if (!g56Loaded) return;
+    const rows = g56Rows.filter(function(r){ return r.date === g56Date; });
+    const total = rows.length;
+
+    const badge = document.getElementById('g56Badge');
+    if (badge){ badge.className = 'badge text-bg-success'; badge.textContent = fmt(total) + ' pending'; }
+    const dateNote = document.getElementById('g56DateLabel');
+    if (dateNote) dateNote.textContent = g56DateLabel ? '· ' + g56DateLabel + ' snapshot' : '';
+    const scope = document.getElementById('g56ScopeLine');
+    if (scope){
+        const byHub = {};
+        rows.forEach(function(r){ byHub[r.hub] = (byHub[r.hub] || 0) + 1; });
+        scope.textContent = fmt(total) + ' pending shipments — ' +
+            Object.keys(byHub).sort().map(function(h){ return h + ' ' + fmt(byHub[h]); }).join(' · ') + '.';
+    }
+
+    /* ---- KPI band: same reading habits as the MM summary ---- */
+    const byHubK = { g5: 0, g6: 0 };
+    rows.forEach(function(r){
+        if (/g5/i.test(r.hub)) byHubK.g5++;
+        else if (/g6/i.test(r.hub)) byHubK.g6++;
+    });
+    const fresh = rows.filter(function(r){ return r.pendingDays === 0; }).length;
+    const stale = rows.filter(function(r){ return !/^0\s*to\s*24\s*hrs/i.test(r.luAging); }).length;
+    const overdue = rows.filter(function(r){ return r.pdd && r.pdd < g56Date; }).length;
+    const pctOf = function(n){ return total ? (n * 100 / total).toFixed(1) : '0.0'; };
+    const setKpi = function(id, val, sub){
+        const v = document.getElementById(id);
+        if (v) v.textContent = val;
+        const s = document.getElementById(id + '-sub');
+        if (s) s.textContent = sub;
+    };
+    setKpi('k-g56-total', fmt(total), 'on this snapshot');
+    setKpi('k-g56-g5', fmt(byHubK.g5), pctOf(byHubK.g5) + '% of pending');
+    setKpi('k-g56-g6', fmt(byHubK.g6), pctOf(byHubK.g6) + '% of pending');
+    setKpi('k-g56-fresh', fmt(fresh), pctOf(fresh) + '% pending aging 0 days');
+    setKpi('k-g56-stale', fmt(stale), pctOf(stale) + '% last updated > 24 hrs');
+    setKpi('k-g56-overdue', fmt(overdue), pctOf(overdue) + '% past PDD');
+
+    /* ---- pivots: one row per label, one COLUMN per hub (G5 / G6) ----
+       Mirrors the MM fillFacPivot: busiest hub first, rows biggest first
+       (aging bands keep chronological order), Total + Share per row and a
+       Grand Total row. An empty cell reads – like the MM tables. */
+    const hubTotals = {};
+    rows.forEach(function(r){ const h = r.hub || '—'; hubTotals[h] = (hubTotals[h] || 0) + 1; });
+    const hubCols = Object.keys(hubTotals).sort(function(a, b){
+        return (hubTotals[b] - hubTotals[a]) || String(a).localeCompare(String(b));
+    });
+    const g56Pivot = function(headId, bodyId, headLabel, headTitle, labelOf, mode){
+        const head = document.getElementById(headId);
+        const body = document.getElementById(bodyId);
+        if (!head || !body) return;
+        const labelTot = {}, cell = {};
+        rows.forEach(function(r){
+            const L = labelOf(r) || '—';
+            const H = r.hub || '—';
+            const k = L + '\u0001' + H;
+            cell[k] = (cell[k] || 0) + 1;
+            labelTot[L] = (labelTot[L] || 0) + 1;
+        });
+        const labels = Object.keys(labelTot);
+        if (mode === 'aging'){
+            labels.sort(function(a, b){
+                return (mmAgingRank(a) - mmAgingRank(b)) || String(a).localeCompare(String(b));
+            });
+        } else {
+            labels.sort(function(a, b){
+                return (labelTot[b] - labelTot[a]) || String(a).localeCompare(String(b));
+            });
+        }
+        head.innerHTML = '<tr><th' + (headTitle ? ' title="' + esc(headTitle) + '"' : '') + '>' + esc(headLabel) + '</th>' +
+            hubCols.map(function(h){ return '<th class="text-end">' + esc(h) + '</th>'; }).join('') +
+            '<th class="text-end">Total</th><th class="text-end">Share</th></tr>';
+        if (!labels.length){
+            body.innerHTML = '<tr><td colspan="' + (hubCols.length + 3) +
+                '" class="text-center text-muted py-3">No rows for this snapshot</td></tr>';
+            return;
+        }
+        let html = labels.map(function(L){
+            const tot = labelTot[L] || 0;
+            return '<tr>' +
+                '<td class="mm-lbl" title="' + esc(L) + '">' + esc(L) + '</td>' +
+                hubCols.map(function(h){
+                    const v = cell[L + '\u0001' + h] || 0;
+                    return '<td class="text-end' + (v ? '' : ' text-muted') + '">' + (v ? fmt(v) : '–') + '</td>';
+                }).join('') +
+                '<td class="text-end fw-bold">' + fmt(tot) + '</td>' +
+                '<td class="text-end text-muted">' + pctOf(tot) + '%</td>' +
+                '</tr>';
+        }).join('');
+        html += '<tr class="mm-total"><td>Grand Total</td>' +
+            hubCols.map(function(h){
+                return '<td class="text-end">' + fmt(hubTotals[h] || 0) + '</td>';
+            }).join('') +
+            '<td class="text-end">' + fmt(total) + '</td><td class="text-end">100%</td></tr>';
+        body.innerHTML = html;
+    };
+
+    g56Pivot('g56StatusHead', 'g56StatusBody', 'Final_Status', 'Final status pending in each hub',
+        function(r){ return r.status; }, 'count');
+    g56Pivot('g56ShipHead', 'g56ShipBody', 'Shipping_Aging_Range', 'Days since shipping, per hub',
+        function(r){ return r.shipAging; }, 'aging');
+    g56Pivot('g56LuHead', 'g56LuBody', 'Last scan', 'Sheet column: LastUpdate_Aging_Range - days since the last scan, per hub',
+        function(r){ return r.luAging; }, 'aging');
 }
 
 /* ================================================================
@@ -10671,8 +10929,10 @@ function renderWhRecv(){
                     '<td>' + esc(r.whType) + '</td>' +
                     '<td class="fw-bold">' + esc(r.wh) + '</td>' +
                     '<td class="text-end">' + (r.plan ? fmt(r.plan) : '<span class="text-muted">—</span>') + '</td>' +
-                    '<td class="text-end fw-bold">' + fmt(r.total) + '</td>' +
-                    '<td class="text-center">' + wrPill(r.plan, r.total) + '</td>' +
+                    /* Nothing received today -> the Actual and % cells stay
+                       empty, so a zero row never reads as a real reading. */
+                    '<td class="text-end fw-bold">' + (r.total ? fmt(r.total) : '') + '</td>' +
+                    '<td class="text-center">' + (r.total ? wrPill(r.plan, r.total) : '') + '</td>' +
                 '</tr>';
             }).join('');
             const foot = '<tr class="wr-total">' +
@@ -11298,7 +11558,7 @@ function renderWrDsLive(){
     const colTot = {};
     cols.forEach(function(w){ colTot[w] = 0; });
     let grand = 0;
-    let html = '<table class="table table-sm align-middle fs-7 mb-0"><thead class="table-light"><tr><th>Hub</th>' +
+    let html = '<table class="table table-sm align-middle fs-7 mb-0 mm-pivot"><thead class="table-light"><tr><th>Hub</th>' +
         cols.map(function(w){ return '<th class="text-end">' + esc(w) + '</th>'; }).join('') +
         '<th class="text-end">Total</th></tr></thead><tbody>';
     order.forEach(function(hn){
@@ -11384,7 +11644,7 @@ function renderWrDsDod(){
         return (hubTot[b] - hubTot[a]) ||
             String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
     });
-    let html = '<table class="table table-sm align-middle fs-7 mb-0"><thead class="table-light">' +
+    let html = '<table class="table table-sm align-middle fs-7 mb-0 mm-pivot"><thead class="table-light">' +
         '<tr><th>Hub</th><th>WH</th>' +
         dates.map(function(k){ return '<th class="text-end">' + esc(wrDodDate(k)) + '</th>'; }).join('') +
         '<th class="text-end">Total</th></tr></thead><tbody>';
@@ -12718,9 +12978,9 @@ let pvaHubMap = {};                                    // hub (lowercase) -> pla
 let pvaSection = 'backend';
 
 function pvaKey(fac, hub){ return String(fac || '').trim() + '|' + String(hub || '').trim(); }
-/* "Present" = the same bucket the Manpower tab uses: Present + WPH
-   (mpBucket folds them into 'present'), so the Actual lines up with the
-   Manpower Present KPI. Work-on-week-off stays a week-off day. */
+/* "Present" = the same bucket the Manpower tab uses: Present + WPH +
+   Work on Week Off (mpBucket folds them all into 'present'), so the Actual
+   lines up with the Manpower Present KPI. */
 function pvaIsPresent(t, c){ const x = t.days[c]; return !!(x && x.bucket === 'present'); }
 function pvaPlanFor(sec, key, ix){ const p = (pvaPlan[sec] || {})[key]; return sec === 'none' ? 0 : (p ? (p[ix] || 0) : 0); }
 function pvaVarCell(p, a){
@@ -12959,23 +13219,28 @@ function mpVarPctCell(v, p){
         (vp === null ? '—' : (vp < 0 ? '−' : '') + Math.round(Math.abs(vp)) + '%') + '</td>';
 }
 
-/* The plan KPI and its ratio: plan headcount from the plan sheet, ratio from
-   the average present per day the Plan vs Actual report works out (so the tile
-   and the table can never disagree). Filled in again whenever the plan or the
-   report is repainted. */
-let mpPlanAvg = 0;
+/* The Plan tile reads the plan sheet's own headcount total (Outsource +
+   Insource blocks — a per-day headcount). The share tiles divide the same
+   actual the Actual tile shows; renderManpower stores that numerator here,
+   and the tiles are (re)set here too — so when the plan sheet finishes
+   loading and this runs again, the shares come out with it. */
+let mpShareActual = 0, mpShareIsMonth = false, mpShareRoster = 0;
 function mpSyncPlanKpis(){
     let plan = 0;
     ['out', 'in'].forEach(function(sec){
         Object.keys((typeof pvaV2Plan !== 'undefined' && pvaV2Plan && pvaV2Plan[sec]) || {})
             .forEach(function(h){ plan += (pvaV2Plan[sec][h].total || 0); });
     });
-    const pEl  = document.getElementById('mp-k-plan'),  psEl = document.getElementById('mp-k-plan-sub');
-    const apEl = document.getElementById('mp-k-ap'),    asEl = document.getElementById('mp-k-ap-sub');
-    if (pEl)  pEl.textContent  = plan ? fmt(plan) : '—';
-    if (psEl) psEl.textContent = plan ? 'planned headcount' : 'plan sheet not loaded';
-    if (apEl) apEl.textContent = (plan && mpPlanAvg) ? Math.round(mpPlanAvg / plan * 100) + '%' : '—';
-    if (asEl) asEl.textContent = '';
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('mp-k-plan', plan ? fmt(plan) : '—');
+    set('mp-k-plan-sub', plan ? 'planned headcount' : 'plan sheet not loaded');
+    const num = mpShareActual;
+    set('mp-k-ap', plan ? (num ? Math.round(num / plan * 100) + '%' : '—') : '—');
+    set('mp-k-ap-sub', plan ? (mpShareIsMonth ? 'avg present/day ÷ plan' : 'actual ÷ plan') : 'plan sheet not loaded');
+    set('mp-k-ar', mpShareRoster ? (num ? Math.round(num / mpShareRoster * 100) + '%' : '—') : '—');
+    set('mp-k-ar-sub', mpShareRoster ? (mpShareIsMonth
+        ? 'avg present/day of ' + fmt(mpShareRoster) + ' employees'
+        : 'present of ' + fmt(mpShareRoster) + ' employees') : '');
 }
 
 /* Roster leg for a plan hub — plan rows carry only a function name, so the leg
@@ -13135,8 +13400,8 @@ function pvaPhoto(opts){
     fac += facRow('Grand total', tot, true);
     facBody.innerHTML = fac || '<tr><td colspan="6" class="text-center text-muted py-3">No rows for this scope.</td></tr>';
 
-    /* the table's average is what the Actual ÷ Plan tile reports */
-    mpPlanAvg = tot.av;
+    /* the Plan vs Actual table's own average is display-only; the Actual ÷ Plan
+       tile divides the Actual tile's number (see renderManpower). */
     mpSyncPlanKpis();
 }
 
