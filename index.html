@@ -634,6 +634,15 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
     }
     .wr-dod thead tr:first-child > th:first-child { z-index: 6; }
     .wr-dod tbody td.wr-dod-type { z-index: 3; background: #FFFDF2; }
+    /* The second column (WH Name) pins right after WH Type so the first two
+       columns stay visible while the day grid scrolls. --wr-dod-c1 is the
+       rendered width of the rowspanned type cell, written by renderWrDod(). */
+    .wr-dod thead th.wr-dod-name,
+    .wr-dod tbody td.wr-dod-name {
+        position: sticky; left: var(--wr-dod-c1, 130px); background: #FFFDF2;
+    }
+    .wr-dod thead th.wr-dod-name { z-index: 6; }
+    .wr-dod tbody td.wr-dod-name { z-index: 3; }
     .wr-dod .wr-dod-type { text-align: left; font-weight: 800; vertical-align: top; }
     .wr-dod .wr-dod-name { text-align: left; font-weight: 700; }
     .wr-dod .wr-dod-num { text-align: right; font-family: var(--font-num); }
@@ -648,6 +657,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
     .wr-dod tbody tr:hover > td.wr-dod-type { background: #FFF7DC; }
     .wr-dod tfoot td { background: #FBF8EE; font-weight: 800; font-family: var(--font-head); font-size: .72rem; }
     .wr-dod tfoot td:first-child { position: sticky; left: 0; z-index: 3; }
+    .wr-dod tfoot td:nth-child(2) { position: sticky; left: var(--wr-dod-c1, 130px); z-index: 3; }
     .wr-dod tfoot tr > td { border-top: 2px solid #E9DFB8; }
     /* MTD — one range instead of a day axis, one row per warehouse + Overall */
     .wr-mtd tbody td { font-family: var(--font-num); text-align: right; }
@@ -1942,7 +1952,6 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 <div class="strip-actions">
                     <span class="m">WAREHOUSE · RECEIVING</span>
                     <button type="button" class="btn ct-act" onclick="pdExportCsv('mf')" title="Export CSV · MF — one row per pending shipment that already sits on a manifest, with its manifest number"><i class="bi bi-filetype-csv"></i>Export CSV · MF</button>
-                    <button type="button" class="btn ct-act" onclick="jtExportCsv()" title="Export CSV · J&amp;T — every J&amp;T AWB with its aging range, PDD aging, PDD and hubs"><i class="bi bi-filetype-csv"></i>Export CSV · J&amp;T</button>
                     <button type="button" class="btn ct-act ct-act-primary" onclick="tabRefresh('pending')" title="Reload the receiving, WH receiving and J&amp;T sheets"><i class="bi bi-arrow-clockwise"></i>Refresh</button>
                 </div>
             </div>
@@ -2042,7 +2051,24 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                 </div>
 
-                <div class="sec-head"><span class="n">2</span>Receiving by forward hub × flag <span class="hint">— who received what today</span></div>
+                <div class="sec-head"><span class="n">2</span>DS and DSE receiving <span class="hint">— the FM warehouses' live intake</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-box-seam me-2 text-primary"></i>DS and DSE receiving live
+                            <span class="text-muted fw-normal" style="font-size:.78rem" id="wrDsLiveDateNote"></span></h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted" id="wrDsLiveNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrDsLiveTable','DS and DSE receiving live','wh_receiving_ds_dse_live')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                            <span class="badge text-bg-secondary" id="wrDsLiveBadge">No data yet</span>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto" id="wrDsLiveTable"></div>
+                    <div class="pd-mf-legend mt-2" id="wrDsLiveLegend">
+                        <i class="bi bi-box-seam me-1"></i>The <strong>Receiving DOD for FM</strong> tab: <code>first_hub</code> on the rows, <code>WH</code> (DS / DSE) on the columns, sum of <code>total_shipments</code>. Only rows whose <code>unpack_date</code> is today — if today has no rows yet, the latest day in the sheet is shown instead.
+                    </div>
+                </div>
+
+                <div class="sec-head"><span class="n">3</span>Receiving by forward hub × flag <span class="hint">— who received what today</span></div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-diagram-2 me-2 text-primary"></i>forward_hub_flag × flag</h6>
@@ -2057,7 +2083,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                 </div>
 
-                <div class="sec-head"><span class="n">3</span>Bulky receiving</div>
+                <div class="sec-head"><span class="n">4</span>Bulky receiving</div>
                 <div class="row g-3 mb-4">
                     <div class="col-12 col-xl-6">
                         <div class="card p-3 border-0 shadow-sm h-100">
@@ -2091,7 +2117,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                 </div>
 
-                <div class="sec-head"><span class="n">4</span>PDD profile</div>
+                <div class="sec-head"><span class="n">5</span>PDD profile</div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-calendar2-week me-2 text-primary"></i>PDD profile
@@ -2126,9 +2152,9 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <div class="d-flex align-items-center gap-1">
                                 <label class="small text-muted m-0" for="wrDodFrom">From</label>
-                                <input type="date" class="form-control form-control-sm" id="wrDodFrom" style="width:auto" onchange="renderWrDod()">
+                                <input type="date" class="form-control form-control-sm" id="wrDodFrom" style="width:auto" onchange="renderWrDod();renderWrDsDod()">
                                 <label class="small text-muted m-0" for="wrDodTo">To</label>
-                                <input type="date" class="form-control form-control-sm" id="wrDodTo" style="width:auto" onchange="renderWrDod()">
+                                <input type="date" class="form-control form-control-sm" id="wrDodTo" style="width:auto" onchange="renderWrDod();renderWrDsDod()">
                                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="wrDodResetRange()" title="Back to every day in the sheet"><i class="bi bi-arrow-counterclockwise"></i></button>
                             </div>
                             <span class="small text-muted" id="wrDodNote">—</span>
@@ -2159,7 +2185,24 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                 </div>
 
-                <div class="sec-head"><span class="n">3</span>Gateway receiving</div>
+                <div class="sec-head"><span class="n">3</span>DS and DSE receiving DOD <span class="hint">— the FM warehouses day by day, over the From–To range above</span></div>
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-box-seam me-2 text-primary"></i>DS and DSE receiving — day by day
+                            <span class="text-muted fw-normal" style="font-size:.78rem" id="wrDsDodDateNote"></span></h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small text-muted" id="wrDsDodNote">—</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('wrDsDodTable','DS and DSE receiving DOD','wh_receiving_ds_dse_dod')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                            <span class="badge text-bg-secondary" id="wrDsDodBadge">No data yet</span>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto" id="wrDsDodTable"></div>
+                    <div class="pd-mf-legend mt-2" id="wrDsDodLegend">
+                        <i class="bi bi-box-seam me-1"></i>The <strong>Receiving DOD for FM</strong> tab: one row per <code>first_hub</code> × <code>WH</code> (DS / DSE), <code>unpack_date</code> on the columns, sum of <code>total_shipments</code>. It follows the same <strong>From – To</strong> range as the table above.
+                    </div>
+                </div>
+
+                <div class="sec-head"><span class="n">4</span>Gateway receiving</div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
                         <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>GW Receiving
@@ -2759,7 +2802,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 ================================================================ */
 /* Bump this whenever the file changes — it is shown in the header so you can
    tell instantly whether the browser is running the copy you just edited. */
-const BUILD = 'V60';
+const BUILD = 'V63';
 
 /* Line Haul sheet (gid=536648407) — the operational sheet with
    FLAG_HUBS / Facility_SRC / Facility_DST + shipment mix columns. */
@@ -10500,6 +10543,9 @@ const WR_LM_CSV_URL   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvck
 const WR_BULK_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=2094957265&single=true&output=csv';
 const WR_DOD_CSV_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=132003479&single=true&output=csv';
 const WR_PDD_CSV_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=2054902317&single=true&output=csv';
+/* DS / DSE receiving — the "Receiving DOD for FM" tab: one row per day × hub ×
+   WH, where WH holds DS or DSE and the value is total_shipments. */
+const WR_DDSE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=583987700&single=true&output=csv';
 /* The gateway block lives on its own tab: LM_Hub | sh_count | Rec_Date | leg_type. */
 const GW_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=1450202726&single=true&output=csv';
 /* The PDD tab is not published to the web, but the document itself is shared,
@@ -10515,6 +10561,7 @@ let wrDodTypeOf = {};                                  // Wh_grouped -> WH Type 
 let wrPddRows = [];                                    // AJ:AM — WH_name / total_Shipments / Receiving_Date / PDD
 let wrPddHidden = {};                                  // PDD date keys the filter hides
 let wrGwRows = [];                                     // gateway receiving — LM_Hub / sh_count / Rec_Date / leg_type
+let wrDsRows = [];                                     // DS/DSE receiving — unpack_date / first_hub / WH / total_shipments
 let wrGwSplit = false;                                 // rows: hub only, or hub + leg type
 let wrGwLoading = false;                               // gateway download in flight (it never blocks the page)
 let wrTodayLabel = '', wrNewestSeen = '';
@@ -10977,6 +11024,7 @@ function wrDodResetRange(){
     if (a) a.value = '';
     if (b) b.value = '';
     renderWrDod();
+    renderWrDsDod();
 }
 
 function renderWrDod(){
@@ -11109,7 +11157,7 @@ function renderWrDod(){
             String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
     });
 
-    let head = '<thead><tr><th rowspan="3">WH Type</th><th rowspan="3">WH Name</th>';
+    let head = '<thead><tr><th rowspan="3">WH Type</th><th rowspan="3" class="wr-dod-name">WH Name</th>';
     dates.forEach(function(k){ head += '<th colspan="3" class="wr-dod-dow">' + esc(wrDodDow(k)) + '</th>'; });
     head += '</tr><tr>';
     dates.forEach(function(k){ head += '<th colspan="3" class="wr-dod-date">' + esc(wrDodDate(k)) + '</th>'; });
@@ -11173,6 +11221,12 @@ function renderWrDod(){
 
     host.innerHTML = '<table class="wr-dod">' + head + body + foot + '</table>';
 
+    /* Pin the WH Name column right after WH Type: the offset is the rendered
+       width of the rowspanned type cell, handed to CSS as --wr-dod-c1. */
+    const c1 = host.querySelector('td.wr-dod-type');
+    const tbl = host.querySelector('table');
+    if (tbl) tbl.style.setProperty('--wr-dod-c1', (c1 ? c1.offsetWidth : 130) + 'px');
+
     const tPlan = dates.reduce(function(a, k){ return a + overall[k].plan; }, 0);
     const tAct = dates.reduce(function(a, k){ return a + overall[k].actual; }, 0);
     const pct = tPlan ? Math.round((tAct / tPlan) * 100) : null;
@@ -11191,6 +11245,172 @@ function renderWrDod(){
     if (kActSub) kActSub.textContent = pct === null ? '—' : pct + '% of plan';
 
     renderWrMtd(filled, dates, range);
+}
+
+/* ---- DS / DSE receiving (the "Receiving DOD for FM" tab) --------------
+   Two views of one dataset (day × first_hub × WH × total_shipments):
+   · live  — one row per hub, one column per WH (DS / DSE), today only
+             (falls back to the sheet's latest day while today is empty);
+   · DOD   — one row per hub × WH, one column per day, over the same
+             From–To range the WH Receiving DOD table uses. */
+function renderWrDs(){
+    renderWrDsLive();
+    renderWrDsDod();
+}
+
+function renderWrDsLive(){
+    const host = document.getElementById('wrDsLiveTable');
+    if (!host) return;
+    const badge = document.getElementById('wrDsLiveBadge');
+    const note = document.getElementById('wrDsLiveNote');
+    const dateNote = document.getElementById('wrDsLiveDateNote');
+    const rows = wrDsRows || [];
+    if (!rows.length){
+        host.innerHTML = '<div class="text-muted small py-2">No DS / DSE rows in the sheet yet.</div>';
+        if (badge){ badge.className = 'badge text-bg-secondary'; badge.textContent = 'No data'; }
+        if (note) note.textContent = '—';
+        if (dateNote) dateNote.textContent = '';
+        return;
+    }
+    const now = new Date();
+    const todayK = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+    let day = todayK;
+    let dayRows = rows.filter(function(r){ return r.key === todayK; });
+    const isToday = dayRows.length > 0;
+    if (!isToday){
+        day = rows.reduce(function(m, r){ return Math.max(m, r.key); }, 0);
+        dayRows = rows.filter(function(r){ return r.key === day; });
+    }
+    /* WH columns: DS and DSE in that order, anything new after them. */
+    const whSet = new Set(dayRows.map(function(r){ return r.wh; }));
+    const cols = ['DS', 'DSE'].filter(function(w){ return whSet.has(w); })
+        .concat(Array.from(whSet).filter(function(w){ return w !== 'DS' && w !== 'DSE'; }).sort());
+    const hubs = {};
+    dayRows.forEach(function(r){
+        const h = hubs[r.hub] = hubs[r.hub] || { cells: {}, total: 0 };
+        h.cells[r.wh] = (h.cells[r.wh] || 0) + r.total;
+        h.total += r.total;
+    });
+    const order = Object.keys(hubs).sort(function(a, b){
+        return (hubs[b].total - hubs[a].total) ||
+            String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    });
+    const colTot = {};
+    cols.forEach(function(w){ colTot[w] = 0; });
+    let grand = 0;
+    let html = '<table class="table table-sm align-middle fs-7 mb-0"><thead class="table-light"><tr><th>Hub</th>' +
+        cols.map(function(w){ return '<th class="text-end">' + esc(w) + '</th>'; }).join('') +
+        '<th class="text-end">Total</th></tr></thead><tbody>';
+    order.forEach(function(hn){
+        const h = hubs[hn];
+        html += '<tr><td class="fw-semibold">' + esc(hn) + '</td>' +
+            cols.map(function(w){
+                const v = h.cells[w] || 0;
+                colTot[w] += v;
+                return '<td class="text-end">' + (v ? fmt(v) : '') + '</td>';
+            }).join('') +
+            '<td class="text-end fw-bold">' + fmt(h.total) + '</td></tr>';
+        grand += h.total;
+    });
+    html += '</tbody><tfoot><tr class="wr-total"><td>Grand Total</td>' +
+        cols.map(function(w){ return '<td class="text-end">' + fmt(colTot[w]) + '</td>'; }).join('') +
+        '<td class="text-end">' + fmt(grand) + '</td></tr></tfoot></table>';
+    host.innerHTML = html;
+    if (badge){
+        badge.className = 'badge ' + (isToday ? 'text-bg-success' : 'text-bg-warning');
+        badge.textContent = fmt(grand) + ' shipments';
+    }
+    if (note) note.textContent = fmt(order.length) + ' hubs · ' + cols.join(' + ') +
+        (isToday ? ' · today' : ' · today has no rows yet, showing the latest day');
+    if (dateNote) dateNote.textContent = '· ' + wrDodDate(day);
+}
+
+function renderWrDsDod(){
+    const host = document.getElementById('wrDsDodTable');
+    if (!host) return;
+    const badge = document.getElementById('wrDsDodBadge');
+    const note = document.getElementById('wrDsDodNote');
+    const dateNote = document.getElementById('wrDsDodDateNote');
+    const rows = wrDsRows || [];
+    if (!rows.length){
+        host.innerHTML = '<div class="text-muted small py-2">No DS / DSE rows in the sheet yet.</div>';
+        if (badge){ badge.className = 'badge text-bg-secondary'; badge.textContent = 'No data'; }
+        if (note) note.textContent = '—';
+        if (dateNote) dateNote.textContent = '';
+        return;
+    }
+    const allDates = Array.from(new Set(rows.map(function(r){ return r.key; }))).sort(function(a, b){ return a - b; });
+    const range = wrDodRange(allDates);
+    const dates = allDates.filter(function(k){ return k >= range.from && k <= range.to; });
+    if (!dates.length){
+        host.innerHTML = '<div class="text-muted small py-2">No DS / DSE rows between ' +
+            esc(wrDodDate(range.from)) + ' and ' + esc(wrDodDate(range.to)) + '.</div>';
+        if (badge){ badge.className = 'badge text-bg-secondary'; badge.textContent = '0 days'; }
+        if (note) note.textContent = '—';
+        if (dateNote) dateNote.textContent = '';
+        return;
+    }
+    const inR = rows.filter(function(r){ return r.key >= range.from && r.key <= range.to; });
+    const whSet = new Set(inR.map(function(r){ return r.wh; }));
+    const cols = ['DS', 'DSE'].filter(function(w){ return whSet.has(w); })
+        .concat(Array.from(whSet).filter(function(w){ return w !== 'DS' && w !== 'DSE'; }).sort());
+    /* hub[row] → wh[column] → dateKey → total */
+    const hubs = {};
+    inR.forEach(function(r){
+        const h = hubs[r.hub] = hubs[r.hub] || {};
+        const w = h[r.wh] = h[r.wh] || {};
+        w[r.key] = (w[r.key] || 0) + r.total;
+    });
+    const hubTot = {}, dateTot = {}, whTot = {};
+    let grand = 0;
+    dates.forEach(function(k){ dateTot[k] = 0; });
+    Object.keys(hubs).forEach(function(hn){
+        let t = 0;
+        cols.forEach(function(w){
+            let wt = 0;
+            dates.forEach(function(k){
+                const v = (hubs[hn][w] && hubs[hn][w][k]) || 0;
+                wt += v;
+                dateTot[k] += v;
+            });
+            hubs[hn][w].__tot = wt;
+            whTot[w] = (whTot[w] || 0) + wt;
+            t += wt;
+        });
+        hubTot[hn] = t;
+        grand += t;
+    });
+    const hubOrder = Object.keys(hubs).sort(function(a, b){
+        return (hubTot[b] - hubTot[a]) ||
+            String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    });
+    let html = '<table class="table table-sm align-middle fs-7 mb-0"><thead class="table-light">' +
+        '<tr><th>Hub</th><th>WH</th>' +
+        dates.map(function(k){ return '<th class="text-end">' + esc(wrDodDate(k)) + '</th>'; }).join('') +
+        '<th class="text-end">Total</th></tr></thead><tbody>';
+    hubOrder.forEach(function(hn){
+        cols.forEach(function(w, wi){
+            html += '<tr>' +
+                (wi === 0 ? '<td class="fw-semibold" rowspan="' + cols.length + '">' + esc(hn) + '</td>' : '') +
+                '<td>' + esc(w) + '</td>' +
+                dates.map(function(k){
+                    const v = (hubs[hn][w] && hubs[hn][w][k]) || 0;
+                    return '<td class="text-end">' + (v ? fmt(v) : '') + '</td>';
+                }).join('') +
+                '<td class="text-end fw-bold">' + fmt(hubs[hn][w].__tot) + '</td></tr>';
+        });
+    });
+    html += '</tbody><tfoot><tr class="wr-total"><td>Grand Total</td><td class="text-muted">DS + DSE</td>' +
+        dates.map(function(k){ return '<td class="text-end">' + fmt(dateTot[k] || 0) + '</td>'; }).join('') +
+        '<td class="text-end">' + fmt(grand) + '</td></tr></tfoot></table>';
+    host.innerHTML = html;
+    if (badge){
+        badge.className = 'badge text-bg-secondary';
+        badge.textContent = fmt(dates.length) + ' days · ' + fmt(grand) + ' shipments';
+    }
+    if (note) note.textContent = fmt(hubOrder.length) + ' hubs × ' + cols.join('/') +
+        ' · ' + fmt(grand) + ' shipments in range';
+    if (dateNote) dateNote.textContent = '· ' + wrDodDate(dates[0]) + ' – ' + wrDodDate(dates[dates.length - 1]);
 }
 
 /* ---- MTD: one column block instead of a day axis --------------------
@@ -12240,17 +12460,35 @@ async function loadWhSplitCsv(force){
             if (!out.length) return false;
             wrPddRows = out;
             return true;
+        }),
+        /* DS / DSE receiving — the FM tab: day × hub × WH (DS / DSE). */
+        job('wrdsdse', WR_DDSE_CSV_URL, function(rows, col){
+            const iD = col('unpack_date'), iHub = col('first_hub'),
+                  iWh = col('WH'), iN = col('total_shipments');
+            const out = [];
+            rows.forEach(function(r){
+                const hub = wrAt(r, iHub), wh = wrAt(r, iWh);
+                const dd = wrDay(wrAt(r, iD));
+                if (!hub || !dd) return;
+                out.push({ key: dd.y * 10000 + dd.a * 100 + dd.b,
+                           hub: hub, wh: wh || '(blank)', total: wrNum(wrAt(r, iN)) });
+            });
+            if (!out.length) return false;
+            wrDsRows = out;
+            return true;
         })
     ]);
-    const names = ['wrlm', 'wrbuk', 'wrdod', 'wrpdd'].filter(function(n, i){ return got[i]; });
+    const names = ['wrlm', 'wrbuk', 'wrdod', 'wrpdd', 'wrdsdse'].filter(function(n, i){ return got[i]; });
     if (names.length){
         renderWhRecv();
         renderWrDod();
         renderWrPdd();
+        renderWrDs();
         wrPddBuildFilter();
         console.log('[WhRecv] split tabs painted:', names.join(', '),
                     '·', wrPivotRows.length, 'LM rows,', wrBulkyRows.length, 'bulky rows,',
-                    wrDodRows.length, 'DOD rows,', wrPddRows.length, 'PDD rows');
+                    wrDodRows.length, 'DOD rows,', wrPddRows.length, 'PDD rows,',
+                    wrDsRows.length, 'DS/DSE rows');
     }
     return names;
 }
