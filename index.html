@@ -747,18 +747,12 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
     .mm-chip.btn-outline-primary { border-color: #d8cfae; color: #6b6353; background: #FFFDF2; }
     .mm-chip.btn-outline-primary:hover { background: var(--brand-yellow3); border-color: #d8cfae; color: #16171B; }
     .mm-chip.btn-primary { background: var(--ink); border-color: var(--ink); color: var(--noon); }
-    /* MM Pendency filter bar — one label + a wrapping chip group per facet.
-       Every chip toggles independently, so several values stay selected at once. */
-    .mm-filter-row { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0;
-        border-top: 1px dashed #efece2; }
-    .mm-filter-row:first-of-type { border-top: 0; }
-    .mm-filter-lab { flex: 0 0 108px; font-family: var(--font-head); font-size: .62rem; font-weight: 800;
-        text-transform: uppercase; letter-spacing: .6px; color: #8a7a5a; padding-top: 5px; }
-    .mm-chip-bar { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
-    @media (max-width: 575.98px) {
-        .mm-filter-row { flex-direction: column; gap: 4px; }
-        .mm-filter-lab { flex: none; padding-top: 0; }
-    }
+    /* MM Pendency filter: one labelled checkbox dropdown that freezes under
+       the page strip + view switch while the page scrolls — the same
+       --ct-thead-top offset the table heads use. */
+    #mmFilterCard { position: sticky; top: var(--ct-thead-top, 132px); z-index: 941; }
+    .mm-filter-field { width: 280px; max-width: 100%; }
+    .mm-filter-field .form-label { font-size: .68rem; letter-spacing: .4px; margin-bottom: 4px; }
     .inner-tabs .it-btn .mm-tab-n { font-family: var(--font-num); font-size: .64rem; font-weight: 800;
         background: rgba(0,0,0,.10); border-radius: 999px; padding: 1px 7px; }
     .inner-tabs .it-btn.active .mm-tab-n { background: var(--noon); color: #16171B; }
@@ -1693,7 +1687,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
                         <h6 class="fw-bold m-0"><i class="bi bi-building me-2 text-primary"></i>Snapshot
-                            <span class="text-muted fw-normal" style="font-size:.78rem">— every facility is a column in each table below</span></h6>
+                            <span class="text-muted fw-normal" style="font-size:.78rem">— every current hub is a column in each table below</span></h6>
                         <div class="small text-muted mt-1" id="mmScopeLine">—</div>
                     </div>
                     <div class="d-flex align-items-center gap-2">
@@ -1706,20 +1700,14 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 
             <div id="mmContent" style="display:none;">
                 <div data-view="summary">
-                    <!-- FILTERS: multi-select chips (empty selection = everything) -->
+                    <!-- FILTERS: shipment type — one checkbox dropdown, multi-select -->
                     <div class="card p-3 mb-3 border-0 shadow-sm" id="mmFilterCard">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                            <h6 class="fw-bold m-0"><i class="bi bi-funnel me-2 text-primary"></i>Filters
-                                <span class="text-muted fw-normal" style="font-size:.76rem">— pick as many as you need; the KPIs and every table follow</span></h6>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearMmFilters()" title="Show every facility and shipment type again"><i class="bi bi-x-circle me-1"></i>Clear</button>
-                        </div>
-                        <div class="mm-filter-row">
-                            <span class="mm-filter-lab">Shipment type</span>
-                            <div class="mm-chip-bar" id="mmTypeBtns"></div>
-                        </div>
-                        <div class="mm-filter-row">
-                            <span class="mm-filter-lab">Facility</span>
-                            <div class="mm-chip-bar" id="mmFacBtns"></div>
+                        <div class="d-flex justify-content-between align-items-end flex-wrap gap-2">
+                            <div class="mm-filter-field">
+                                <label class="form-label text-muted mb-1" for="mmTypeSel">Shipment Type</label>
+                                <select id="mmTypeSel" class="form-select" multiple></select>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearMmFilters()" title="Show every shipment type again"><i class="bi bi-x-circle me-1"></i>Clear</button>
                         </div>
                         <div class="small text-muted mt-2" id="mmFilterNote"></div>
                     </div>
@@ -1753,15 +1741,26 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                         </div>
                     </div>
 
-                    <div class="sec-head"><span class="n">1</span>Pendency pivots <span class="hint">— shipment type, receiving aging, last-scan aging and flag, each split by facility for the selected snapshot</span></div>
+                    <div class="sec-head"><span class="n">1</span>Pendency pivots <span class="hint">— shipment type, shipping aging, receiving aging, last-scan aging and flag, each split by current hub for the selected snapshot</span></div>
                     <div class="row g-3 mb-3">
                         <div class="col-12">
                             <div class="card p-3 border-0 shadow-sm h-100">
-                                <h6 class="fw-bold mb-2"><i class="bi bi-tags me-2 text-primary"></i>Shipment type <span class="text-muted fw-normal" style="font-size:.72rem">— each facility side by side</span></h6>
+                                <h6 class="fw-bold mb-2"><i class="bi bi-tags me-2 text-primary"></i>Shipment type <span class="text-muted fw-normal" style="font-size:.72rem">— each hub side by side</span></h6>
                                 <div style="max-height:440px;overflow:auto">
                                 <table class="table table-sm align-middle fs-7 mb-0 mm-pivot">
                                     <thead class="table-light" id="mmTypeHead"></thead>
                                     <tbody id="mmTypeBody"></tbody>
+                                </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="card p-3 border-0 shadow-sm h-100">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-truck me-2 text-primary"></i>Shipping aging</h6>
+                                <div style="max-height:420px;overflow:auto">
+                                <table class="table table-sm align-middle fs-7 mb-0 mm-pivot">
+                                    <thead class="table-light" id="mmShipHead"></thead>
+                                    <tbody id="mmShipBody"></tbody>
                                 </table>
                                 </div>
                             </div>
@@ -1788,14 +1787,16 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="card p-3 mb-3 border-0 shadow-sm">
-                        <h6 class="fw-bold mb-2"><i class="bi bi-flag me-2 text-primary"></i>Flag <span class="text-muted fw-normal" style="font-size:.72rem">— why these shipments are stuck</span></h6>
-                        <div style="max-height:420px;overflow:auto">
-                            <table class="table table-sm align-middle fs-7 mb-0 mm-pivot">
-                                <thead class="table-light" id="mmFlagHead"></thead>
-                                <tbody id="mmFlagBody"></tbody>
-                            </table>
+                        <div class="col-lg-6">
+                            <div class="card p-3 border-0 shadow-sm h-100">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-flag me-2 text-primary"></i>Flag <span class="text-muted fw-normal" style="font-size:.72rem">— why these shipments are stuck</span></h6>
+                                <div style="max-height:420px;overflow:auto">
+                                <table class="table table-sm align-middle fs-7 mb-0 mm-pivot">
+                                    <thead class="table-light" id="mmFlagHead"></thead>
+                                    <tbody id="mmFlagBody"></tbody>
+                                </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -9600,7 +9601,7 @@ function renderMpGrid(rows, dayCols){
 const MM_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=1025406163&single=true&output=csv';
 
 let mmRows = [], mmDates = [], mmDate = '', mmLoaded = false, mmLoading = false;
-let mmFacSel = new Set(), mmTypeSel = new Set();   // empty set = every value
+let mmTypeSel = new Set();   // empty set = every shipment type
 
 function mmSoft(v){
     return String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
@@ -9638,6 +9639,7 @@ function mmAgingRank(label){
     if (/1\s*to\s*2/.test(s)) return 20;
     if (/0\s*to\s*24/.test(s)) return 10;
     if (/0\s*to\s*1\s*day/.test(s)) return 10;
+    if (/0\s*to\s*2\s*day/.test(s)) return 10;
     return 99;
 }
 
@@ -9658,84 +9660,75 @@ function mmShowSnapshotDate(){
         : '—';
 }
 
-/* Rows of the chosen snapshot; the chip filters narrow them further. */
+/* Rows of the chosen snapshot; the shipment-type filter narrows them further. */
 function mmDateRows(){
     return mmRows.filter(function(r){ return r.date === mmDate; });
 }
 function mmBaseRows(){
     const rows = mmDateRows();
-    if (!mmFacSel.size && !mmTypeSel.size) return rows;
-    return rows.filter(function(r){
-        return (!mmFacSel.size || mmFacSel.has(r.facility)) &&
-               (!mmTypeSel.size || mmTypeSel.has(r.type));
-    });
+    if (!mmTypeSel.size) return rows;
+    return rows.filter(function(r){ return mmTypeSel.has(r.type); });
 }
 
-/* Chip counts follow the OTHER filter (standard facet behaviour): the
-   facility list re-counts against the selected shipment types and the
-   type list re-counts against the selected facilities. */
-function renderMmChips(dateRows){
-    const facHost  = document.getElementById('mmFacBtns');
-    const typeHost = document.getElementById('mmTypeBtns');
-    if (!facHost || !typeHost) return;
+/* ---- Shipment-type filter: one checkbox dropdown (the shared mcs widget) ----
+   No selection means every type, so the button reads "All (8)". The count
+   beside a value is how many rows it would return on this snapshot. */
+function mmTypeFacetCount(value){
+    return mmDateRows().reduce(function(n, r){ return n + (r.type === value ? 1 : 0); }, 0);
+}
+function mmSyncTypeSel(){
+    const sel = document.getElementById('mmTypeSel');
+    if (!sel) return;
+    mmTypeSel = new Set(Array.prototype.slice.call(sel.options)
+        .filter(function(o){ return o.selected; })
+        .map(function(o){ return o.value; }));
+}
+function renderMmTypeFilter(dateRows){
+    const sel = document.getElementById('mmTypeSel');
+    if (!sel) return;
 
-    const facOrder = [], typeOrder = [];
-    const facAll = new Map(), typeAll = new Map();
-    dateRows.forEach(function(r){
-        if (!facAll.has(r.facility)) { facAll.set(r.facility, 0); facOrder.push(r.facility); }
-        facAll.set(r.facility, facAll.get(r.facility) + 1);
-        if (!typeAll.has(r.type)) { typeAll.set(r.type, 0); typeOrder.push(r.type); }
-        typeAll.set(r.type, typeAll.get(r.type) + 1);
+    /* Options follow the snapshot, busiest first. A value that disappeared
+       from the sheet drops out of the selection instead of quietly filtering
+       everything away. */
+    const counts = new Map();
+    dateRows.forEach(function(r){ counts.set(r.type, (counts.get(r.type) || 0) + 1); });
+    const values = Array.from(counts.keys()).sort(function(a, b){
+        return (counts.get(b) - counts.get(a)) || String(a).localeCompare(String(b));
     });
-    const byCount = function(all){
-        return function(a, b){ return (all.get(b) - all.get(a)) || String(a).localeCompare(String(b)); };
-    };
-    facOrder.sort(byCount(facAll));
-    typeOrder.sort(byCount(typeAll));
+    const key = values.join('\u0001');
+    if (sel.getAttribute('data-mm-key') !== key) {
+        const keep = new Set(Array.prototype.slice.call(sel.options)
+            .filter(function(o){ return o.selected; })
+            .map(function(o){ return o.value; }));
+        sel.innerHTML = values.map(function(v){
+            return '<option value="' + esc(v) + '">' + esc(v) + '</option>';
+        }).join('');
+        Array.prototype.forEach.call(sel.options, function(o){ o.selected = keep.has(o.value); });
+        sel.setAttribute('data-mm-key', key);
+    }
 
-    const facFacet = new Map(), typeFacet = new Map();
-    dateRows.forEach(function(r){
-        if (!mmTypeSel.size || mmTypeSel.has(r.type)) facFacet.set(r.facility, (facFacet.get(r.facility) || 0) + 1);
-        if (!mmFacSel.size || mmFacSel.has(r.facility)) typeFacet.set(r.type, (typeFacet.get(r.type) || 0) + 1);
-    });
-
-    const chip = function(value, n, on, kind){
-        const attr = kind === 'fac' ? 'data-mmfac' : 'data-mmtype';
-        const fn   = kind === 'fac' ? 'toggleMmFac' : 'toggleMmType';
-        return '<button type="button" class="btn btn-sm mm-chip ' + (on ? 'btn-primary' : 'btn-outline-primary') + '" ' +
-            attr + '="' + esc(value) + '" onclick="' + fn + '(this)" title="' +
-            (on ? 'Remove filter: ' : 'Filter by: ') + esc(value) + '">' +
-            esc(value) + ' <span class="mm-chip-n">' + fmt(n) + '</span></button>';
-    };
-
-    facHost.innerHTML = facOrder.map(function(v){
-        return chip(v, facFacet.get(v) || 0, mmFacSel.has(v), 'fac');
-    }).join('');
-    typeHost.innerHTML = typeOrder.map(function(v){
-        return chip(v, typeFacet.get(v) || 0, mmTypeSel.has(v), 'type');
-    }).join('');
+    if (!sel.__mcs) {
+        mcsInit(sel, function(){ mmSyncTypeSel(); renderMmPendency(); }, mmTypeFacetCount);
+    } else {
+        mcsSync(sel);
+    }
+    mmSyncTypeSel();
 
     const note = document.getElementById('mmFilterNote');
     if (note) {
-        const f = mmFacSel.size ? 'facility ' + Array.from(mmFacSel).join(', ') : 'all facilities';
-        const t = mmTypeSel.size ? 'shipment type ' + Array.from(mmTypeSel).join(', ') : 'all shipment types';
-        note.textContent = 'Filtered to ' + f + ' · ' + t + '.';
+        note.textContent = mmTypeSel.size
+            ? 'Shipment type: ' + Array.from(mmTypeSel).join(', ') + ' · ' +
+              fmt(mmBaseRows().length) + ' of ' + fmt(dateRows.length) + ' pending.'
+            : 'Showing every shipment type · ' + fmt(dateRows.length) + ' pending.';
     }
 }
-
-function toggleMmFac(btn){
-    const v = btn.getAttribute('data-mmfac');
-    if (mmFacSel.has(v)) mmFacSel.delete(v); else mmFacSel.add(v);
-    renderMmPendency();
-}
-function toggleMmType(btn){
-    const v = btn.getAttribute('data-mmtype');
-    if (mmTypeSel.has(v)) mmTypeSel.delete(v); else mmTypeSel.add(v);
-    renderMmPendency();
-}
 function clearMmFilters(){
-    mmFacSel.clear();
-    mmTypeSel.clear();
+    const sel = document.getElementById('mmTypeSel');
+    if (sel) {
+        Array.prototype.forEach.call(sel.options, function(o){ o.selected = false; });
+        mcsSync(sel);
+    }
+    mmTypeSel = new Set();
     renderMmPendency();
 }
 
@@ -9766,7 +9759,7 @@ function renderMmPendency(){
     /* The tables are cut by facility, never by date: the count column keeps
        its own heading instead of being relabelled with the snapshot date. */
 
-    renderMmChips(dateRows);
+    renderMmTypeFilter(dateRows);
     const overdue = mmOverdueRows(rows).length;
 
     if (badge) {
@@ -9805,26 +9798,26 @@ function renderMmPendency(){
     setKpi('k-mm-seal',  fmt(seal),  pctOf(seal).toFixed(1) + '% waiting for a seal');
     setKpi('k-mm-overdue', fmt(overdue), pctOf(overdue).toFixed(1) + '% past PDD');
 
-    /* ---- pendency pivots: one row per label, one COLUMN per facility ----
-       Facility used to be its own row column plus a single Count. It is now a
-       set of columns, so a shipment type / aging band / flag can be read
-       facility by facility without a second table. Facilities run busiest
-       first; rows run biggest first (aging bands keep their operational
-       order); every table closes with Total, Share and a Grand Total. */
-    const facTotals = {};
-    rows.forEach(function(r){ const f = r.facility || '—'; facTotals[f] = (facTotals[f] || 0) + 1; });
-    const facCols = Object.keys(facTotals).sort(function(a, b){
-        return (facTotals[b] - facTotals[a]) || String(a).localeCompare(String(b));
+    /* ---- pendency pivots: one row per label, one COLUMN per current hub ----
+       Columns are the hubs present on the snapshot, busiest first, so a
+       shipment type / shipping band / receiving band / last-scan band / flag
+       reads hub by hub without a second table. Rows run biggest first (aging
+       bands keep their operational order); every table closes with Total,
+       Share and a Grand Total. */
+    const hubTotals = {};
+    rows.forEach(function(r){ const h = r.hub || '—'; hubTotals[h] = (hubTotals[h] || 0) + 1; });
+    const hubCols = Object.keys(hubTotals).sort(function(a, b){
+        return (hubTotals[b] - hubTotals[a]) || String(a).localeCompare(String(b));
     });
-    const fillFacPivot = function(headId, bodyId, headLabel, headTitle, labelOf, mode){
+    const fillHubPivot = function(headId, bodyId, headLabel, headTitle, labelOf, mode){
         const head = document.getElementById(headId);
         const body = document.getElementById(bodyId);
         if (!head || !body) return;
         const labelTot = {}, cell = {};
         rows.forEach(function(r){
             const L = labelOf(r) || '—';
-            const F = r.facility || '—';
-            const k = L + '\u0001' + F;
+            const H = r.hub || '—';
+            const k = L + '\u0001' + H;
             cell[k] = (cell[k] || 0) + 1;
             labelTot[L] = (labelTot[L] || 0) + 1;
         });
@@ -9839,10 +9832,10 @@ function renderMmPendency(){
             });
         }
         head.innerHTML = '<tr><th' + (headTitle ? ' title="' + esc(headTitle) + '"' : '') + '>' + esc(headLabel) + '</th>' +
-            facCols.map(function(f){ return '<th class="text-end">' + esc(f) + '</th>'; }).join('') +
+            hubCols.map(function(h){ return '<th class="text-end">' + esc(h) + '</th>'; }).join('') +
             '<th class="text-end">Total</th><th class="text-end">Share</th></tr>';
         if (!labels.length){
-            body.innerHTML = '<tr><td colspan="' + (facCols.length + 3) +
+            body.innerHTML = '<tr><td colspan="' + (hubCols.length + 3) +
                 '" class="text-center text-muted py-3">No rows for this snapshot and filter</td></tr>';
             return;
         }
@@ -9850,8 +9843,8 @@ function renderMmPendency(){
             const tot = labelTot[L] || 0;
             return '<tr>' +
                 '<td class="mm-lbl" title="' + esc(L) + '">' + esc(L) + '</td>' +
-                facCols.map(function(f){
-                    const v = cell[L + '\u0001' + f] || 0;
+                hubCols.map(function(h){
+                    const v = cell[L + '\u0001' + h] || 0;
                     return '<td class="text-end' + (v ? '' : ' text-muted') + '">' + (v ? fmt(v) : '–') + '</td>';
                 }).join('') +
                 '<td class="text-end fw-bold">' + fmt(tot) + '</td>' +
@@ -9859,20 +9852,22 @@ function renderMmPendency(){
                 '</tr>';
         }).join('');
         html += '<tr class="mm-total"><td>Grand Total</td>' +
-            facCols.map(function(f){
-                return '<td class="text-end">' + fmt(facTotals[f] || 0) + '</td>';
+            hubCols.map(function(h){
+                return '<td class="text-end">' + fmt(hubTotals[h] || 0) + '</td>';
             }).join('') +
             '<td class="text-end">' + fmt(total) + '</td><td class="text-end">100%</td></tr>';
         body.innerHTML = html;
     };
 
-    fillFacPivot('mmTypeHead', 'mmTypeBody', 'Shipment_Type', 'Shipment type pending in each facility',
+    fillHubPivot('mmTypeHead', 'mmTypeBody', 'Shipment type', 'Sheet column: Shipment_Type - shipment type pending in each current hub',
         function(r){ return r.type; }, 'count');
-    fillFacPivot('mmRecHead', 'mmRecBody', 'Receiving_Aging_Range', 'Days in receiving, per facility',
+    fillHubPivot('mmShipHead', 'mmShipBody', 'Shipping aging', 'Sheet column: Shipping_Aging_Range - days since shipping, per current hub',
+        function(r){ return r.shipping; }, 'aging');
+    fillHubPivot('mmRecHead', 'mmRecBody', 'Receiving aging', 'Sheet column: Receiving_Aging_Range - days in receiving, per current hub',
         function(r){ return r.receiving; }, 'aging');
-    fillFacPivot('mmLuHead', 'mmLuBody', 'Last scan', 'Sheet column: LastUpdate_Aging_Range - days since the last scan, per facility',
+    fillHubPivot('mmLuHead', 'mmLuBody', 'Last scan', 'Sheet column: LastUpdate_Aging_Range - days since the last scan, per current hub',
         function(r){ return r.lastUpdate; }, 'aging');
-    fillFacPivot('mmFlagHead', 'mmFlagBody', 'Flag', 'Why these shipments are stuck, per facility',
+    fillHubPivot('mmFlagHead', 'mmFlagBody', 'Flag', 'Why these shipments are stuck, per current hub',
         function(r){ return r.flag; }, 'count');
 }
 
@@ -9917,6 +9912,7 @@ async function loadMmCsv(force){
                 facility: mmText(r.Facility),
                 hub: mmText(r.current_hub),
                 type: mmText(r.Shipment_Type),
+                shipping: mmText(r.Shipping_Aging_Range),
                 receiving: mmText(r.Receiving_Aging_Range),
                 lastUpdate: mmText(r.LastUpdate_Aging_Range),
                 flag: mmText(r.Flag),
@@ -10437,11 +10433,11 @@ function mmExportCsv(){
         showToast('Nothing to export — the MM Pendency sheet has not loaded', 'danger');
         return;
     }
-    const headers = ['Facility', 'Current hub', 'Shipment type', 'Receiving aging',
-                     'Last update aging', 'Flag', 'Feedback', 'AWB', 'PDD'];
+    const headers = ['Facility', 'Current hub', 'Shipment type', 'Shipping aging',
+                     'Receiving aging', 'Last update aging', 'Flag', 'Feedback', 'AWB', 'PDD'];
     const lines = [headers.map(csvCell).join(',')];
     rows.forEach(function(r){
-        lines.push([r.facility, r.hub, r.type, r.receiving, r.lastUpdate,
+        lines.push([r.facility, r.hub, r.type, r.shipping, r.receiving, r.lastUpdate,
                     r.flag, r.feedback, r.awb, r.pddLabel].map(csvCell).join(','));
     });
     const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
