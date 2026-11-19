@@ -747,6 +747,18 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
     .mm-chip.btn-outline-primary { border-color: #d8cfae; color: #6b6353; background: #FFFDF2; }
     .mm-chip.btn-outline-primary:hover { background: var(--brand-yellow3); border-color: #d8cfae; color: #16171B; }
     .mm-chip.btn-primary { background: var(--ink); border-color: var(--ink); color: var(--noon); }
+    /* MM Pendency filter bar — one label + a wrapping chip group per facet.
+       Every chip toggles independently, so several values stay selected at once. */
+    .mm-filter-row { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0;
+        border-top: 1px dashed #efece2; }
+    .mm-filter-row:first-of-type { border-top: 0; }
+    .mm-filter-lab { flex: 0 0 108px; font-family: var(--font-head); font-size: .62rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: .6px; color: #8a7a5a; padding-top: 5px; }
+    .mm-chip-bar { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+    @media (max-width: 575.98px) {
+        .mm-filter-row { flex-direction: column; gap: 4px; }
+        .mm-filter-lab { flex: none; padding-top: 0; }
+    }
     .inner-tabs .it-btn .mm-tab-n { font-family: var(--font-num); font-size: .64rem; font-weight: 800;
         background: rgba(0,0,0,.10); border-radius: 999px; padding: 1px 7px; }
     .inner-tabs .it-btn.active .mm-tab-n { background: var(--noon); color: #16171B; }
@@ -1672,7 +1684,6 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
             <div class="inner-tabs-row">
                 <div class="inner-tabs">
                     <button type="button" class="it-btn active" data-iview="summary" onclick="innerTab(this)"><i class="bi bi-pie-chart"></i>MM Pendency Summary</button>
-                    <button type="button" class="it-btn" data-iview="overdue" onclick="innerTab(this)"><i class="bi bi-alarm"></i>Overdue (PDD) <span class="mm-tab-n" id="mmOverdueTabCount">0</span></button>
                     <button type="button" class="it-btn" data-iview="g56" onclick="innerTab(this)"><i class="bi bi-boxes"></i>G5 &amp; G6 pendency</button>
                 </div>
                 <span class="it-meta" id="mmTabMeta">—</span>
@@ -1695,6 +1706,23 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 
             <div id="mmContent" style="display:none;">
                 <div data-view="summary">
+                    <!-- FILTERS: multi-select chips (empty selection = everything) -->
+                    <div class="card p-3 mb-3 border-0 shadow-sm" id="mmFilterCard">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <h6 class="fw-bold m-0"><i class="bi bi-funnel me-2 text-primary"></i>Filters
+                                <span class="text-muted fw-normal" style="font-size:.76rem">— pick as many as you need; the KPIs and every table follow</span></h6>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearMmFilters()" title="Show every facility and shipment type again"><i class="bi bi-x-circle me-1"></i>Clear</button>
+                        </div>
+                        <div class="mm-filter-row">
+                            <span class="mm-filter-lab">Shipment type</span>
+                            <div class="mm-chip-bar" id="mmTypeBtns"></div>
+                        </div>
+                        <div class="mm-filter-row">
+                            <span class="mm-filter-lab">Facility</span>
+                            <div class="mm-chip-bar" id="mmFacBtns"></div>
+                        </div>
+                        <div class="small text-muted mt-2" id="mmFilterNote"></div>
+                    </div>
                     <div class="hero-band">
                         <div class="row g-3">
                             <div class="col-6 col-md"><div class="kpi-mini">
@@ -1717,7 +1745,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                                 <div class="val" id="k-mm-seal">0</div>
                                 <div class="sub" id="k-mm-seal-sub">in Pgroup, not attached by seal</div>
                             </div></div>
-                            <div class="col-6 col-md"><div class="kpi-mini" style="cursor:pointer" onclick="mmOpenOverdue()" title="Open the overdue shipment list">
+                            <div class="col-6 col-md"><div class="kpi-mini">
                                 <div class="lbl">Overdue (PDD)</div>
                                 <div class="val text-danger" id="k-mm-overdue">0</div>
                                 <div class="sub" id="k-mm-overdue-sub">past PDD on this snapshot</div>
@@ -1772,29 +1800,6 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                 </div>
 
-                <div data-view="overdue" class="iview-hidden">
-                    <div class="sec-head"><span class="n">2</span>Overdue shipments <span class="hint">— PDD already passed, but the shipment is still pending on this snapshot</span></div>
-                    <div class="card p-3 border-0 shadow-sm">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                            <h6 class="fw-bold m-0"><i class="bi bi-alarm me-2 text-primary"></i>Past PDD, not shipped
-                                <span class="text-muted fw-normal" style="font-size:.75rem" id="mmOverdueNote"></span></h6>
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <span class="badge text-bg-danger" id="mmOverdueBadge">—</span>
-                                <input type="text" id="mm-search" class="form-control form-control-sm" style="max-width:250px" placeholder="AWB, hub, flag, feedback…" oninput="renderMmOverdueTab()">
-                            </div>
-                        </div>
-                        <div style="max-height:560px;overflow:auto">
-                            <table class="table table-sm align-middle fs-7 mb-0 mm-pivot mm-overdue-table">
-                                <thead class="table-light"><tr>
-                                    <th>AWB</th><th>Facility</th><th>Hub</th><th>Type</th><th>PDD</th><th class="text-end">Late</th><th>Flag</th><th>Feedback</th>
-                                </tr></thead>
-                                <tbody id="mmOverdueBody"></tbody>
-                            </table>
-                        </div>
-                        <div class="small text-muted mt-2" id="mmOverdueFoot"></div>
-                    </div>
-                </div>
-
                 <div data-view="g56" class="iview-hidden">
                     <div class="card p-3 mb-4 border-0 shadow-sm">
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -1843,7 +1848,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                         </div>
                     </div>
 
-                    <div class="sec-head"><span class="n">3</span>G5 &amp; G6 pendency pivots <span class="hint">— final status, shipping aging and last scan aging, each split by hub</span></div>
+                    <div class="sec-head"><span class="n">2</span>G5 &amp; G6 pendency pivots <span class="hint">— final status, shipping aging and last scan aging, each split by hub</span></div>
                     <div class="row g-3 mb-3">
                         <div class="col-12">
                             <div class="card p-3 border-0 shadow-sm h-100">
@@ -9731,13 +9736,7 @@ function toggleMmType(btn){
 function clearMmFilters(){
     mmFacSel.clear();
     mmTypeSel.clear();
-    const s = document.getElementById('mm-search');
-    if (s) s.value = '';
     renderMmPendency();
-}
-function mmOpenOverdue(){
-    const btn = document.querySelector('#page-mm .inner-tabs .it-btn[data-iview="overdue"]');
-    if (btn) innerTab(btn);
 }
 
 /* Shipments whose PDD is strictly before the snapshot date: they should
@@ -9747,61 +9746,6 @@ function mmOverdueRows(baseRows){
         .sort(function(a, b){
             return a.pdd.localeCompare(b.pdd) || String(a.awb).localeCompare(String(b.awb));
         });
-}
-
-function renderMmOverdueTab(baseRows){
-    if (!mmLoaded) return 0;
-    const body = document.getElementById('mmOverdueBody');
-    if (!body) return 0;
-
-    const scopeRows = baseRows || mmBaseRows();
-    const all = mmOverdueRows(scopeRows);
-    const dueToday = scopeRows.filter(function(r){ return r.pdd && r.pdd === mmDate; }).length;
-    const q = mmSoft((document.getElementById('mm-search') || {}).value).toLowerCase();
-    const list = q ? all.filter(function(r){
-        return [r.awb, r.facility, r.hub, r.type, r.flag, r.feedback, r.pddLabel]
-            .join(' ').toLowerCase().indexOf(q) >= 0;
-    }) : all;
-
-    const daysLate = function(r){
-        return Math.round((Date.parse(mmDate + 'T00:00:00Z') - Date.parse(r.pdd + 'T00:00:00Z')) / 86400000);
-    };
-
-    body.innerHTML = list.length ? list.map(function(r){
-        const late = daysLate(r);
-        const cls = late > 14 ? 'text-bg-danger' : (late > 7 ? 'text-bg-warning' : 'text-bg-light border');
-        return '<tr>' +
-            '<td class="fw-bold" style="white-space:nowrap">' + esc(r.awb || '—') + '</td>' +
-            '<td>' + esc(r.facility) + '</td>' +
-            '<td>' + esc(r.hub) + '</td>' +
-            '<td class="text-muted">' + esc(r.type) + '</td>' +
-            '<td style="white-space:nowrap">' + esc(r.pddLabel || '—') + '</td>' +
-            '<td class="text-end"><span class="badge ' + cls + '">' + late + 'd</span></td>' +
-            '<td>' + esc(r.flag) + '</td>' +
-            '<td class="text-muted">' + esc(r.feedback || '—') + '</td>' +
-        '</tr>';
-    }).join('') : '<tr><td colspan="8" class="text-center text-muted py-4">' +
-        (all.length ? 'No overdue shipment matches the search.' : 'No shipment is past its PDD for this snapshot and filter.') +
-        '</td></tr>';
-
-    const foot = document.getElementById('mmOverdueFoot');
-    if (foot) foot.textContent = q
-        ? 'Showing ' + fmt(list.length) + ' of ' + fmt(all.length) + ' overdue shipments · oldest PDD first'
-        : fmt(all.length) + ' shipments past PDD · oldest PDD first';
-
-    const note = document.getElementById('mmOverdueNote');
-    if (note) note.textContent = all.length
-        ? '— ' + fmt(all.length) + ' shipments · oldest PDD ' + all[0].pddLabel +
-          (dueToday ? ' · ' + fmt(dueToday) + ' due today' : '')
-        : (dueToday ? '— none overdue · ' + fmt(dueToday) + ' due today' : '— none for this snapshot and filter');
-
-    const badge = document.getElementById('mmOverdueBadge');
-    if (badge) { badge.className = 'badge text-bg-danger'; badge.textContent = fmt(list.length) + ' late'; }
-
-    const tabN = document.getElementById('mmOverdueTabCount');
-    if (tabN) tabN.textContent = fmt(all.length);
-
-    return all.length;
 }
 
 function renderMmPendency(){
@@ -9823,7 +9767,7 @@ function renderMmPendency(){
        its own heading instead of being relabelled with the snapshot date. */
 
     renderMmChips(dateRows);
-    const overdue = renderMmOverdueTab(rows);
+    const overdue = mmOverdueRows(rows).length;
 
     if (badge) {
         badge.className = 'badge text-bg-success';
