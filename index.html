@@ -1507,7 +1507,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                         </button>
                     </div>
                     <div class="pva-hint" id="pvaModeHint">
-                        <strong>Outsource</strong> = Core Colleague (outsource plan) · <strong>Insource</strong> = Associate / Senior Associate (insource plan) · <strong>Backend</strong> = Core Colleague + Associate / Senior Associate against the combined plan. <strong>Var = Actual − Plan</strong> (positive = above plan, negative = short of plan). Hub / leg / title / vendor / day filters narrow Actual only.
+                        <strong>Outsource</strong> = Core Colleague (outsource plan) · <strong>Insource</strong> = Associate / Senior Associate (insource plan) · <strong>Backend</strong> = Core Colleague + Associate / Senior Associate against the combined plan. <strong>Var = Actual − Plan</strong> (positive = above plan, negative = short of plan). Hub and Facility Leg narrow the <strong>plan and the actual together</strong>; Title / Vendor / Day narrow Actual only — the plan sheet is one headcount per hub, with no day grain.
                     </div>
                     <div class="row g-3">
                         <div class="col-lg-7 order-lg-2">
@@ -8198,6 +8198,14 @@ let mpState = { dayFrom: MP_ALL, dayTo: MP_ALL, cat: [], hub: [], leg: [], title
    for Core Colleague + Associate + Senior Associate. 'in' / 'out' are sub-
    filters inside that scope; the Backend button re-asserts the full scope. */
 let mpTypeFilter = 'backend';
+/* Support units carry no plan and are not part of middle-mile operations, so
+   they are dropped from the roster entirely: filters, By hub, aging, the grid,
+   Plan vs Actual and the shift tables never see them again. */
+const MP_EXCLUDED_UNITS = ['adm', 'fleet', 'assets', 'fleetandassets', 'fleetassets'];
+function mpExcludedUnit(v){
+    const k = String(v || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    return MP_EXCLUDED_UNITS.indexOf(k) !== -1;
+}
 function mpTypeOk(t){
     const s = String(t.title || '').toLowerCase().trim();
     const isIn  = s.indexOf('associate') !== -1;   // Senior Associate, Associate
@@ -8551,7 +8559,7 @@ async function loadManpowerCsv(force){
             rowStatus.forEach(function(n, s){ statusCount.set(s, (statusCount.get(s) || 0) + n); });
             list.push(t);
         }
-        mpAll = list;
+        mpAll = list.filter(t => !mpExcludedUnit(t.hub) && !mpExcludedUnit(t.leg));
         /* Category options = the sheet's own statuses, busiest first. */
         mpStatuses = Array.from(statusCount.keys())
             .filter(Boolean)
@@ -12969,7 +12977,7 @@ function pvaVarCell(p, a){
         Colleague". One YF'26 headcount per hub+function, applied to
         every date. */
 let pvaV2 = false;
-const PVA_EXCLUDE_HUBS = ['cai-z5'];         // hubs never shown in Plan vs Actual
+const PVA_EXCLUDE_HUBS = ['cai-z5', 'adm', 'fleet', 'assets', 'fleetandassets', 'fleetassets'];         // hubs never shown in Plan vs Actual
 let pvaV2Plan = { out: {}, in: {} };        // hub -> {func, total}
 let pvaV2Order = { out: [], in: [] };       // hub codes in sheet order
 /* Shift headcount block on the same tab: Function · GWH · LPC · Total, with a
@@ -13192,21 +13200,47 @@ function mpVarPctCell(v, p){
         (vp === null ? '—' : (vp < 0 ? '−' : '') + Math.round(Math.abs(vp)) + '%') + '</td>';
 }
 
+/* ---- Does a plan hub fall inside the Hub / Facility Leg filters? ----------
+   The plan sheet is per hub (one headcount per hub, no day / title / vendor
+   dimension), so only the two structural filters can narrow it. Everything
+   else keeps the whole-sheet plan, exactly as the sheet itself is built. */
+function pvaPlanInScope(hub){
+    if (mpAny(mpState.hub) && mpAny(mpState.leg)) return true;
+    const raw = String(hub || '').trim();
+    const low = raw.toLowerCase();
+    if (!mpAny(mpState.hub) && !mpState.hub.some(v => String(v).trim().toLowerCase() === low)) return false;
+    if (!mpAny(mpState.leg)){
+        const leg = String(pvaLegOfHub(raw) || '').trim().toLowerCase();
+        if (!leg) return false;                    // no roster link: cannot prove it belongs
+        if (!mpState.leg.some(v => String(v).trim().toLowerCase() === leg)) return false;
+    }
+    return true;
+}
+
+/* Planned heads, narrowed by the same filters the actual sees. */
+function pvaScopedPlanTotal(){
+    let n = 0;
+    ['out', 'in'].forEach(function(sec){
+        Object.keys(pvaV2Plan[sec] || {}).forEach(function(h){
+            if (pvaPlanInScope(h)) n += pvaV2Plan[sec][h].total || 0;
+        });
+    });
+    return n;
+}
+
 /* The Plan tile reads the plan sheet's own headcount total (Outsource +
-   Insource blocks — a per-day headcount). The share tiles divide the same
-   actual the Actual tile shows; renderManpower stores that numerator here,
-   and the tiles are (re)set here too — so when the plan sheet finishes
-   loading and this runs again, the shares come out with it. */
+   Insource blocks — a per-day headcount), narrowed by the Hub / Facility Leg
+   filters so it always matches the Actual it is compared with. The share
+   tiles divide the same actual the Actual tile shows; renderManpower stores
+   that numerator here, and the tiles are (re)set here too — so when the plan
+   sheet finishes loading and this runs again, the shares come out with it. */
 let mpShareActual = 0, mpShareIsMonth = false, mpShareRoster = 0;
 function mpSyncPlanKpis(){
-    let plan = 0;
-    ['out', 'in'].forEach(function(sec){
-        Object.keys((typeof pvaV2Plan !== 'undefined' && pvaV2Plan && pvaV2Plan[sec]) || {})
-            .forEach(function(h){ plan += (pvaV2Plan[sec][h].total || 0); });
-    });
+    const plan = pvaScopedPlanTotal();
+    const filtered = !(mpAny(mpState.hub) && mpAny(mpState.leg));
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     set('mp-k-plan', plan ? fmt(plan) : '—');
-    set('mp-k-plan-sub', plan ? 'planned headcount' : 'plan sheet not loaded');
+    set('mp-k-plan-sub', plan ? (filtered ? 'planned headcount in filter' : 'planned headcount') : 'plan sheet not loaded');
     const num = mpShareActual;
     set('mp-k-ap', plan ? (num ? Math.round(num / plan * 100) + '%' : '—') : '—');
     set('mp-k-ap-sub', plan ? (mpShareIsMonth ? 'avg present/day ÷ plan' : 'actual ÷ plan') : 'plan sheet not loaded');
@@ -13267,7 +13301,13 @@ function pvaPhoto(opts){
 
     const hubList = Array.from(new Set(
         Object.keys(planMap).concat(Object.keys(dayT).map(rawOf))
-    )).filter(h => !PVA_EXCLUDE_HUBS.includes(String(h).toLowerCase()));
+    )).filter(h => {
+        const low = String(h).toLowerCase();
+        if (PVA_EXCLUDE_HUBS.includes(low)) return false;
+        /* A hub with actual attendance is already inside the filters; a
+           plan-only hub must prove it matches the Hub / Leg filter. */
+        return Object.prototype.hasOwnProperty.call(dayT, low) || pvaPlanInScope(h);
+    });
 
     const calc = function(raw){
         const low = String(raw).toLowerCase();
@@ -13588,7 +13628,7 @@ function renderPvaV2(hubBody, facBody, note){
            the hub table, so all three scope tabs read alike, plus a total. */
         if (dods.length){
             const funcAgg = {};
-            Object.keys(pvaV2Plan.out).forEach(h => {
+            Object.keys(pvaV2Plan.out).filter(pvaPlanInScope).forEach(h => {
                 const row = pvaV2Plan.out[h];
                 const f = pvaLegOfHub(h) || row.func || 'Other';
                 const dt  = dayT.out[h.toLowerCase()] || {};
@@ -13628,7 +13668,7 @@ function renderPvaV2(hubBody, facBody, note){
             dods.forEach(o => {
                 const win = pvWin;
                 const groups = {};
-                Object.keys(pvaV2Plan.out).forEach(h => {
+                Object.keys(pvaV2Plan.out).filter(pvaPlanInScope).forEach(h => {
                     const g = pvaV2Group(h, pvaV2Plan.out[h].func);
                     (groups[g] = groups[g] || []).push(h);
                 });
@@ -13714,7 +13754,7 @@ function renderPvaV2(hubBody, facBody, note){
         const nSum = Object.keys(rangeT.none).length ? Object.values(rangeT.none).reduce((a, b) => a + b, 0) : 0;
         const dodLbl = dods.length ? dods.map(o => o.d).join(', ') : '—';
         note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
-            'Planned CC = one YF\'26 headcount from the plan sheet (not per-day) · Attend = present bucket on the DOD (Present + WPH + Work on Week Off), all filters apply · ' +
+            'Planned CC = one YF\'26 headcount from the plan sheet (not per-day), narrowed by the Hub / Facility Leg filters · Attend = present bucket on the DOD (Present + WPH + Work on Week Off) · ' +
             'Var = Attend − Planned CC (positive = above plan, negative = short of plan) · ' +
             'Max/Avg = today and the two days before it (' + pvWinLbl + '), independent of the day filter · Peak Deficit = ROUNDUP(Planned − Avg) · Fulfill % = Avg / Planned · ' +
             '<strong>Overall present (range): ' + fmt(oSum + iSum + nSum) + ' = Outsource · Core ' + fmt(oSum) + ' + Insource · Assoc ' + fmt(iSum) + ' + Unplanned ' + fmt(nSum) + '</strong>';
@@ -13728,7 +13768,10 @@ function renderPvaV2(hubBody, facBody, note){
         // average present per active day — the same basis the plan uses.
         const activeDays = Math.max(1, dayCols.filter(c => pvReal(c)).length);
         const planByHub = {};
-        Object.keys(pvaV2Plan.in || {}).forEach(h => { planByHub[h] = pvaV2Plan.in[h].total || 0; });
+        Object.keys(pvaV2Plan.in || {}).forEach(h => {
+            if (!pvaPlanInScope(h)) return;
+            planByHub[h] = pvaV2Plan.in[h].total || 0;
+        });
         const presentByHub = {}, legOfHub = {};
         mpAll.filter(t => mpMatch(t, false, true)).forEach(t => {
             if (String(t.title || '').toLowerCase().indexOf('associate') === -1) return;
@@ -13744,8 +13787,8 @@ function renderPvaV2(hubBody, facBody, note){
             dod: dods.length ? dods[dods.length - 1].c : null, win: pvWin
         });
         note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
-            'Plan = insource plan (every Associate / Senior Associate row, all functions) · ' +
-            'Actual = average present per active day in ' + esc(mpRangeLabel()) + ' (' + activeDays + ' active day' + (activeDays === 1 ? '' : 's') + ') for Associate / Senior Associate, all filters apply · ' +
+            'Plan = insource plan (every Associate / Senior Associate row, all functions), narrowed by the Hub / Facility Leg filters · ' +
+            'Actual = average present per active day in ' + esc(mpRangeLabel()) + ' (' + activeDays + ' active day' + (activeDays === 1 ? '' : 's') + ') for Associate / Senior Associate; Title / Vendor / Day narrow actual only · ' +
             '<strong>Var = Actual − Plan</strong> (positive = above plan, negative = short of plan).';
         pvaUpdateModeCounts(pvBackendSum, pvInsourceSum);
         return;
@@ -13761,6 +13804,7 @@ function renderPvaV2(hubBody, facBody, note){
         const activeDays = Math.max(1, dayCols.filter(c => pvReal(c)).length);
         const planByHub = {};
         ['out', 'in'].forEach(sec => Object.keys(pvaV2Plan[sec] || {}).forEach(h => {
+            if (!pvaPlanInScope(h)) return;
             planByHub[h] = (planByHub[h] || 0) + (pvaV2Plan[sec][h].total || 0);
         }));
         const presentByHub = {}, legOfHub = {};
@@ -13789,9 +13833,9 @@ function renderPvaV2(hubBody, facBody, note){
             dod: dods.length ? dods[dods.length - 1].c : null, win: pvWin
         });
         note.innerHTML = '<i class="bi bi-funnel me-1"></i>' +
-            'Plan = insource plan (Associate / Senior Associate) + outsource plan (Core Colleague) per hub · ' +
+            'Plan = insource plan (Associate / Senior Associate) + outsource plan (Core Colleague) per hub, narrowed by the Hub / Facility Leg filters · ' +
             'Actual = average present per active day in ' + esc(mpRangeLabel()) + ' (' + activeDays + ' active day' + (activeDays === 1 ? '' : 's') + ') — ' +
-            'Outsource = Core Colleague, Insource = Associate / Senior Associate; other titles are not counted. All filters apply · ' +
+            'Outsource = Core Colleague, Insource = Associate / Senior Associate; other titles are not counted, and Title / Vendor / Day narrow actual only · ' +
             '<strong>Var = Actual − Plan</strong> (positive = above plan, negative = short of plan).';
         pvaUpdateModeCounts(pvBackendSum, pvInsourceSum);
         return;
