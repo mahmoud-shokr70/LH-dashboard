@@ -1433,14 +1433,6 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                         <label class="form-label fw-bold small text-muted mb-1">Vendor</label>
                         <select id="mp-vendor" class="form-select" multiple="multiple"></select>
                     </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label fw-bold small text-muted mb-1" title="Attendance is calculated for Core Colleague + Associate + Senior Associate only — other titles are always excluded. Insource / Outsource narrow inside that scope.">Workforce Type</label>
-                        <div class="btn-group btn-group-sm w-100" id="mpTypeBtns" role="group" title="Insource / Outsource narrow inside the Backend scope; click Backend to see the whole scope again">
-                            <button type="button" class="btn btn-outline-primary" data-mptype="backend" title="Core Colleague + Associate + Senior Associate — the full scope">Backend</button>
-                            <button type="button" class="btn btn-outline-primary" data-mptype="in" title="Senior Associate / Associate">Insource</button>
-                            <button type="button" class="btn btn-outline-primary" data-mptype="out" title="Core Colleague">Outsource</button>
-                        </div>
-                    </div>
                     <div class="col-md-3">
                         <button class="btn btn-sm btn-outline-danger w-100" onclick="resetMpFilters()"><i class="bi bi-x-circle me-1"></i>Clear filters</button>
                     </div>
@@ -1468,15 +1460,11 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 <div class="sec-head"><span class="n">1</span>Attendance at a glance <span class="hint">— roster, present rate, leave and no-shows</span></div>
                 <!-- KPI STRIP (manpower) -->
                 <div class="row g-3 mb-3">
-                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Roster</div><div class="val" id="mp-k-roster">—</div><div class="sub" id="mp-k-roster-sub">employees</div></div></div>
-                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Plan</div><div class="val" id="mp-k-plan">—</div><div class="sub" id="mp-k-plan-sub">planned headcount</div></div></div>
-                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Actual</div><div class="val text-success" id="mp-k-present">—</div><div class="sub" id="mp-k-present-sub"></div></div></div>
-                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Share from plan</div><div class="val" id="mp-k-ap">—</div><div class="sub" id="mp-k-ap-sub"></div></div></div>
-                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Share from roster</div><div class="val" id="mp-k-ar">—</div><div class="sub" id="mp-k-ar-sub"></div></div></div>
-                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Week off</div><div class="val text-warning" id="mp-k-wo">—</div><div class="sub" id="mp-k-wo-sub">of roster</div></div></div>
-                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">On leave</div><div class="val text-primary" id="mp-k-leave">—</div><div class="sub" id="mp-k-leave-sub">of roster</div></div></div>
-                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">Annual leave</div><div class="val text-info" id="mp-k-annual">—</div><div class="sub" id="mp-k-annual-sub">of roster</div></div></div>
-                    <div class="col-6 col-md-3"><div class="kpi-mini"><div class="lbl">No show</div><div class="val text-danger" id="mp-k-ns">—</div><div class="sub" id="mp-k-ns-sub">of roster</div></div></div>
+                    <div class="col-6 col-md"><div class="kpi-mini"><div class="lbl">Roster</div><div class="val" id="mp-k-roster">—</div><div class="sub" id="mp-k-roster-sub">employees</div></div></div>
+                    <div class="col-6 col-md"><div class="kpi-mini"><div class="lbl">Plan</div><div class="val" id="mp-k-plan">—</div><div class="sub" id="mp-k-plan-sub">planned headcount</div></div></div>
+                    <div class="col-6 col-md"><div class="kpi-mini"><div class="lbl">Actual</div><div class="val text-success" id="mp-k-present">—</div><div class="sub" id="mp-k-present-sub"></div></div></div>
+                    <div class="col-6 col-md"><div class="kpi-mini"><div class="lbl">Share from plan</div><div class="val" id="mp-k-ap">—</div><div class="sub" id="mp-k-ap-sub"></div></div></div>
+                    <div class="col-6 col-md"><div class="kpi-mini"><div class="lbl">Share from roster</div><div class="val" id="mp-k-ar">—</div><div class="sub" id="mp-k-ar-sub"></div></div></div>
                 </div>
 
                 <div class="sec-head"><span class="n">2</span>Plan vs Actual <span class="hint">— present roster against the plan sheet: Backend, Outsource and Insource, facility leg first</span></div>
@@ -1489,25 +1477,25 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                             <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Re-read the Plan Manpower sheet (edits there show up here)" onclick="loadPvaPlan(true)"><i class="bi bi-arrow-repeat"></i> Plan</button>
                         </div>
                     </div>
-                    <div class="pva-modes" role="group" aria-label="Plan vs Actual scope">
-                        <button type="button" class="pva-mode m-all active" id="pva-sec-backend" onclick="pvaSetSection('backend')" title="Core Colleague + Associate / Senior Associate against the combined plan">
+                    <div class="pva-modes" role="group" aria-label="Workforce scope — filters the whole page">
+                        <button type="button" class="pva-mode m-all active" id="pva-sec-backend" onclick="pvaSetSection('backend')" title="Filter the whole page to Backend — Core Colleague + Associate / Senior Associate, against the combined plan">
                             <span class="ic"><i class="bi bi-people"></i></span>
                             <span class="tx"><span class="ttl">1 · Backend</span><span class="sml" id="pva-cnt-backend">Core CC + Associates - insource + outsource</span></span>
                             <span class="tick"><i class="bi bi-check2-circle"></i></span>
                         </button>
-                        <button type="button" class="pva-mode m-out" id="pva-sec-out" onclick="pvaSetSection('out')" title="Core Colleague from the outsource plan">
+                        <button type="button" class="pva-mode m-out" id="pva-sec-out" onclick="pvaSetSection('out')" title="Filter the whole page to Outsource — Core Colleague, from the outsource plan">
                             <span class="ic"><i class="bi bi-box-seam"></i></span>
                             <span class="tx"><span class="ttl">2 · Outsource</span><span class="sml" id="pva-cnt-out">Core colleague</span></span>
                             <span class="tick"><i class="bi bi-check2-circle"></i></span>
                         </button>
-                        <button type="button" class="pva-mode m-in" id="pva-sec-in" onclick="pvaSetSection('in')" title="Associate / Senior Associate from the insource plan">
+                        <button type="button" class="pva-mode m-in" id="pva-sec-in" onclick="pvaSetSection('in')" title="Filter the whole page to Insource — Associate / Senior Associate, from the insource plan">
                             <span class="ic"><i class="bi bi-person-check"></i></span>
                             <span class="tx"><span class="ttl">3 · Insource</span><span class="sml" id="pva-cnt-in">Associate · Senior Associate</span></span>
                             <span class="tick"><i class="bi bi-check2-circle"></i></span>
                         </button>
                     </div>
                     <div class="pva-hint" id="pvaModeHint">
-                        <strong>Outsource</strong> = Core Colleague (outsource plan) · <strong>Insource</strong> = Associate / Senior Associate (insource plan) · <strong>Backend</strong> = Core Colleague + Associate / Senior Associate against the combined plan. <strong>Var = Actual − Plan</strong> (positive = above plan, negative = short of plan). Hub and Facility Leg narrow the <strong>plan and the actual together</strong>; Title / Vendor / Day narrow Actual only — the plan sheet is one headcount per hub, with no day grain.
+                        <strong>Backend / Outsource / Insource is the workforce filter for the whole Manpower page</strong> — pick one and every KPI, table, pivot and chart below follows it; the Shift Level Outsource tab is always outsource-only. · <strong>Outsource</strong> = Core Colleague · <strong>Insource</strong> = Associate / Senior Associate · <strong>Backend</strong> = both. <strong>Var = Actual − Plan</strong> (positive = above plan, negative = short of plan). Hub and Facility Leg narrow the <strong>plan and the actual together</strong>; Title / Vendor / Day narrow Actual only — the plan sheet is one headcount per hub, with no day grain.
                     </div>
                     <div class="row g-3">
                         <div class="col-lg-7 order-lg-2">
@@ -1655,8 +1643,8 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 
                 <div class="card p-3 mb-4 border-0 shadow-sm">
                     <div class="pd-mf-legend" style="margin-top:0">
-                        <i class="bi bi-info-circle me-1"></i><strong>Outsource only</strong> — these tables count <strong>Core Colleague</strong> staff, the same headcount the shift plan covers; the workforce-type toggle only affects the main Manpower view. <strong>Present</strong> = the sheet's Present statuses plus WPH / Working Public Holiday. The shift is the one written on that day's cell — <code>Present Morning</code>, <code>WPH Night</code> — so a person moved between shifts is counted where they actually worked. <strong>GWH</strong> = Hub <code>CAI-G1</code>; <strong>LPC</strong> = Facility Leg <code>LPC</code> (hub <code>CAI-Z2</code>).
-                        <br><strong>Plan vs actual</strong> takes the shift headcount from the <strong>Plan Manpower</strong> tab (Morning · Between · Night × GWH / LPC) and compares it with the average present per active day in the Day From → Day To range. <strong>MTD</strong> always starts at the first day of that month and runs to the Day To column, on the same plan-per-shift basis, so both cards carry <strong>Var</strong>, <strong>Var %</strong> and <strong>Attainment %</strong> for GWH, for LPC and for the total. Hub / leg / title / vendor / aging / search filters apply to both; the Shift and workforce-type filters are ignored here.
+                        <i class="bi bi-info-circle me-1"></i><strong>Outsource only, no filters</strong> — this tab is the Core Colleague shift report and always reads the whole outsource roster, so the Manpower filter card is hidden here. <strong>Present</strong> = the sheet's Present statuses plus WPH / Working Public Holiday. The shift is the one written on that day's cell — <code>Present Morning</code>, <code>WPH Night</code> — so a person moved between shifts is counted where they actually worked. <strong>GWH</strong> = Hub <code>CAI-G1</code>; <strong>LPC</strong> = Facility Leg <code>LPC</code> (hub <code>CAI-Z2</code>).
+                        <br><strong>Plan vs actual</strong> takes the shift headcount from the <strong>Plan Manpower</strong> tab (Morning · Between · Night × GWH / LPC) and compares it with the average present per active day in the Day From → Day To range. <strong>MTD</strong> always starts at the first day of that month and runs to the Day To column, on the same plan-per-shift basis, so both cards carry <strong>Var</strong>, <strong>Var %</strong> and <strong>Attainment %</strong> for GWH, for LPC and for the total.
                     </div>
                 </div>
             </div>
@@ -4663,6 +4651,9 @@ function innerTab(btn){
     pane.querySelectorAll('[data-view]').forEach(sec => {
         sec.classList.toggle('iview-hidden', sec.getAttribute('data-view') !== view);
     });
+    /* Manpower's filter card is view-scoped: the Shift Level Outsource tab is
+       an outsource-only report with no filters. */
+    if (pane.id === 'page-mp' && typeof mpSyncFilterVisibility === 'function') mpSyncFilterVisibility();
     /* A view with no KPI tiles of its own (the WH receiving DOD tab) hides
        the KPI band instead of leaving an empty strip above the tables. */
     const band = pane.querySelector('.hero-band');
@@ -8612,8 +8603,19 @@ function buildMpStaticOptions(){
     mpFillMulti('mp-shift',  uniq(t => t.shift).map(v => ({ v: v, l: v })), mpState.shift);
     mpFillMulti('mp-vendor', uniq(t => t.vendor).map(v => ({ v: v, l: v })), mpState.vendor);
     refreshMpCounts();
+    mpSyncFilterVisibility();
+}
+
+/* The filter card belongs to the Manpower (main) view. Shift Level Outsource
+   is an outsource-only report that applies no filters, so the card is hidden
+   while that inner tab is open. */
+function mpSyncFilterVisibility(){
     const card = document.getElementById('mpFilterCard');
-    if (card) card.style.display = '';
+    if (!card) return;
+    const pane = document.getElementById('page-mp');
+    const active = pane && pane.querySelector('.inner-tabs .it-btn.active');
+    const view = active ? active.getAttribute('data-iview') : 'main';
+    card.style.display = (!mpLoaded || view === 'shift') ? 'none' : '';
 }
 
 /* Option labels carry their live count; the count itself is produced by the
@@ -8760,18 +8762,18 @@ function resetMpFilters(){
     renderManpower();
 }
 
-/* Workforce-type segmented filter: Backend (Core Colleague + Associate +
-   Senior Associate — the default) / Insource (Senior Associate & Associate) /
-   Outsource (Core Colleague). Clicking the active option again clears the
-   filter entirely and shows every title on the roster. */
+/* Workforce scope is now driven by the three mode cards on Plan vs Actual
+   (Backend / Outsource / Insource). This keeps the state, the card ticks and
+   the plan section in step; resetMpFilters calls it to return to Backend. */
 function mpSetType(type, rerender, force){
     const next = (type === 'in' || type === 'out' || type === 'backend') ? type : 'backend';
-    /* Backend is the permanent scope, so it never toggles off — clicking it
-       just re-asserts the full Core Colleague + Associate + Senior Associate
-       scope. In / Out still toggle back to the full scope when re-clicked. */
-    mpTypeFilter = (next === 'backend' || (!force && mpTypeFilter !== next)) ? next : null;
-    document.querySelectorAll('#mpTypeBtns [data-mptype]').forEach(b => {
-        b.classList.toggle('active', b.getAttribute('data-mptype') === mpTypeFilter);
+    /* Backend is the permanent scope, so it never clears; re-clicking In / Out
+       falls back to the full Backend scope. */
+    mpTypeFilter = (next === 'backend' || (!force && mpTypeFilter !== next)) ? next : 'backend';
+    pvaSection = mpTypeFilter;
+    [['out', 'pva-sec-out'], ['in', 'pva-sec-in'], ['backend', 'pva-sec-backend']].forEach(function(pair){
+        const b = document.getElementById(pair[1]);
+        if (b) b.classList.toggle('active', mpTypeFilter === pair[0]);
     });
     if (rerender !== false) renderManpower();
 }
@@ -9023,10 +9025,10 @@ function mpFacilityKey(t){
     return '';
 }
 
-/* Roster scope for the shift tables: outsource only (Core Colleague). The
-   workforce-type toggle is ignored here — this view is compared with the
-   outsource shift plan — just like the Shift filter is ignored, so all three
-   shifts always show. */
+/* Roster scope for the shift tables: outsource only (Core Colleague) and —
+   because the Shift Level Outsource tab belongs to that plan alone — with no
+   dashboard filters applied. The tab hides the filter card for the same
+   reason, so the numbers cannot disagree with what is on screen. */
 function mpIsOutsource(t){
     return String((t && t.title) || '').toLowerCase().indexOf('core') !== -1;
 }
@@ -9034,9 +9036,6 @@ function mpShiftPeople(){
     const people = { g1: [], lpc: [] };
     mpAll.forEach(function(t){
         if (!mpIsOutsource(t)) return;
-        if (!mpIn(mpState.hub, t.hub) || !mpIn(mpState.leg, t.leg) ||
-            !mpIn(mpState.title, t.title) || !mpIn(mpState.vendor, t.vendor)) return;
-        if (mpState.search && mpHay(t).indexOf(mpState.search.toLowerCase()) === -1) return;
         const f = mpFacilityKey(t);
         if (f) people[f].push(t);
     });
@@ -9478,29 +9477,24 @@ function renderManpower(){
         if (!arr || !arr.length) return;                       // empty = every option
         fBits.push(label + ' ' + (arr.length > 2 ? arr.length + ' selected' : arr.join(' · ')));
     };
-    /* The Backend scope is permanent, so it is always named on the tiles. */
-    fBits.push('Backend only');
-    if (mpTypeFilter === 'in' || mpTypeFilter === 'out') fBits.push('type ' + (mpTypeFilter === 'in' ? 'Insource' : 'Outsource'));
+    /* The workforce scope is always named on the tiles, and named for what it
+       actually is — an Outsource reading must never be labelled Backend. */
+    fBits.push(mpTypeFilter === 'in' ? 'Insource only'
+             : mpTypeFilter === 'out' ? 'Outsource only'
+             : 'Backend only');
     fPick(mpState.hub, 'hub'); fPick(mpState.leg, 'leg');
     fPick(mpState.vendor, 'vendor'); fPick(mpState.title, 'title');
     const fNote = fBits.length ? fBits.join(' · ') : 'all filters';
     set('mp-k-roster', fmt(c.roster)); set('mp-k-roster-sub', (isMonth ? 'employees with marked days' : 'employees marked') + ' · ' + fNote);
     set('mp-k-present', fmt(c.present));
     set('mp-k-present-sub', (isMonth ? 'present-days in range' : 'present today') + ' · ' + fNote);
-    /* The absence tiles lead with the percentage, the count sits below. The base
-       is every mark in the scope (present + off + leave + no show), so the four
-       shares add up and agree with the By hub cells; the Roster tile is the
-       smaller active headcount and is not their denominator. */
+    /* The Week off / Leave / Annual leave / No show tiles were removed from the
+       strip; their day counts still live in the By hub table, and this base is
+       what that table's shares are read against. */
     const shareBase = c.marked || c.roster;
-    const pctFirst = (n) => shareBase ? Math.round(n / shareBase * 100) + '%' : '—';
-    const ofBase = n => fmt(n) + ' of ' + fmt(shareBase);
-    set('mp-k-wo', pctFirst(c.weekoff));    set('mp-k-wo-sub', ofBase(c.weekoff));
-    set('mp-k-leave', pctFirst(c.leave));   set('mp-k-leave-sub', ofBase(c.leave));
-    set('mp-k-annual', pctFirst(c.annual)); set('mp-k-annual-sub', ofBase(c.annual));
-    set('mp-k-ns', pctFirst(c.noshow));     set('mp-k-ns-sub', ofBase(c.noshow));
-    /* Card order: Roster → Plan → Actual → Share from plan → Share from roster,
-       then week off / leave / no-show. The plan is one headcount per hub per
-       day, so it is compared with the average present per selected day. */
+    /* Card order: Roster → Plan → Actual → Share from plan → Share from roster.
+       The plan is one headcount per hub per day, so it is compared with the
+       average present per selected day. */
     /* Every share tile divides the SAME actual the Actual tile shows, so two
        tiles never quote two different numerators:
        · Share from plan   = actual ÷ planned headcount (the plan is per day)
@@ -13147,13 +13141,18 @@ async function loadPvaPlan(force){
 }
 
 function pvaSetSection(sec){
-    pvaSection = (sec === 'in' || sec === 'backend') ? sec : 'out';
-    if (typeof window.ctTrack === 'function') window.ctTrack('pva_scope', { mode: pvaSection });
+    const next = (sec === 'in' || sec === 'backend') ? sec : 'out';
+    pvaSection = next;
+    /* One control for the page: the mode cards are the workforce filter, so
+       the roster, KPIs, pivots, aging and grid all follow the pick. */
+    mpTypeFilter = next;
+    if (typeof window.ctTrack === 'function') window.ctTrack('pva_scope', { mode: next });
     [['out', 'pva-sec-out'], ['in', 'pva-sec-in'], ['backend', 'pva-sec-backend']].forEach(([k, id]) => {
         const b = document.getElementById(id);
-        if (b) b.classList.toggle('active', pvaSection === k);
+        if (b) b.classList.toggle('active', next === k);
     });
-    renderMpPlanVsActual();
+    if (typeof mpLoaded !== 'undefined' && mpLoaded) renderManpower();
+    else renderMpPlanVsActual();
 }
 
 /* Live sub-labels for the three scope cards: how many plan rows and how many
@@ -13217,10 +13216,15 @@ function pvaPlanInScope(hub){
     return true;
 }
 
-/* Planned heads, narrowed by the same filters the actual sees. */
+/* Planned heads, narrowed by the same filters the actual sees — including the
+   workforce scope picked on the Plan vs Actual mode cards. Backend = the two
+   plan blocks together, Outsource = the outsource block only, Insource = the
+   insource block only, so the Plan tile can never quote Backend while the
+   roster below it shows Outsource. */
 function pvaScopedPlanTotal(){
+    const secs = (mpTypeFilter === 'in' || mpTypeFilter === 'out') ? [mpTypeFilter] : ['out', 'in'];
     let n = 0;
-    ['out', 'in'].forEach(function(sec){
+    secs.forEach(function(sec){
         Object.keys(pvaV2Plan[sec] || {}).forEach(function(h){
             if (pvaPlanInScope(h)) n += pvaV2Plan[sec][h].total || 0;
         });
@@ -13238,9 +13242,12 @@ let mpShareActual = 0, mpShareIsMonth = false, mpShareRoster = 0;
 function mpSyncPlanKpis(){
     const plan = pvaScopedPlanTotal();
     const filtered = !(mpAny(mpState.hub) && mpAny(mpState.leg));
+    const scopeLbl = mpTypeFilter === 'in' ? 'insource plan'
+                   : mpTypeFilter === 'out' ? 'outsource plan'
+                   : 'planned headcount';
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     set('mp-k-plan', plan ? fmt(plan) : '—');
-    set('mp-k-plan-sub', plan ? (filtered ? 'planned headcount in filter' : 'planned headcount') : 'plan sheet not loaded');
+    set('mp-k-plan-sub', plan ? (filtered ? scopeLbl + ' in filter' : scopeLbl) : 'plan sheet not loaded');
     const num = mpShareActual;
     set('mp-k-ap', plan ? (num ? Math.round(num / plan * 100) + '%' : '—') : '—');
     set('mp-k-ap-sub', plan ? (mpShareIsMonth ? 'avg present/day ÷ plan' : 'actual ÷ plan') : 'plan sheet not loaded');
@@ -13518,6 +13525,8 @@ function pv2FulCls(pct){
 function renderPvaV2(hubBody, facBody, note){
     if (!mpLoaded || !mpAll.length){ note.textContent = 'Roster not loaded yet.'; return; }
     pv2HeadStd();
+    /* The table follows the page's workforce scope (the mode cards). */
+    pvaSection = (mpTypeFilter === 'in' || mpTypeFilter === 'out') ? mpTypeFilter : 'backend';
     if (!pvaV2Plan.out || (!Object.keys(pvaV2Plan.out).length && !Object.keys(pvaV2Plan.in).length)){
         note.textContent = 'Plan sheet has no "Plan outsource" / "Plan insource" rows yet.';
         return;
