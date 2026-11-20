@@ -682,6 +682,16 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
     .wr-pdd thead th.wr-pdd-tot { color: #FEEE00; border-left: 2px solid #4A4A44; }
     /* Two-row header: the group cell (Current hub) sits above the hub codes. */
     .wr-pdd thead tr:first-child th.wr-pdd-grp { border-bottom: 1px solid #4A4A44; letter-spacing: .8px; }
+    /* First Mile — the hour-by-hour receiving table that carries both the
+       inbound truck hour and the forward-hub sort in one row. */
+    .fm-legend { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; font-size: .7rem; color: #6B6549; }
+    .fm-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .fm-legend b { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+    .fm-flow { display: flex; align-items: center; gap: 2px; height: 10px; min-width: 120px; }
+    .fm-flow i { display: block; height: 100%; border-radius: 3px; }
+    .fm-flow .fm-in { background: #f59e0b; }
+    .fm-flow .fm-out { background: #2563eb; }
+    .wr-pdd td.fm-hour { font-family: var(--font-num); font-weight: 700; }
     /* Two-up PDD cards — one shared column grid (colgroup below) so the two
        cards in a row line up column for column, with roomier cells, centred
        counts and a calm zebra. */
@@ -932,6 +942,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mp" id="mpTabBtn" title="Manpower"><i class="bi bi-people"></i> <span class="nl-txt">Manpower</span><span class="tab-state" data-state="idle" title="Not loaded yet"><i class="bi bi-cloud-slash"></i><span class="tab-time"></span></span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-mm" id="mmTabBtn" title="MM Pendency"><i class="bi bi-box-seam"></i> <span class="nl-txt">MM Pendency</span><span class="tab-state" data-state="idle" title="Not loaded yet"><i class="bi bi-cloud-slash"></i><span class="tab-time"></span></span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-pending" id="pdTabBtn" title="Live WH Receiving"><i class="bi bi-box-arrow-in-down"></i> <span class="nl-txt">Live WH Receiving</span><span class="tab-state" data-state="idle" title="Not loaded yet"><i class="bi bi-cloud-slash"></i><span class="tab-time"></span></span></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-fm" id="fmTabBtn" title="First Mile"><i class="bi bi-truck-front"></i> <span class="nl-txt">First Mile</span><span class="tab-state" data-state="idle" title="Not loaded yet"><i class="bi bi-cloud-slash"></i><span class="tab-time"></span></span></button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-pddtab" id="pddtabBtn" title="PDD"><i class="bi bi-calendar2-x"></i> <span class="nl-txt">PDD</span><span class="tab-state" data-state="idle" title="Not loaded yet"><i class="bi bi-cloud-slash"></i><span class="tab-time"></span></span></button></li>
         <!-- Trip Log & RCA is reached from the report cards / welcome screen, not the rail -->
         <li class="nav-item d-none"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#page-rca" id="rcaTabBtn" tabindex="-1" aria-hidden="true"></button></li>
@@ -1695,7 +1706,11 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                                 <label class="form-label text-muted mb-1" for="mmTypeSel">Shipment Type</label>
                                 <select id="mmTypeSel" class="form-select" multiple></select>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearMmFilters()" title="Show every shipment type again"><i class="bi bi-x-circle me-1"></i>Clear</button>
+                            <div class="mm-filter-field">
+                                <label class="form-label text-muted mb-1" for="mmHubSel">Current Hub</label>
+                                <select id="mmHubSel" class="form-select" multiple></select>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearMmFilters()" title="Show every shipment type and current hub again"><i class="bi bi-x-circle me-1"></i>Clear</button>
                         </div>
                         <div class="small text-muted mt-2" id="mmFilterNote"></div>
                     </div>
@@ -1738,6 +1753,17 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                                 <table class="table table-sm align-middle fs-7 mb-0 mm-pivot">
                                     <thead class="table-light" id="mmTypeHead"></thead>
                                     <tbody id="mmTypeBody"></tbody>
+                                </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="card p-3 border-0 shadow-sm h-100">
+                                <h6 class="fw-bold mb-2"><i class="bi bi-hourglass-split me-2 text-primary"></i>Shipment type × update aging <span class="text-muted fw-normal" style="font-size:.72rem">— each update aging band side by side, narrowed by the Current Hub filter</span></h6>
+                                <div style="max-height:440px;overflow:auto">
+                                <table class="table table-sm align-middle fs-7 mb-0 mm-pivot">
+                                    <thead class="table-light" id="mmTypeLuHead"></thead>
+                                    <tbody id="mmTypeLuBody"></tbody>
                                 </table>
                                 </div>
                             </div>
@@ -2638,6 +2664,90 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
             </div>
         </div>
 
+        <!-- ============ PAGE: FIRST MILE ============ -->
+        <div class="tab-pane fade" id="page-fm">
+            <div class="page-strip">
+                <div>
+                    <div class="k"><i class="bi bi-truck-front"></i>First Mile</div>
+                    <div class="d">One table per gateway, one row per half hour: the trucks that reached the dock (Z2 → G5, G5 → G6) beside the volume that gateway received and sorted by forward hub — plus the LH dispatch wave behind it, grouped by plan hour from CT plan time to gate-out and dock arrival.</div>
+                </div>
+                <div class="strip-actions">
+                    <span class="m">FIRST MILE · G5 / G6</span>
+                    <button type="button" class="btn ct-act" onclick="fmExportCsv()" title="Export the four first-mile blocks for the selected date as CSV"><i class="bi bi-download"></i>Export CSV</button>
+                    <button type="button" class="btn ct-act ct-act-primary" onclick="tabRefresh('fm')" title="Reload the first-mile receiving sheet"><i class="bi bi-arrow-clockwise"></i>Refresh</button>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <span class="small text-muted" id="fmNote">—</span>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="d-flex align-items-center gap-2 pdd-filter">
+                        <label class="small text-muted mb-0" for="fmDate">Date</label>
+                        <input type="date" id="fmDate" class="form-control form-control-sm" onchange="fmSetDate(this.value)">
+                    </div>
+                    <span class="badge text-bg-info" id="fmBadge">No data yet</span>
+                    <span class="badge text-bg-light border" id="fmLhBadge">—</span>
+                </div>
+            </div>
+
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-box-arrow-in-down me-2 text-primary"></i>G5 receiving &amp; inbound — half hour by half hour
+                        <span class="badge text-bg-light border ms-1">CAI-Z2 / CAI-G6 → CAI-G5 → hubs</span></h6>
+                    <span class="small text-muted" id="fmG5Note">—</span>
+                </div>
+                <div class="fm-legend mb-2">
+                    <span><b style="background:#f59e0b"></b>Z2 in / G6 in — trips from CAI-Z2 and from the CAI-G6 transfer that reached the G5 dock in that half hour</span>
+                    <span><b style="background:#2563eb"></b>Received — the slot's grand total: inbound plus the receiving sheet's volume, split by forward hub</span>
+                </div>
+                <div style="overflow-x:auto;max-height:560px" id="fmG5Table"></div>
+                <div class="small text-muted mt-2">
+                    <i class="bi bi-signpost-split me-1"></i>One row per half hour: what came in from <strong>CAI-Z2</strong> and from <strong>CAI-G6</strong> (<code>Dst_Arrived_at_Dock_ts</code>, <code>count_of_shipment</code>), then what G5 received and sorted by forward hub — every hub rolls into <strong>CAI-G1</strong> except <strong>CAI-A2</strong>, <strong>CAI-A8</strong>, <strong>CAI-C4</strong> and <strong>CAI-C6</strong>.
+                    <strong>Received</strong> is the slot's grand total — inbound from <strong>CAI-Z2</strong> plus the <strong>CAI-G6</strong> transfer plus what G5 received and sorted by forward hub — <strong>Share</strong> its slice of the G5 day; the bar compares inbound (amber) against that total (blue).
+                </div>
+            </div>
+
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-box-arrow-in-down me-2 text-primary"></i>G6 receiving &amp; inbound — half hour by half hour
+                        <span class="badge text-bg-light border ms-1">CAI-G5 → CAI-G6 → CAI-G1</span></h6>
+                    <span class="small text-muted" id="fmG6Note">—</span>
+                </div>
+                <div class="fm-legend mb-2">
+                    <span><b style="background:#f59e0b"></b>G5 in — trucks that reached the G6 dock in that half hour</span>
+                    <span><b style="background:#2563eb"></b>Received — every G6 forward hub rolls into CAI-G1</span>
+                </div>
+                <div style="overflow-x:auto;max-height:560px" id="fmG6Table"></div>
+                <div class="small text-muted mt-2">
+                    <i class="bi bi-signpost-split me-1"></i>Same layout for G6: the arrivals from <strong>CAI-G5</strong> on the left, the receiving volume on the right — <strong>every</strong> G6 forward hub rolls into <strong>CAI-G1</strong>.
+                </div>
+            </div>
+
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>G5 dispatch — LH trips by plan hour</h6>
+                    <span class="small text-muted" id="fmG5DispNote">—</span>
+                </div>
+                <div style="overflow-x:auto;max-height:560px" id="fmG5DispTable"></div>
+                <div class="small text-muted mt-2">
+                    <i class="bi bi-clock-history me-1"></i>Every trip whose source is <strong>CAI-G5</strong> — the forward hubs, the <strong>CAI-A4</strong> lane and the <strong>CAI-G6</strong> internal transfer — grouped by forward hub and the hour of <code>CT_plan_time</code> (21:00 and 21:30 land in the 21:00 row).
+                    Ad-hoc runs keep their own row as <strong>Extra</strong> or <strong>(no plan)</strong>. <strong>VAR</strong> = <code>Dst_Arrived_at_Dock_ts</code> − <code>Src_gate_out_ts</code>; <strong>Shipments share</strong> = row ÷ this table's total.
+                </div>
+            </div>
+
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>G6 dispatch — LH trips by plan hour</h6>
+                    <span class="small text-muted" id="fmG6DispNote">—</span>
+                </div>
+                <div style="overflow-x:auto;max-height:560px" id="fmG6DispTable"></div>
+                <div class="small text-muted mt-2">
+                    <i class="bi bi-clock-history me-1"></i>Every trip whose source is <strong>CAI-G6</strong> — <strong>CAI-G1</strong> and the <strong>CAI-G5</strong> internal transfer — grouped by forward hub and the hour of <code>CT_plan_time</code>.
+                    <strong>VAR</strong> = <code>Dst_Arrived_at_Dock_ts</code> − <code>Src_gate_out_ts</code>; <strong>Shipments share</strong> = row ÷ this table's total.
+                </div>
+            </div>
+        </div>
+
         <!-- ============ PAGE: PDD ============ -->
         <div class="tab-pane fade" id="page-pddtab">
             <div class="page-strip">
@@ -2655,6 +2765,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
             <div class="inner-tabs-row">
                 <div class="inner-tabs">
                     <button type="button" class="it-btn active" data-iview="summary" onclick="innerTab(this)"><i class="bi bi-pie-chart"></i>PDD summary</button>
+                    <button type="button" class="it-btn" data-iview="lodtrend" onclick="innerTab(this)"><i class="bi bi-graph-up"></i>Breach trend by LOD</button>
                     <button type="button" class="it-btn" data-iview="jtpdd" onclick="innerTab(this)"><i class="bi bi-truck"></i>J&amp;T PDD</button>
                 </div>
                 <span class="it-meta" id="pddInnerMeta">—</span>
@@ -2748,6 +2859,57 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
             </div>
             </div><!-- /PDD summary -->
 
+            <div data-view="lodtrend" class="iview-hidden">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <span class="small text-muted" id="lodTrendNote">—</span>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="d-flex align-items-center gap-2 pdd-filter">
+                            <label class="small text-muted mb-0" for="lodTrendLod">LOD</label>
+                            <select id="lodTrendLod" class="form-select form-select-sm" multiple title="Which LOD lines to stack — tick as many as you need"></select>
+                        </div>
+                        <span class="badge text-bg-secondary" id="lodTrendBadge">No data yet</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="lodTrendExportCsv()" title="Export the day × LOD counts and the share line as CSV"><i class="bi bi-filetype-csv me-1"></i>Export CSV</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadPddBreachCsv(true)" title="Reload the PDD breach DOD sheet"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-md-3"><div class="kpi-mini">
+                        <div class="lbl">Breaches</div>
+                        <div class="val" id="lodTrendTotal">—</div>
+                        <div class="sub" id="lodTrendTotalSub">in the window</div>
+                    </div></div>
+                    <div class="col-6 col-md-3"><div class="kpi-mini">
+                        <div class="lbl">Peak day</div>
+                        <div class="val" id="lodTrendPeak">—</div>
+                        <div class="sub" id="lodTrendPeakSub">highest breach count</div>
+                    </div></div>
+                    <div class="col-6 col-md-3"><div class="kpi-mini">
+                        <div class="lbl">Peak share</div>
+                        <div class="val text-danger" id="lodTrendPeakShare">—</div>
+                        <div class="sub">of the window's breaches</div>
+                    </div></div>
+                    <div class="col-6 col-md-3"><div class="kpi-mini">
+                        <div class="lbl">CAI-G1 Missed</div>
+                        <div class="val" id="lodTrendG1">—</div>
+                        <div class="sub">share of all breaches</div>
+                    </div></div>
+                </div>
+
+                <div class="card p-3 border-0 shadow-sm mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h6 class="fw-bold m-0"><i class="bi bi-graph-up me-2 text-primary"></i>Day-on-day breach &amp; LOD trend</h6>
+                        <span class="small text-muted" id="lodTrendChartNote">—</span>
+                    </div>
+                    <div style="height:420px;position:relative;"><canvas id="chartLodTrend"></canvas></div>
+                    <div class="pd-mf-legend mt-2">
+                        <i class="bi bi-calendar3 me-1"></i>Bars = breached AWBs per day, stacked by <code>LOD</code>.
+                        The line is the right axis: each day's breaches as a share of the window's total, so spikes and quiet days stand out.
+                        <strong>HIGH SPIKE</strong> marks the three heaviest days, <strong>LOW</strong> the two lightest.
+                    </div>
+                </div>
+            </div><!-- /Breach trend by LOD -->
+
             <div data-view="jtpdd" class="iview-hidden">
                 <div class="sec-head"><span class="n">1</span>J&amp;T PDD <span class="hint">— the J&amp;T pending tab: aging range on the rows, PDD aging across the columns</span></div>
                 <div class="card p-3 border-0 shadow-sm mb-4">
@@ -2766,6 +2928,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     </div>
                 </div>
             </div><!-- /J&T PDD -->
+
         </div>
 
         <!-- ============ PAGE 4: TRIP LOG & RCA MANAGEMENT ============ -->
@@ -4606,6 +4769,16 @@ function bootApp() {
         if (typeof loadPddTabCsv === 'function') loadPddTabCsv(false);
         /* The J&T PDD view lives here now, so its sheet rides along. */
         if (typeof loadJtCsv === 'function') loadJtCsv(false);
+        /* If the page opens on the saved breach view, that sheet loads too. */
+        if (document.querySelector('#page-pddtab .it-btn[data-iview="lodtrend"].active') &&
+            typeof loadPddBreachCsv === 'function') loadPddBreachCsv(false);
+    });
+
+    // The First Mile page reads its own receiving sheet — load it the first time
+    // the page opens. Its dispatch tables use the LH trips already in memory.
+    const fmTabBtnEl = document.querySelector('[data-bs-target="#page-fm"]');
+    if (fmTabBtnEl) fmTabBtnEl.addEventListener('shown.bs.tab', function(){
+        if (typeof loadFmCsv === 'function') loadFmCsv(false);
     });
 
     loadDataFromCSV();
@@ -4654,6 +4827,11 @@ function innerTab(btn){
     /* Manpower's filter card is view-scoped: the Shift Level Outsource tab is
        an outsource-only report with no filters. */
     if (pane.id === 'page-mp' && typeof mpSyncFilterVisibility === 'function') mpSyncFilterVisibility();
+    /* The PDD breach trend reads its own sheet — fetch it the first time that
+       inner tab is actually opened (and only while the PDD page is visible). */
+    if (pane.id === 'page-pddtab' && view === 'lodtrend' &&
+        pane.classList.contains('active') &&
+        typeof loadPddBreachCsv === 'function') loadPddBreachCsv(false);
     /* A view with no KPI tiles of its own (the WH receiving DOD tab) hides
        the KPI band instead of leaving an empty strip above the tables. */
     const band = pane.querySelector('.hero-band');
@@ -5496,7 +5674,8 @@ function tabRefresh(which){
         if (which === 'mp'){ loadManpowerCsv(true); return; }
         if (which === 'mm'){ loadMmCsv(true); if (typeof loadG56Csv === 'function') loadG56Csv(true); return; }
         if (which === 'pending'){ loadPendingCsv(true); loadWhRecvCsv(true); loadJtCsv(true); return; }
-        if (which === 'pdd'){ loadPddTabCsv(true); loadJtCsv(true); return; }
+        if (which === 'pdd'){ loadPddTabCsv(true); if (typeof loadPddBreachCsv === 'function') loadPddBreachCsv(true); loadJtCsv(true); return; }
+        if (which === 'fm'){ if (typeof loadFmCsv === 'function') loadFmCsv(true); return; }
         refreshData();
     } catch (e) {
         showToast('Refresh failed: ' + (e && e.message ? e.message : e), 'danger');
@@ -5517,6 +5696,11 @@ function initApp(res, preserve){
         trips = res.trips.filter(function(t){ return t && typeof t === 'object'; });
     }
     rawTrips = trips;
+
+    // First Mile dispatch tables read these trips; re-render them if the page is open.
+    if (typeof fmOnTripsReady === 'function') {
+        try { fmOnTripsReady(); } catch(e){ console.warn('[initApp] fmOnTripsReady failed:', e); }
+    }
 
     // The Live Tracking hub list is built from the Line Haul sheet too, so refresh
     // it (and the board) as soon as these trips land — the live CSV may have
@@ -9604,6 +9788,7 @@ const MM_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPk
 
 let mmRows = [], mmDates = [], mmDate = '', mmLoaded = false, mmLoading = false;
 let mmTypeSel = new Set();   // empty set = every shipment type
+let mmHubSel = new Set();    // empty set = every current hub
 
 function mmSoft(v){
     return String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
@@ -9668,20 +9853,37 @@ function mmDateRows(){
 }
 function mmBaseRows(){
     const rows = mmDateRows();
-    if (!mmTypeSel.size) return rows;
-    return rows.filter(function(r){ return mmTypeSel.has(r.type); });
+    const typed = mmTypeSel.size ? rows.filter(function(r){ return mmTypeSel.has(r.type); }) : rows;
+    if (!mmHubSel.size) return typed;
+    return typed.filter(function(r){ return mmHubSel.has(r.hub); });
 }
 
 /* ---- Shipment-type filter: one checkbox dropdown (the shared mcs widget) ----
    No selection means every type, so the button reads "All (8)". The count
    beside a value is how many rows it would return on this snapshot. */
 function mmTypeFacetCount(value){
-    return mmDateRows().reduce(function(n, r){ return n + (r.type === value ? 1 : 0); }, 0);
+    const rows = mmHubSel.size
+        ? mmDateRows().filter(function(r){ return mmHubSel.has(r.hub); })
+        : mmDateRows();
+    return rows.reduce(function(n, r){ return n + (r.type === value ? 1 : 0); }, 0);
+}
+function mmHubFacetCount(value){
+    const rows = mmTypeSel.size
+        ? mmDateRows().filter(function(r){ return mmTypeSel.has(r.type); })
+        : mmDateRows();
+    return rows.reduce(function(n, r){ return n + (r.hub === value ? 1 : 0); }, 0);
 }
 function mmSyncTypeSel(){
     const sel = document.getElementById('mmTypeSel');
     if (!sel) return;
     mmTypeSel = new Set(Array.prototype.slice.call(sel.options)
+        .filter(function(o){ return o.selected; })
+        .map(function(o){ return o.value; }));
+}
+function mmSyncHubSel(){
+    const sel = document.getElementById('mmHubSel');
+    if (!sel) return;
+    mmHubSel = new Set(Array.prototype.slice.call(sel.options)
         .filter(function(o){ return o.selected; })
         .map(function(o){ return o.value; }));
 }
@@ -9716,21 +9918,58 @@ function renderMmTypeFilter(dateRows){
     }
     mmSyncTypeSel();
 
+    /* The hub dropdown mirrors the type one, so a single current hub can be
+       read across every pivot (and the type × update aging table). */
+    renderMmHubFilter(dateRows);
+
     const note = document.getElementById('mmFilterNote');
     if (note) {
-        note.textContent = mmTypeSel.size
-            ? 'Shipment type: ' + Array.from(mmTypeSel).join(', ') + ' · ' +
-              fmt(mmBaseRows().length) + ' of ' + fmt(dateRows.length) + ' pending.'
-            : 'Showing every shipment type · ' + fmt(dateRows.length) + ' pending.';
+        const bits = [];
+        if (mmTypeSel.size) bits.push('Shipment type: ' + Array.from(mmTypeSel).join(', '));
+        if (mmHubSel.size) bits.push('Current hub: ' + Array.from(mmHubSel).join(', '));
+        note.textContent = bits.length
+            ? bits.join(' · ') + ' · ' + fmt(mmBaseRows().length) + ' of ' +
+              fmt(dateRows.length) + ' pending.'
+            : 'Showing every shipment type and current hub · ' + fmt(dateRows.length) + ' pending.';
     }
 }
-function clearMmFilters(){
-    const sel = document.getElementById('mmTypeSel');
-    if (sel) {
-        Array.prototype.forEach.call(sel.options, function(o){ o.selected = false; });
+function renderMmHubFilter(dateRows){
+    const sel = document.getElementById('mmHubSel');
+    if (!sel) return;
+
+    const counts = new Map();
+    dateRows.forEach(function(r){ counts.set(r.hub, (counts.get(r.hub) || 0) + 1); });
+    const values = Array.from(counts.keys()).sort(function(a, b){
+        return (counts.get(b) - counts.get(a)) || String(a).localeCompare(String(b));
+    });
+    const key = values.join('\u0001');
+    if (sel.getAttribute('data-mm-key') !== key) {
+        const keep = new Set(Array.prototype.slice.call(sel.options)
+            .filter(function(o){ return o.selected; })
+            .map(function(o){ return o.value; }));
+        sel.innerHTML = values.map(function(v){
+            return '<option value="' + esc(v) + '">' + esc(v) + '</option>';
+        }).join('');
+        Array.prototype.forEach.call(sel.options, function(o){ o.selected = keep.has(o.value); });
+        sel.setAttribute('data-mm-key', key);
+    }
+
+    if (!sel.__mcs) {
+        mcsInit(sel, function(){ mmSyncHubSel(); renderMmPendency(); }, mmHubFacetCount);
+    } else {
         mcsSync(sel);
     }
+    mmSyncHubSel();
+}
+function clearMmFilters(){
+    ['mmTypeSel', 'mmHubSel'].forEach(function(id){
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        Array.prototype.forEach.call(sel.options, function(o){ o.selected = false; });
+        mcsSync(sel);
+    });
     mmTypeSel = new Set();
+    mmHubSel = new Set();
     renderMmPendency();
 }
 
@@ -9811,14 +10050,19 @@ function renderMmPendency(){
     const hubCols = Object.keys(hubTotals).sort(function(a, b){
         return (hubTotals[b] - hubTotals[a]) || String(a).localeCompare(String(b));
     });
-    const fillHubPivot = function(headId, bodyId, headLabel, headTitle, labelOf, mode){
+    /* A pivot's columns are the current hubs unless colSpec supplies another
+       split (the type × update aging table uses the last-update bands). */
+    const fillHubPivot = function(headId, bodyId, headLabel, headTitle, labelOf, mode, colSpec){
         const head = document.getElementById(headId);
         const body = document.getElementById(bodyId);
         if (!head || !body) return;
+        const cols = (colSpec && colSpec.cols) || hubCols;
+        const colTotals = (colSpec && colSpec.totals) || hubTotals;
+        const colOf = (colSpec && colSpec.of) || function(r){ return r.hub || '—'; };
         const labelTot = {}, cell = {};
         rows.forEach(function(r){
             const L = labelOf(r) || '—';
-            const H = r.hub || '—';
+            const H = colOf(r) || '—';
             const k = L + '\u0001' + H;
             cell[k] = (cell[k] || 0) + 1;
             labelTot[L] = (labelTot[L] || 0) + 1;
@@ -9834,10 +10078,10 @@ function renderMmPendency(){
             });
         }
         head.innerHTML = '<tr><th' + (headTitle ? ' title="' + esc(headTitle) + '"' : '') + '>' + esc(headLabel) + '</th>' +
-            hubCols.map(function(h){ return '<th class="text-end">' + esc(h) + '</th>'; }).join('') +
+            cols.map(function(h){ return '<th class="text-end">' + esc(h) + '</th>'; }).join('') +
             '<th class="text-end">Total</th><th class="text-end">Share</th></tr>';
         if (!labels.length){
-            body.innerHTML = '<tr><td colspan="' + (hubCols.length + 3) +
+            body.innerHTML = '<tr><td colspan="' + (cols.length + 3) +
                 '" class="text-center text-muted py-3">No rows for this snapshot and filter</td></tr>';
             return;
         }
@@ -9845,7 +10089,7 @@ function renderMmPendency(){
             const tot = labelTot[L] || 0;
             return '<tr>' +
                 '<td class="mm-lbl" title="' + esc(L) + '">' + esc(L) + '</td>' +
-                hubCols.map(function(h){
+                cols.map(function(h){
                     const v = cell[L + '\u0001' + h] || 0;
                     return '<td class="text-end' + (v ? '' : ' text-muted') + '">' + (v ? fmt(v) : '–') + '</td>';
                 }).join('') +
@@ -9854,8 +10098,8 @@ function renderMmPendency(){
                 '</tr>';
         }).join('');
         html += '<tr class="mm-total"><td>Grand Total</td>' +
-            hubCols.map(function(h){
-                return '<td class="text-end">' + fmt(hubTotals[h] || 0) + '</td>';
+            cols.map(function(h){
+                return '<td class="text-end">' + fmt(colTotals[h] || 0) + '</td>';
             }).join('') +
             '<td class="text-end">' + fmt(total) + '</td><td class="text-end">100%</td></tr>';
         body.innerHTML = html;
@@ -9863,6 +10107,19 @@ function renderMmPendency(){
 
     fillHubPivot('mmTypeHead', 'mmTypeBody', 'Shipment type', 'Sheet column: Shipment_Type - shipment type pending in each current hub',
         function(r){ return r.type; }, 'count');
+    /* Shipment type × update aging — same pivot, but the columns are the
+       last-update aging bands, so one current hub (or all of them) reads left
+       to right from fresh to stale. */
+    const luTotals = {};
+    rows.forEach(function(r){ const b = r.lastUpdate || '—'; luTotals[b] = (luTotals[b] || 0) + 1; });
+    const luCols = Object.keys(luTotals).sort(function(a, b){
+        return (mmAgingRank(a) - mmAgingRank(b)) || String(a).localeCompare(String(b));
+    });
+    fillHubPivot('mmTypeLuHead', 'mmTypeLuBody', 'Shipment type',
+        'Sheet columns: Shipment_Type x LastUpdate_Aging_Range - pending shipments of every type in each update aging band, for the selected current hub',
+        function(r){ return r.type; }, 'count',
+        { cols: luCols, totals: luTotals, of: function(r){ return r.lastUpdate || '—'; } });
+
     fillHubPivot('mmShipHead', 'mmShipBody', 'Shipping aging', 'Sheet column: Shipping_Aging_Range - days since shipping, per current hub',
         function(r){ return r.shipping; }, 'aging');
     fillHubPivot('mmRecHead', 'mmRecBody', 'Receiving aging', 'Sheet column: Receiving_Aging_Range - days in receiving, per current hub',
@@ -12486,6 +12743,1075 @@ window.addEventListener('resize', function(){
     clearTimeout(pddTabBalanceTimer);
     pddTabBalanceTimer = setTimeout(pddTabBalance, 180);
 });
+
+/* ================================================================
+   PDD BREACH DOD — the sheet's Date × LOD breach trend
+   One row per breached AWB: Date, Hub, awb_nr, LOD, Remarks. The
+   chart counts AWBs per day, one series per LOD; the table is the
+   same data as date × LOD. Hub and LOD are the only filters here —
+   the summary tab's PDD flag / shipping / LT boxes do not apply to
+   this sheet.
+   ================================================================ */
+const PDD_BREACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=792929499&single=true&output=csv';
+
+let pddBreachRows = [], pddBreachLoaded = false, pddBreachLoading = false;
+let pddBreachLod = [], pddBreachHub = [], pddBreachType = 'bar';
+
+const PDD_BREACH_COLORS = ['#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#0ea5e9', '#ec4899', '#84cc16'];
+
+/* Dates arrive as ISO y-m-d from the published CSV; keep a couple of fallbacks
+   so a hand-edited tab cannot break the x axis. */
+function pddBreachDay(v){
+    const s = String(v || '').trim();
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2);
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) return m[3] + '-' + ('0' + m[1]).slice(-2) + '-' + ('0' + m[2]).slice(-2);
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? s : d.toISOString().slice(0, 10);
+}
+
+function pddBreachMonth(key){
+    const m = String(key).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return key;
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return m[3] + ' ' + months[parseInt(m[2], 10) - 1];
+}
+
+/* Count distinct AWBs per (date, LOD). The sheet is one row per AWB, but a
+   dedupe key keeps the numbers honest if a row is ever duplicated. */
+function pddBreachAgg(rows){
+    const dayTot = {}, lodTot = {}, cell = {}, seen = {};
+    let total = 0;
+    rows.forEach(function(r){
+        const k = r.date + '\u0000' + r.lod + '\u0000' + r.awb;
+        if (seen[k]) return;
+        seen[k] = 1;
+        dayTot[r.date] = (dayTot[r.date] || 0) + 1;
+        lodTot[r.lod] = (lodTot[r.lod] || 0) + 1;
+        const ck = r.lod + '\u0000' + r.date;
+        cell[ck] = (cell[ck] || 0) + 1;
+        total++;
+    });
+    const dates = Object.keys(dayTot).sort();
+    const lods = Object.keys(lodTot).sort(function(a, b){
+        return (lodTot[b] - lodTot[a]) || String(a).localeCompare(String(b));
+    });
+    return { dates: dates, lods: lods, cell: cell, dayTot: dayTot, lodTot: lodTot, total: total };
+}
+
+function pddBreachSel(id){
+    const el = document.getElementById(id);
+    if (!el) return [];
+    return Array.from(el.options).filter(function(o){ return o.selected; }).map(function(o){ return o.value; });
+}
+function pddBreachReadFilters(){
+    pddBreachLod = pddBreachSel('pddBreachLod');
+    pddBreachHub = pddBreachSel('pddBreachHub');
+}
+function pddBreachMatch(r){
+    return (!pddBreachLod.length || pddBreachLod.indexOf(r.lod) >= 0) &&
+           (!pddBreachHub.length || pddBreachHub.indexOf(r.hub) >= 0);
+}
+function pddBreachChanged(){ pddBreachReadFilters(); pddBreachRender(); }
+
+/* Rebuild one box's options, keeping the ticks that still exist. */
+function pddBreachFillBox(id, values, sortFn){
+    const host = document.getElementById(id);
+    if (!host) return;
+    const keep = new Set(Array.from(host.options).filter(function(o){ return o.selected; })
+        .map(function(o){ return o.value; }));
+    const vals = Array.from(new Set(values)).filter(function(v){ return v && v !== '(blank)'; }).sort(sortFn);
+    host.innerHTML = vals.map(function(v){
+        return '<option value="' + esc(v) + '"' + (keep.has(v) ? ' selected' : '') + '>' + esc(v) + '</option>';
+    }).join('');
+    if (host.__mcs) mcsSync(host);
+}
+
+/* Live count per option, counted against the other box only. */
+function pddBreachFacet(which){
+    return function(v){
+        let n = 0;
+        (pddBreachRows || []).forEach(function(r){
+            if (which !== 'lod' && pddBreachLod.length && pddBreachLod.indexOf(r.lod) < 0) return;
+            if (which !== 'hub' && pddBreachHub.length && pddBreachHub.indexOf(r.hub) < 0) return;
+            if ((which === 'lod' ? r.lod : r.hub) === v) n++;
+        });
+        return n;
+    };
+}
+
+function pddBreachInitFilters(){
+    mcsInit(document.getElementById('pddBreachLod'), pddBreachChanged, pddBreachFacet('lod'));
+    mcsInit(document.getElementById('pddBreachHub'), pddBreachChanged, pddBreachFacet('hub'));
+}
+
+function pddBreachChartType(btn){
+    const group = btn.closest('.btn-group');
+    if (group) group.querySelectorAll('[data-breach-type]').forEach(function(b){
+        b.classList.toggle('active', b === btn);
+    });
+    pddBreachType = btn.getAttribute('data-breach-type') || 'bar';
+    pddBreachRender();
+}
+
+async function loadPddBreachCsv(force){
+    if (pddBreachLoading || (pddBreachLoaded && !force)) return;
+    pddBreachLoading = true;
+    const badge = document.getElementById('pddBreachBadge');
+    if (badge){ badge.className = 'badge text-bg-info'; badge.textContent = 'Loading…'; }
+    const tableHost = document.getElementById('pddBreachTable');
+    if (tableHost && !pddBreachRows.length){
+        tableHost.innerHTML = '<div class="text-center text-muted py-4 small">Reading the PDD breach DOD sheet…</div>';
+    }
+
+    try {
+        const text = await fetchCsvFull(PDD_BREACH_CSV_URL, 'pddbreach', 20, null, !!force);
+        const grid = (Papa.parse(text, { header: false, skipEmptyLines: 'greedy' }).data || []);
+        if (grid.length < 2) throw new Error('The PDD breach DOD tab came back empty.');
+        const head = (grid[0] || []).map(function(h){ return String(h || '').trim().toLowerCase(); });
+        const col = function(name){ return head.indexOf(String(name).toLowerCase()); };
+        const iDate = col('date'), iHub = col('hub'), iAwb = col('awb_nr'), iLod = col('lod');
+        if (iDate < 0 || iLod < 0) throw new Error('The PDD breach DOD tab needs Date and LOD columns.');
+
+        const rows = [];
+        for (let n = 1; n < grid.length; n++){
+            const r = grid[n] || [];
+            const date = pddBreachDay(r[iDate]);
+            const lod = String(r[iLod] || '').trim();
+            if (!date || !lod) continue;
+            const awb = String((iAwb >= 0 ? r[iAwb] : '') || '').trim();
+            rows.push({
+                date: date,
+                lod: lod,
+                awb: awb || (date + '|' + lod + '|' + n),
+                hub: String((iHub >= 0 ? r[iHub] : '') || '').trim() || '(blank)'
+            });
+        }
+        if (!rows.length) throw new Error('The PDD breach DOD tab returned no AWB rows.');
+
+        pddBreachRows = rows;
+        pddBreachLoaded = true;
+
+        const lodTot = {};
+        rows.forEach(function(r){ lodTot[r.lod] = (lodTot[r.lod] || 0) + 1; });
+        pddBreachFillBox('pddBreachLod', rows.map(function(r){ return r.lod; }), function(a, b){
+            return (lodTot[b] - lodTot[a]) || String(a).localeCompare(String(b));
+        });
+        pddBreachFillBox('pddBreachHub', rows.map(function(r){ return r.hub; }), function(a, b){
+            return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+        });
+        pddBreachInitFilters();
+        pddBreachReadFilters();
+        pddBreachRender();
+    } catch (e) {
+        console.warn('[PDD breach DOD] load failed:', e);
+        const msg = (e && e.message) ? e.message : String(e);
+        if (badge){ badge.className = 'badge text-bg-danger'; badge.textContent = 'Load failed'; }
+        if (tableHost && !pddBreachRows.length){
+            tableHost.innerHTML = '<div class="text-center text-muted py-4 small">' + esc(msg) +
+                ' <button class="btn btn-sm btn-outline-secondary mt-2" onclick="loadPddBreachCsv(true)">' +
+                '<i class="bi bi-arrow-repeat me-1"></i>Retry</button></div>';
+        }
+    } finally {
+        pddBreachLoading = false;
+    }
+}
+
+function pddBreachRender(){
+    const allRows = pddBreachRows || [];
+    if (!allRows.length) return;
+    const rows = allRows.filter(pddBreachMatch);
+    const agg = pddBreachAgg(rows);
+    const globalOrder = pddBreachAgg(allRows).lods;
+    const colorOf = function(lod){
+        const i = globalOrder.indexOf(lod);
+        return PDD_BREACH_COLORS[(i < 0 ? 0 : i) % PDD_BREACH_COLORS.length];
+    };
+
+    const canvas = document.getElementById('chartPddBreach');
+    if (charts.pddBreach){ charts.pddBreach.destroy(); delete charts.pddBreach; }
+    if (canvas && rows.length){
+        /* The page-wide value-label plugin draws every segment by default.
+           For the stacked bars label only the top segment, with the day's
+           total; for the lines label the last point of each series. */
+        const labelOpts = pddBreachType === 'bar' ? {
+            color: '#0f172a',
+            formatter: function(v, sum, di, i, chart){
+                let top = -1;
+                chart.data.datasets.forEach(function(ds, k){
+                    if (Number(ds.data[i]) > 0) top = k;
+                });
+                if (di !== top) return '';
+                let total = 0;
+                chart.data.datasets.forEach(function(ds){ total += Number(ds.data[i]) || 0; });
+                return total ? fmt(total) : '';
+            }
+        } : {
+            lastOnly: true,
+            color: '#0f172a',
+            formatter: function(v){ return v ? fmt(v) : ''; }
+        };
+        charts.pddBreach = new Chart(canvas.getContext('2d'), {
+            type: pddBreachType,
+            data: {
+                labels: agg.dates.map(pddBreachMonth),
+                datasets: agg.lods.map(function(lod){
+                    const color = colorOf(lod);
+                    return {
+                        label: lod,
+                        data: agg.dates.map(function(d){ return agg.cell[lod + '\u0000' + d] || 0; }),
+                        backgroundColor: pddBreachType === 'bar' ? color : color + '33',
+                        borderColor: color,
+                        borderWidth: pddBreachType === 'bar' ? 0 : 2,
+                        borderRadius: pddBreachType === 'bar' ? 3 : 0,
+                        maxBarThickness: 34,
+                        tension: 0.28,
+                        pointRadius: pddBreachType === 'bar' ? 0 : 2,
+                        pointHoverRadius: 4,
+                        fill: false
+                    };
+                })
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    x: {
+                        stacked: pddBreachType === 'bar',
+                        grid: { display: false },
+                        ticks: { autoSkip: true, maxRotation: 60, minRotation: 45, font: { size: 10 } }
+                    },
+                    y: {
+                        stacked: pddBreachType === 'bar',
+                        beginAtZero: true,
+                        grid: { color: 'rgba(148,163,184,.18)' },
+                        title: { display: true, text: 'Shipments (AWB)', font: { size: 10 } },
+                        ticks: { font: { size: 10 }, precision: 0 }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, font: { size: 10 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(c){ return ' ' + c.dataset.label + ': ' + fmt(c.parsed.y) + ' AWB'; },
+                            footer: function(items){
+                                let s = 0;
+                                items.forEach(function(i){ s += (i.parsed.y || 0); });
+                                return 'Total: ' + fmt(s) + ' AWB';
+                            }
+                        }
+                    },
+                    valueLabels: labelOpts
+                }
+            }
+        });
+    }
+
+    const host = document.getElementById('pddBreachTable');
+    if (host){
+        if (!rows.length){
+            host.innerHTML = '<div class="text-center text-muted py-4 small">No rows for this filter.</div>';
+        } else {
+            let head = '<thead><tr><th>Date</th>';
+            agg.lods.forEach(function(l){ head += '<th>' + esc(l) + '</th>'; });
+            head += '<th class="wr-pdd-tot">Total</th></tr></thead>';
+
+            let body = '<tbody>';
+            agg.dates.forEach(function(d){
+                body += '<tr><td>' + esc(pddBreachMonth(d)) + '</td>';
+                agg.lods.forEach(function(l){
+                    const v = agg.cell[l + '\u0000' + d] || 0;
+                    body += v ? '<td>' + fmt(v) + '</td>' : '<td class="wr-pdd-zero">–</td>';
+                });
+                body += '<td class="wr-pdd-tot">' + fmt(agg.dayTot[d] || 0) + '</td></tr>';
+            });
+            body += '</tbody>';
+
+            let foot = '<tfoot><tr><td>Grand Total</td>';
+            agg.lods.forEach(function(l){ foot += '<td>' + fmt(agg.lodTot[l] || 0) + '</td>'; });
+            foot += '<td class="wr-pdd-tot">' + fmt(agg.total) + '</td></tr></tfoot>';
+
+            host.innerHTML = '<table class="wr-pdd">' + head + body + foot + '</table>';
+        }
+    }
+
+    const badge = document.getElementById('pddBreachBadge');
+    if (badge){
+        badge.className = 'badge text-bg-info';
+        badge.textContent = fmt(agg.total) + ' AWB · ' + fmt(agg.dates.length) + ' day' + (agg.dates.length === 1 ? '' : 's');
+    }
+    const note = document.getElementById('pddBreachNote');
+    if (note){
+        const lodCount = new Set(allRows.map(function(r){ return r.lod; })).size;
+        const hubCount = new Set(allRows.map(function(r){ return r.hub; })).size;
+        note.textContent = fmt(allRows.length) + ' breach rows · ' + fmt(lodCount) + ' LOD · ' + fmt(hubCount) + ' hubs' +
+            (rows.length !== allRows.length ? ' · ' + fmt(agg.total) + ' AWB after filters' : '');
+    }
+    const chartNote = document.getElementById('pddBreachChartNote');
+    if (chartNote){
+        const span = agg.dates.length
+            ? pddBreachMonth(agg.dates[0]) + ' – ' + pddBreachMonth(agg.dates[agg.dates.length - 1])
+            : '—';
+        chartNote.textContent = span + ' · ' + fmt(agg.total) + ' AWB · ' +
+            (pddBreachType === 'bar' ? 'stacked by LOD' : 'one line per LOD');
+    }
+    const tableNote = document.getElementById('pddBreachTableNote');
+    if (tableNote){
+        tableNote.textContent = fmt(agg.dates.length) + ' days × ' + fmt(agg.lods.length) + ' LOD';
+    }
+
+    /* The day-on-day LOD view lives on its own inner tab and reads the same rows. */
+    if (typeof lodTrendInit === 'function') lodTrendInit();
+    if (typeof lodTrendRender === 'function') lodTrendRender();
+}
+
+function pddBreachExportCsv(){
+    const rows = (pddBreachRows || []).filter(pddBreachMatch);
+    if (!rows.length){ showToast('No rows match the active filters — nothing to export', 'warning'); return; }
+    const agg = pddBreachAgg(rows);
+    const lines = [['Date'].concat(agg.lods, ['Grand Total']).map(csvCell).join(',')];
+    agg.dates.forEach(function(d){
+        lines.push([d].concat(
+            agg.lods.map(function(l){ return agg.cell[l + '\u0000' + d] || 0; }),
+            [agg.dayTot[d] || 0]
+        ).map(csvCell).join(','));
+    });
+    lines.push(['Grand Total'].concat(
+        agg.lods.map(function(l){ return agg.lodTot[l] || 0; }),
+        [agg.total]
+    ).map(csvCell).join(','));
+
+    const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'pdd_breach_dod_' + stamp + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+    showToast('Exported ' + fmt(agg.total) + ' AWB across ' + fmt(agg.dates.length) + ' days to CSV');
+}
+
+
+/* ================================================================
+   PDD — BREACH TREND BY LOD (day-on-day combo)
+   Same sheet as the PDD breach DOD tab. Bars = breached AWBs per day
+   stacked by LOD; the right-hand line is each day's share of the
+   window's breaches, so spikes and quiet days read at a glance.
+   The three heaviest days get a HIGH SPIKE label, the two lightest a
+   LOW label, mirroring the ops deck this chart is modelled on.
+   ================================================================ */
+const LOD_TREND_LINE = '#b91c1c';
+let lodTrendLod = [];
+
+function lodTrendSel(){
+    const el = document.getElementById('lodTrendLod');
+    if (!el) return [];
+    return Array.from(el.options).filter(function(o){ return o.selected; })
+        .map(function(o){ return o.value; });
+}
+function lodTrendMatch(r){
+    return !lodTrendLod.length || lodTrendLod.indexOf(r.lod) >= 0;
+}
+function lodTrendChanged(){
+    lodTrendLod = lodTrendSel();
+    lodTrendRender();
+}
+
+/* Build/refresh the LOD box from the breach rows, keeping current ticks. */
+function lodTrendInit(){
+    const el = document.getElementById('lodTrendLod');
+    if (!el) return;
+    const lodTot = {};
+    (pddBreachRows || []).forEach(function(r){ lodTot[r.lod] = (lodTot[r.lod] || 0) + 1; });
+    pddBreachFillBox('lodTrendLod', (pddBreachRows || []).map(function(r){ return r.lod; }), function(a, b){
+        return (lodTot[b] - lodTot[a]) || String(a).localeCompare(String(b));
+    });
+    mcsInit(el, lodTrendChanged, function(v){
+        return (pddBreachRows || []).filter(function(r){ return r.lod === v; }).length;
+    });
+    lodTrendLod = lodTrendSel();
+}
+
+function lodTrendRender(){
+    const allRows = pddBreachRows || [];
+    const badge = document.getElementById('lodTrendBadge');
+    const rows = allRows.filter(lodTrendMatch);
+
+    if (!rows.length){
+        if (charts.lodTrend){ charts.lodTrend.destroy(); delete charts.lodTrend; }
+        const canvas = document.getElementById('chartLodTrend');
+        if (canvas) canvas.style.display = 'none';
+        let empty = document.getElementById('lodTrendEmpty');
+        if (!empty && canvas && canvas.parentElement){
+            empty = document.createElement('div');
+            empty.id = 'lodTrendEmpty';
+            empty.className = 'text-center text-muted py-5 small';
+            canvas.parentElement.appendChild(empty);
+        }
+        if (empty){
+            empty.style.display = '';
+            empty.textContent = allRows.length
+                ? 'No breaches for the ticked LOD lines.'
+                : 'Reading the PDD breach DOD sheet…';
+        }
+        if (badge){ badge.className = 'badge text-bg-secondary'; badge.textContent = 'No data yet'; }
+        return;
+    }
+
+    const agg = pddBreachAgg(rows);
+    const globalOrder = pddBreachAgg(allRows).lods;
+    const colorOf = function(lod){
+        const i = globalOrder.indexOf(lod);
+        return PDD_BREACH_COLORS[(i < 0 ? 0 : i) % PDD_BREACH_COLORS.length];
+    };
+    const total = agg.total;
+    const share = {};
+    agg.dates.forEach(function(d){ share[d] = total ? (agg.dayTot[d] / total * 100) : 0; });
+
+    const ranked = agg.dates.slice().sort(function(a, b){
+        return (agg.dayTot[b] - agg.dayTot[a]) || a.localeCompare(b);
+    });
+    const peakSet = new Set(ranked.slice(0, 3));
+    const lowSet = new Set(ranked.slice(-2));
+
+    const canvas = document.getElementById('chartLodTrend');
+    if (canvas) canvas.style.display = '';
+    const emptyEl = document.getElementById('lodTrendEmpty');
+    if (emptyEl) emptyEl.style.display = 'none';
+    if (charts.lodTrend){ charts.lodTrend.destroy(); delete charts.lodTrend; }
+    if (!canvas) return;
+
+    const bars = agg.lods.map(function(lod){
+        return {
+            type: 'bar',
+            label: lod,
+            data: agg.dates.map(function(d){ return agg.cell[lod + '\u0000' + d] || 0; }),
+            backgroundColor: colorOf(lod),
+            hoverBackgroundColor: colorOf(lod),
+            borderRadius: 2,
+            maxBarThickness: 34,
+            stack: 'breach'
+        };
+    });
+    const line = {
+        type: 'line',
+        label: 'Share of window %',
+        data: agg.dates.map(function(d){ return +share[d].toFixed(2); }),
+        yAxisID: 'y1',
+        borderColor: LOD_TREND_LINE,
+        backgroundColor: LOD_TREND_LINE,
+        borderWidth: 2.5,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        pointBackgroundColor: '#fff',
+        pointBorderColor: LOD_TREND_LINE,
+        pointBorderWidth: 2,
+        tension: 0.3,
+        fill: false
+    };
+
+    charts.lodTrend = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: { labels: agg.dates.map(pddBreachMonth), datasets: bars.concat([line]) },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            layout: { padding: { top: 24 } },
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+                x: {
+                    stacked: true,
+                    grid: { display: false },
+                    ticks: { autoSkip: true, maxRotation: 45, minRotation: 0, font: { size: 10 } }
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    grid: { color: 'rgba(148,163,184,.18)' },
+                    title: { display: true, text: 'Breaches (AWB)', font: { size: 10 } },
+                    ticks: { font: { size: 10 }, precision: 0 }
+                },
+                y1: {
+                    position: 'right',
+                    beginAtZero: true,
+                    suggestedMax: Math.max(5, Math.ceil(share[ranked[0]] * 1.35)),
+                    grid: { display: false },
+                    title: { display: true, text: '% of window', font: { size: 10 } },
+                    ticks: { font: { size: 10 }, callback: function(v){ return Math.round(v) + '%'; } }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, font: { size: 10 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(c){
+                            if (c.dataset.yAxisID === 'y1')
+                                return ' ' + c.dataset.label + ': ' + Number(c.parsed.y).toFixed(1) + '%';
+                            return ' ' + c.dataset.label + ': ' + fmt(c.parsed.y) + ' AWB';
+                        },
+                        footer: function(items){
+                            const day = items.filter(function(i){ return i.dataset.yAxisID !== 'y1'; })
+                                .reduce(function(s, i){ return s + (i.parsed.y || 0); }, 0);
+                            return day ? 'Day total: ' + fmt(day) + ' AWB' : '';
+                        }
+                    }
+                },
+                valueLabels: {
+                    color: LOD_TREND_LINE,
+                    formatter: function(v, sum, di, i, chart){
+                        if (di !== chart.data.datasets.length - 1) return '';
+                        if (peakSet.has(agg.dates[i])) return 'HIGH SPIKE';
+                        if (lowSet.has(agg.dates[i])) return 'LOW';
+                        return '';
+                    }
+                }
+            }
+        }
+    });
+
+    /* ---- KPI tiles + captions ---- */
+    const peak = ranked[0];
+    const setTxt = function(id, txt){
+        const el = document.getElementById(id);
+        if (el) el.textContent = txt;
+    };
+    setTxt('lodTrendTotal', fmt(total));
+    setTxt('lodTrendTotalSub', fmt(agg.dates.length) + ' days · ' + fmt(agg.lods.length) + ' LOD');
+    setTxt('lodTrendPeak', pddBreachMonth(peak));
+    setTxt('lodTrendPeakSub', fmt(agg.dayTot[peak]) + ' AWB · highest day');
+    setTxt('lodTrendPeakShare', share[peak].toFixed(1) + '%');
+    const g1 = agg.lods.filter(function(l){ return /G1/i.test(l); })
+        .reduce(function(s, l){ return s + (agg.lodTot[l] || 0); }, 0);
+    setTxt('lodTrendG1', total ? (g1 / total * 100).toFixed(0) + '%' : '—');
+
+    if (badge){
+        badge.className = 'badge text-bg-info';
+        badge.textContent = fmt(total) + ' AWB · ' + fmt(agg.dates.length) + ' days';
+    }
+    setTxt('lodTrendChartNote', pddBreachMonth(agg.dates[0]) + ' – ' +
+        pddBreachMonth(agg.dates[agg.dates.length - 1]) + ' · bars by LOD · line = share of window');
+    const note = document.getElementById('lodTrendNote');
+    if (note){
+        const lodCount = new Set(allRows.map(function(r){ return r.lod; })).size;
+        const hubCount = new Set(allRows.map(function(r){ return r.hub; })).size;
+        note.textContent = fmt(allRows.length) + ' breach rows · ' + fmt(lodCount) + ' LOD · ' +
+            fmt(hubCount) + ' hubs' +
+            (rows.length !== allRows.length ? ' · ' + fmt(total) + ' AWB after filters' : '');
+    }
+}
+
+function lodTrendExportCsv(){
+    const rows = (pddBreachRows || []).filter(lodTrendMatch);
+    if (!rows.length){ showToast('No breach rows to export', 'warning'); return; }
+    const agg = pddBreachAgg(rows);
+    const lines = [['Date'].concat(agg.lods, ['Day total', '% of window']).map(csvCell).join(',')];
+    agg.dates.forEach(function(d){
+        lines.push([d].concat(
+            agg.lods.map(function(l){ return agg.cell[l + '\u0000' + d] || 0; }),
+            [agg.dayTot[d] || 0, agg.total ? (agg.dayTot[d] / agg.total * 100).toFixed(2) + '%' : '0.00%']
+        ).map(csvCell).join(','));
+    });
+    lines.push(['Grand Total'].concat(
+        agg.lods.map(function(l){ return agg.lodTot[l] || 0; }),
+        [agg.total, '100.00%']
+    ).map(csvCell).join(','));
+
+    const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'pdd_breach_lod_trend_' + stamp + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+    showToast('Exported ' + fmt(agg.total) + ' AWB across ' + fmt(agg.dates.length) + ' days');
+}
+
+/* ================================================================
+   FIRST MILE — G5 / G6 receiving and the LH dispatch behind it
+   Receiving sheet: two side-by-side blocks in one tab —
+     A–E  date_rec · hub · half_hour_bucket · forward_hub · total_shipment
+     I–M  the same five columns for the other hub
+   Forward-hub rule:
+     G5  -> everything rolls into CAI-G1 except A2 / A8 / C4 / C6
+     G6  -> everything rolls into CAI-G1
+   Dispatch tables read the already-loaded LH trips (rawTrips): source
+   hub G5 / G6, grouped by forward hub and CT_plan_time.
+   ================================================================ */
+const FM_RECV_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=2104183324&single=true&output=csv';
+
+const FM_G5_DIRECT = ['CAI-A2', 'CAI-A8', 'CAI-C4', 'CAI-C6'];
+
+let fmRecv = [], fmLoaded = false, fmLoading = false;
+let fmDate = '', fmDateMin = '', fmDateMax = '';
+
+/* G5: only the four direct hubs survive; everything else lands at G1. */
+function fmG5Fwd(fwd){
+    return FM_G5_DIRECT.indexOf(fwd) >= 0 ? fwd : 'CAI-G1';
+}
+/* G6: every forward hub lands at G1. */
+function fmG6Fwd(){ return 'CAI-G1'; }
+
+/* Half-hour slots come as "02:30 PM to 03:00 PM". Rank them on the clock;
+   slots after midnight (12:00 AM) sort last, not first. */
+function fmHourStart(bucket){
+    const m = String(bucket || '').match(/^(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (!m) return 99999;
+    let h = parseInt(m[1], 10) % 12;
+    if (/PM/i.test(m[3])) h += 12;
+    let mins = h * 60 + parseInt(m[2], 10);
+    if (mins < 600) mins += 1440;
+    return mins;
+}
+function fmDateLabel(key){
+    const m = String(key || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return key || '—';
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return parseInt(m[3], 10) + ' ' + months[parseInt(m[2], 10) - 1] + ' ' + m[1];
+}
+function fmClock(d){
+    if (!(d instanceof Date) || isNaN(d)) return '';
+    return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+}
+function fmVar(dock, gate){
+    if (!(dock instanceof Date) || !(gate instanceof Date) || isNaN(dock) || isNaN(gate)) return '';
+    let mins = Math.round((dock - gate) / 60000);
+    if (mins < 0) mins += 1440;
+    return Math.floor(mins / 60) + ':' + ('0' + (mins % 60)).slice(-2);
+}
+function fmPlanRank(plan){
+    const m = String(plan || '').match(/^(\d{1,2}):(\d{2})/);
+    return m ? (parseInt(m[1], 10) * 60 + parseInt(m[2], 10)) : 99999;
+}
+
+/* ---------- dispatch tables (LH trips) ----------
+   Every trip out of the gateway — the standard forward hubs, the CAI-A4
+   lane and the G5 ↔ G6 internal transfers alike — grouped by forward hub
+   and the hour of its CT_plan_time. Ad-hoc runs carry "Extra" or no plan
+   time and keep a row of their own. */
+function fmDispatchData(hub){
+    const trips = (typeof rawTrips !== 'undefined' && rawTrips) ? rawTrips : [];
+    const dayTrips = trips.filter(function(t){ return t && t.dateKey === fmDate; });
+    const groups = {};
+    let noPlan = 0;
+    dayTrips.forEach(function(t){
+        if (String(t.srcHub || '').trim() !== hub) return;
+        const dst = String(t.dstHub || '').trim() || '(blank)';
+        const raw = String(t.ctPlanRaw || '').trim();
+        let plan;
+        const m = raw.match(/^(\d{1,2}):(\d{2})/);
+        if (m) plan = ('0' + m[1]).slice(-2) + ':00';      /* 21:30 → 21:00 */
+        else if (raw) plan = raw;
+        else { plan = '(no plan)'; noPlan++; }
+        const k = dst + '\u0000' + plan;
+        let g = groups[k];
+        if (!g){
+            g = groups[k] = { dst: dst, plan: plan, ship: 0, trips: 0, gate: null, dock: null };
+        }
+        g.ship += Number(t.shipments) || 0;
+        g.trips++;
+        if (t.srcGateOut instanceof Date && !isNaN(t.srcGateOut) &&
+            (!g.gate || t.srcGateOut < g.gate)) g.gate = t.srcGateOut;
+        if (t.dstDock instanceof Date && !isNaN(t.dstDock) &&
+            (!g.dock || t.dstDock > g.dock)) g.dock = t.dstDock;
+    });
+    const list = Object.keys(groups).map(function(k){ return groups[k]; }).sort(function(a, b){
+        return (fmPlanRank(a.plan) - fmPlanRank(b.plan)) ||
+            String(a.dst).localeCompare(String(b.dst), undefined, { numeric: true });
+    });
+    const total = list.reduce(function(s, g){ return s + g.ship; }, 0);
+    return { list: list, total: total, noPlan: noPlan,
+             dayTrips: dayTrips.length, tripsLoaded: trips.length };
+}
+
+function fmDispatchTable(hub, hostId, noteId){
+    const host = document.getElementById(hostId);
+    if (!host) return;
+    const note = document.getElementById(noteId);
+    const d = fmDispatchData(hub);
+    if (!d.tripsLoaded){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">The LH trips sheet is still loading…</div>';
+        if (note) note.textContent = '—';
+        return;
+    }
+    if (!d.list.length){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">No planned LH dispatch from ' + esc(hub) +
+            ' on ' + esc(fmDateLabel(fmDate)) + '.</div>';
+        if (note) note.textContent = '—';
+        return;
+    }
+
+    let head = '<thead><tr><th>Forward hub</th><th>Plan hour</th><th>Src gate out</th>' +
+        '<th>Dst arrived at dock</th><th>VAR</th><th class="wr-pdd-tot">Total shipments</th>' +
+        '<th class="wr-pdd-tot">Shipments share</th></tr></thead>';
+
+    let body = '<tbody>';
+    d.list.forEach(function(g){
+        const share = d.total ? (g.ship / d.total * 100) : 0;
+        const tripTip = g.trips + ' trip' + (g.trips === 1 ? '' : 's') + ' in this hour';
+        body += '<tr>' +
+            '<td>' + esc(g.dst) + '</td>' +
+            '<td title="CT plan time, rolled up to the hour">' + esc(g.plan) + '</td>' +
+            '<td title="' + esc(tripTip) + '">' + esc(fmClock(g.gate) || '—') + '</td>' +
+            '<td title="' + esc(tripTip) + '">' + esc(fmClock(g.dock) || '—') + '</td>' +
+            '<td>' + esc(fmVar(g.dock, g.gate) || '—') + '</td>' +
+            '<td class="wr-pdd-tot">' + fmt(g.ship) + '</td>' +
+            '<td class="wr-pdd-tot">' + share.toFixed(2) + '%</td>' +
+            '</tr>';
+    });
+    body += '</tbody>';
+
+    const foot = '<tfoot><tr><td>Grand Total</td><td></td><td></td><td></td><td></td>' +
+        '<td class="wr-pdd-tot">' + fmt(d.total) + '</td>' +
+        '<td class="wr-pdd-tot">' + (d.total ? '100.00%' : '0.00%') + '</td></tr></tfoot>';
+
+    host.innerHTML = '<table class="wr-pdd">' + head + body + foot + '</table>';
+    if (note){
+        note.textContent = fmt(d.list.length) + ' hub-hours · ' + fmt(d.total) + ' shipments' +
+            (d.noPlan ? ' · ' + fmt(d.noPlan) + ' run' + (d.noPlan === 1 ? '' : 's') + ' without CT plan' : '');
+    }
+}
+
+/* ---------- receiving + inbound, one table, one row per half hour ----------
+   Each row carries both sides of the slot: the truck volume that reached
+   the dock (LH trip sheet) and what the hub received and sorted by forward
+   hub (receiving sheet). Rows cover every slot either gateway worked. */
+function fmSlotOf(minutes){
+    const m = ((Math.round(minutes) % 1440) + 1440) % 1440;
+    return Math.floor(m / 30);
+}
+function fmSlotLabel(slot){
+    const m = slot * 30;
+    return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2);
+}
+function fmRecvFlow(hub, inSrc){
+    const isG6 = hub === 'CAI-G6';
+    const fwd = isG6 ? fmG6Fwd : fmG5Fwd;
+    const hubs = isG6 ? ['CAI-G1']
+        : ['CAI-G1', 'CAI-A2', 'CAI-A8', 'CAI-C4', 'CAI-C6'];
+    /* A gateway can be fed by more than one source: G5 takes the CAI-Z2 line
+       haul as well as the CAI-G6 internal transfer. */
+    const srcs = (Array.isArray(inSrc) ? inSrc : [inSrc]).filter(Boolean);
+    const bySlot = {};
+    const mk = function(s){
+        return bySlot[s] || (bySlot[s] = { slot: s, inShip: 0, inTrips: 0, recv: 0, cells: {}, ins: {} });
+    };
+
+    fmRecv.forEach(function(r){
+        if (r.date !== fmDate) return;
+        const s = fmSlotOf(fmHourStart(r.hour));
+        const g = mk(s);
+        if (r.hub !== hub) return;
+        const f = fwd(r.fwd);
+        g.cells[f] = (g.cells[f] || 0) + r.ship;
+        g.recv += r.ship;
+    });
+
+    const trips = (typeof rawTrips !== 'undefined' && rawTrips) ? rawTrips : [];
+    let inTrips = 0, noDock = 0;
+    trips.forEach(function(t){
+        if (!t || t.dateKey !== fmDate) return;
+        const src = String(t.srcHub || '').trim();
+        if (srcs.length && srcs.indexOf(src) < 0) return;
+        if (String(t.dstHub || '').trim() !== hub) return;
+        inTrips++;
+        const dock = t.dstDock;
+        if (!(dock instanceof Date) || isNaN(dock)){ noDock++; return; }
+        const g = mk(fmSlotOf(dock.getHours() * 60 + dock.getMinutes()));
+        const ship = Number(t.shipments) || 0;
+        g.inShip += ship;
+        g.ins[src] = (g.ins[src] || 0) + ship;
+        g.inTrips++;
+    });
+
+    const list = Object.keys(bySlot).map(function(s){ return bySlot[s]; })
+        .sort(function(a, b){ return a.slot - b.slot; });
+    const recvTotal = list.reduce(function(s, o){ return s + o.recv; }, 0);
+    const inTotal = list.reduce(function(s, o){ return s + o.inShip; }, 0);
+    const max = list.reduce(function(m, o){ return Math.max(m, o.recv, o.inShip); }, 1);
+    return { list: list, hubs: hubs, srcs: srcs, recvTotal: recvTotal, inTotal: inTotal,
+             inTrips: inTrips, noDock: noDock, max: max,
+             tripsLoaded: trips.length };
+}
+
+function fmRecvFlowTable(hub, hostId, noteId, inSrc){
+    const host = document.getElementById(hostId);
+    if (!host) return;
+    const note = document.getElementById(noteId);
+    const d = fmRecvFlow(hub, inSrc);
+    if (!d.tripsLoaded && !d.list.length){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">The LH trips and receiving sheets are still loading…</div>';
+        if (note) note.textContent = '—';
+        return;
+    }
+    if (!d.list.length){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">Nothing arrived or was received at ' +
+            esc(hub) + ' on ' + esc(fmDateLabel(fmDate)) + '.</div>';
+        if (note) note.textContent = '—';
+        return;
+    }
+
+    const srcLabels = d.srcs.map(function(s){ return s.replace('CAI-', '') + ' in'; });
+    const inLabel = srcLabels.join(' + ');
+    /* Received = the slot's grand total: trucks in from the source gateway plus
+       everything this gateway received and sorted by forward hub. */
+    const comboTotal = d.inTotal + d.recvTotal;
+    const pct = function(v){ return d.max ? Math.min(100, v / d.max * 100) : 0; };
+
+    let head = '<thead><tr><th rowspan="2" style="text-align:left">Half hour</th>' +
+        '<th class="wr-pdd-grp" colspan="' + Math.max(1, srcLabels.length) + '">Inbound</th>' +
+        '<th class="wr-pdd-grp" colspan="' + d.hubs.length + '">Receiving by forward hub</th>' +
+        '<th rowspan="2" class="wr-pdd-tot">Received</th>' +
+        '<th rowspan="2" class="wr-pdd-tot">Share</th>' +
+        '<th rowspan="2">Volume</th></tr><tr>';
+    srcLabels.forEach(function(l){
+        head += '<th>' + esc(l) + '</th>';
+    });
+    d.hubs.forEach(function(f){
+        head += '<th>' + esc(f === 'CAI-G1' ? 'G1 (rolled)' : f.replace('CAI-', '')) + '</th>';
+    });
+    head += '</tr></thead>';
+
+    let body = '<tbody>';
+    d.list.forEach(function(o){
+        const combo = o.inShip + o.recv;
+        const share = comboTotal ? (combo / comboTotal * 100) : 0;
+        body += '<tr><td class="fm-hour">' + fmSlotLabel(o.slot) + '</td>';
+        d.srcs.forEach(function(s){
+            const v = o.ins[s] || 0;
+            body += v ? '<td>' + fmt(v) + '</td>' : '<td><span class="text-muted">–</span></td>';
+        });
+        d.hubs.forEach(function(f){
+            const v = o.cells[f] || 0;
+            body += v ? '<td>' + fmt(v) + '</td>' : '<td><span class="text-muted">–</span></td>';
+        });
+        body += '<td class="wr-pdd-tot">' +
+            (combo ? fmt(combo) : '<span class="text-muted">–</span>') + '</td>' +
+            '<td class="wr-pdd-tot">' + (combo ? share.toFixed(2) + '%' : '–') + '</td>' +
+            '<td><span class="fm-flow" title="' + esc(inLabel) + ' ' + fmt(o.inShip) +
+                ' + received ' + fmt(o.recv) + ' = ' + fmt(combo) + '">' +
+                '<i class="fm-in" style="width:' + pct(o.inShip).toFixed(2) + '%"></i>' +
+                '<i class="fm-out" style="width:' + pct(combo).toFixed(2) + '%"></i>' +
+            '</span></td></tr>';
+    });
+    body += '</tbody>';
+
+    let foot = '<tfoot><tr><td>Grand Total</td>';
+    d.srcs.forEach(function(s){
+        foot += '<td>' + fmt(d.list.reduce(function(a, o){ return a + (o.ins[s] || 0); }, 0)) + '</td>';
+    });
+    d.hubs.forEach(function(f){
+        foot += '<td>' + fmt(d.list.reduce(function(s, o){ return s + (o.cells[f] || 0); }, 0)) + '</td>';
+    });
+    foot += '<td class="wr-pdd-tot">' + fmt(comboTotal) + '</td>' +
+        '<td class="wr-pdd-tot">' + (comboTotal ? '100.00%' : '0.00%') + '</td>' +
+        '<td></td></tr></tfoot>';
+
+    host.innerHTML = '<table class="wr-pdd">' + head + body + foot + '</table>';
+    if (note){
+        note.textContent = fmt(d.list.length) + ' half hours · ' + fmt(d.inTotal) + ' in from ' +
+            d.srcs.map(function(s){ return s.replace('CAI-', ''); }).join(' + ') +
+            ' (' + fmt(d.inTrips) + ' trip' + (d.inTrips === 1 ? '' : 's') + ') · ' +
+            fmt(d.recvTotal) + ' received here' +
+            (d.noDock ? ' · ' + fmt(d.noDock) + ' without dock time' : '');
+    }
+}
+
+function renderFm(){
+    if (!fmLoaded) return;
+    const rows = fmRecv.filter(function(r){ return r.date === fmDate; });
+    const g5 = rows.filter(function(r){ return r.hub === 'CAI-G5'; })
+        .reduce(function(s, r){ return s + r.ship; }, 0);
+    const g6 = rows.filter(function(r){ return r.hub === 'CAI-G6'; })
+        .reduce(function(s, r){ return s + r.ship; }, 0);
+    const dayCount = new Set(fmRecv.map(function(r){ return r.date; })).size;
+
+    const badge = document.getElementById('fmBadge');
+    if (badge){
+        badge.className = 'badge text-bg-info';
+        badge.textContent = fmDateLabel(fmDate) + ' · G5 ' + fmt(g5) + ' · G6 ' + fmt(g6);
+    }
+    const note = document.getElementById('fmNote');
+    if (note){
+        note.textContent = fmt(fmRecv.length) + ' receiving rows · ' + fmt(dayCount) + ' days · ' +
+            fmDateLabel(fmDateMin) + ' – ' + fmDateLabel(fmDateMax);
+    }
+    const lhBadge = document.getElementById('fmLhBadge');
+    if (lhBadge){
+        const trips = (typeof rawTrips !== 'undefined' && rawTrips) ? rawTrips : [];
+        const dayTrips = trips.filter(function(t){ return t && t.dateKey === fmDate; });
+        lhBadge.className = 'badge text-bg-light border';
+        lhBadge.textContent = trips.length
+            ? fmt(dayTrips.length) + ' LH trips on ' + fmDateLabel(fmDate)
+            : 'LH trips still loading';
+        /* The LH sheet usually runs a day ahead of the receiving tab, so let the
+           date picker reach its newest day too — the receiving cards just say
+           "no rows" until that day is published. */
+        const inp = document.getElementById('fmDate');
+        if (inp){
+            const lhDays = trips.map(function(t){ return t && t.dateKey; }).filter(Boolean).sort();
+            const lhMax = lhDays.length ? lhDays[lhDays.length - 1] : '';
+            inp.max = (lhMax && lhMax > fmDateMax) ? lhMax : fmDateMax;
+        }
+    }
+
+    fmRecvFlowTable('CAI-G5', 'fmG5Table', 'fmG5Note', ['CAI-Z2', 'CAI-G6']);
+    fmRecvFlowTable('CAI-G6', 'fmG6Table', 'fmG6Note', 'CAI-G5');
+    fmDispatchTable('CAI-G5', 'fmG5DispTable', 'fmG5DispNote');
+    fmDispatchTable('CAI-G6', 'fmG6DispTable', 'fmG6DispNote');
+}
+
+function fmSetDate(v){
+    fmDate = String(v || '').trim();
+    renderFm();
+}
+
+function fmOnTripsReady(){
+    if (fmLoaded) renderFm();
+}
+
+async function loadFmCsv(force){
+    if (fmLoading || (fmLoaded && !force)) return;
+    fmLoading = true;
+    const badge = document.getElementById('fmBadge');
+    if (badge){ badge.className = 'badge text-bg-info'; badge.textContent = 'Loading…'; }
+    setTabStatus('page-fm', 'loading', 'Reading the first-mile receiving sheet…');
+
+    try {
+        const text = await fetchCsvFull(FM_RECV_CSV_URL, 'fmrecv', 200, null, !!force);
+        const grid = (Papa.parse(text, { header: false, skipEmptyLines: 'greedy' }).data || []);
+        if (grid.length < 2) throw new Error('The first-mile receiving tab came back empty.');
+        const head = (grid[0] || []).map(function(h){ return String(h || '').trim().toLowerCase(); });
+
+        /* The tab holds two blocks side by side, each starting at date_rec. */
+        const starts = [];
+        head.forEach(function(h, i){ if (h === 'date_rec') starts.push(i); });
+        if (!starts.length) throw new Error('The first-mile receiving tab needs date_rec and forward_hub columns.');
+
+        const blocks = starts.map(function(s){
+            const idx = {};
+            for (let k = 0; k < 6; k++){
+                const name = head[s + k];
+                if (name) idx[name] = s + k;
+            }
+            return idx;
+        }).filter(function(idx){
+            return idx['hub'] !== undefined && idx['half_hour_bucket'] !== undefined &&
+                   idx['forward_hub'] !== undefined && idx['total_shipment'] !== undefined;
+        });
+        if (!blocks.length) throw new Error('The first-mile receiving tab is missing hub / forward_hub / total_shipment.');
+
+        const rows = [];
+        for (let n = 1; n < grid.length; n++){
+            const r = grid[n] || [];
+            blocks.forEach(function(idx){
+                const date = normDateKey(r[idx['date_rec']]);
+                const hub = String(idx['hub'] !== undefined ? r[idx['hub']] : '').trim().toUpperCase();
+                const hour = String(r[idx['half_hour_bucket']] || '').trim();
+                const fwd = String(r[idx['forward_hub']] || '').trim().toUpperCase();
+                const ship = Number(String(r[idx['total_shipment']] || '').replace(/,/g, ''));
+                if (!date || !hub || !fwd || !hour) return;
+                rows.push({ date: date, hub: hub, hour: hour, fwd: fwd,
+                            ship: isNaN(ship) ? 0 : ship });
+            });
+        }
+        if (!rows.length) throw new Error('The first-mile receiving tab returned no rows.');
+
+        fmRecv = rows;
+        fmLoaded = true;
+
+        const dates = Array.from(new Set(rows.map(function(r){ return r.date; }))).sort();
+        fmDateMin = dates[0];
+        fmDateMax = dates[dates.length - 1];
+        const inp = document.getElementById('fmDate');
+        if (inp){
+            inp.min = fmDateMin;
+            inp.max = fmDateMax;
+        }
+        /* Keep the chosen day across refreshes; otherwise open on the newest day. */
+        if (!fmDate) fmDate = fmDateMax;
+        if (inp) inp.value = fmDate;
+
+        renderFm();
+        setTabStatus('page-fm', 'ok', fmt(rows.length) + ' receiving rows · ' + fmt(dates.length) + ' days');
+    } catch (e) {
+        console.warn('[First Mile] load failed:', e);
+        const msg = (e && e.message) ? e.message : String(e);
+        if (badge){ badge.className = 'badge text-bg-danger'; badge.textContent = 'Load failed'; }
+        setTabStatus('page-fm', 'err', msg);
+        if (!fmRecv.length){
+            ['fmG5Table', 'fmG6Table', 'fmG5DispTable', 'fmG6DispTable'].forEach(function(id){
+                const host = document.getElementById(id);
+                if (!host) return;
+                host.innerHTML = '<div class="text-center text-muted py-4 small">' + esc(msg) +
+                    ' <button class="btn btn-sm btn-outline-secondary mt-2" onclick="loadFmCsv(true)">' +
+                    '<i class="bi bi-arrow-repeat me-1"></i>Retry</button></div>';
+            });
+        }
+    } finally {
+        fmLoading = false;
+    }
+}
+
+function fmExportCsv(){
+    if (!fmLoaded){ showToast('The First Mile sheet is still loading', 'warning'); return; }
+    const lines = [];
+    lines.push([csvCell('First Mile'), csvCell(fmDate)].join(','));
+
+    function block(title, header, body){
+        lines.push('');
+        lines.push([csvCell(title)].join(','));
+        lines.push(header.map(csvCell).join(','));
+        body.forEach(function(r){ lines.push(r.map(csvCell).join(',')); });
+    }
+
+    const flowBlock = function(hub, inSrc){
+        const d = fmRecvFlow(hub, inSrc);
+        const comboTotal = d.inTotal + d.recvTotal;
+        block(hub + ' receiving & inbound (half hour by half hour)',
+            ['Half hour'].concat(d.srcs.map(function(s){ return s + ' in'; }), d.hubs, ['Received', 'Share']),
+            d.list.map(function(o){
+                const combo = o.inShip + o.recv;
+                return [fmSlotLabel(o.slot)]
+                    .concat(d.srcs.map(function(s){ return o.ins[s] || 0; }))
+                    .concat(d.hubs.map(function(f){ return o.cells[f] || 0; }))
+                    .concat([combo, comboTotal ? (combo / comboTotal * 100).toFixed(2) + '%' : '0.00%']);
+            }).concat([['Grand Total']
+                .concat(d.srcs.map(function(s){
+                    return d.list.reduce(function(a, o){ return a + (o.ins[s] || 0); }, 0);
+                }))
+                .concat(d.hubs.map(function(f){
+                    return d.list.reduce(function(s, o){ return s + (o.cells[f] || 0); }, 0);
+                }))
+                .concat([comboTotal, comboTotal ? '100.00%' : '0.00%'])]));
+    };
+    flowBlock('CAI-G5', 'CAI-Z2');
+    flowBlock('CAI-G6', 'CAI-G5');
+
+    ['CAI-G5', 'CAI-G6'].forEach(function(hub){
+        const d = fmDispatchData(hub);
+        block(hub + ' dispatch (by plan hour)', ['Forward hub', 'Plan hour', 'Src gate out',
+            'Dst arrived at dock', 'VAR', 'Total shipments', 'Shipments share'],
+            d.list.map(function(g){
+                return [g.dst, g.plan, fmClock(g.gate), fmClock(g.dock), fmVar(g.dock, g.gate),
+                    g.ship, d.total ? (g.ship / d.total * 100).toFixed(2) + '%' : '0.00%'];
+            }).concat([['Grand Total', '', '', '', '', d.total, d.total ? '100.00%' : '0.00%']]));
+    });
+
+    const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'first_mile_' + (fmDate || 'nodate') + '_' + stamp + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+    showToast('Exported the first-mile tables for ' + fmDateLabel(fmDate));
+}
 
 /* Snapshot for the DOD table: its header is three rows deep (day name,
    date, Plan/Actual/%), which the plain table-to-canvas renderer cannot
