@@ -682,16 +682,19 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
     .wr-pdd thead th.wr-pdd-tot { color: #FEEE00; border-left: 2px solid #4A4A44; }
     /* Two-row header: the group cell (Current hub) sits above the hub codes. */
     .wr-pdd thead tr:first-child th.wr-pdd-grp { border-bottom: 1px solid #4A4A44; letter-spacing: .8px; }
-    /* First Mile — the hour-by-hour receiving table that carries both the
-       inbound truck hour and the forward-hub sort in one row. */
-    .fm-legend { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; font-size: .7rem; color: #6B6549; }
-    .fm-legend span { display: inline-flex; align-items: center; gap: 6px; }
-    .fm-legend b { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
-    .fm-flow { display: flex; align-items: center; gap: 2px; height: 10px; min-width: 120px; }
-    .fm-flow i { display: block; height: 100%; border-radius: 3px; }
-    .fm-flow .fm-in { background: #f59e0b; }
-    .fm-flow .fm-out { background: #2563eb; }
+    /* First Mile — the half-hour receiving table, forward hub by forward hub. */
     .wr-pdd td.fm-hour { font-family: var(--font-num); font-weight: 700; }
+    /* All four First Mile tables share one alignment: label left, numbers centred. */
+    /* One shared grid: the columns take the width their content needs and the
+       table stays as wide as those columns — it never stretches across the
+       card, and it is anchored to the card's left edge. */
+    .wr-pdd.fm-align { width: auto; max-width: 100%; margin: 0; table-layout: fixed; }
+    .wr-pdd.fm-align thead th { white-space: normal; line-height: 1.12; padding-left: 6px; padding-right: 6px; overflow-wrap: normal; }
+    .wr-pdd.fm-align th, .wr-pdd.fm-align td { text-align: center; font-variant-numeric: tabular-nums; }
+    .wr-pdd.fm-align th:first-child, .wr-pdd.fm-align td:first-child { text-align: left; }
+    .wr-pdd.fm-align thead th:first-child { min-width: 104px; }
+    /* Reserve the scrollbar in all four cards so the tables line up exactly. */
+    #fmG5RecvTable, #fmG6RecvTable, #fmG5DispTable, #fmG6DispTable { scrollbar-gutter: stable; }
     /* Two-up PDD cards — one shared column grid (colgroup below) so the two
        cards in a row line up column for column, with roomier cells, centred
        counts and a calm zebra. */
@@ -1710,7 +1713,11 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                                 <label class="form-label text-muted mb-1" for="mmHubSel">Current Hub</label>
                                 <select id="mmHubSel" class="form-select" multiple></select>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearMmFilters()" title="Show every shipment type and current hub again"><i class="bi bi-x-circle me-1"></i>Clear</button>
+                            <div class="mm-filter-field">
+                                <label class="form-label text-muted mb-1" for="mmFlagSel">Flag</label>
+                                <select id="mmFlagSel" class="form-select" multiple></select>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearMmFilters()" title="Show every shipment type, current hub and flag again"><i class="bi bi-x-circle me-1"></i>Clear</button>
                         </div>
                         <div class="small text-muted mt-2" id="mmFilterNote"></div>
                     </div>
@@ -2669,11 +2676,11 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
             <div class="page-strip">
                 <div>
                     <div class="k"><i class="bi bi-truck-front"></i>First Mile</div>
-                    <div class="d">One table per gateway, one row per half hour: the trucks that reached the dock (Z2 → G5, G5 → G6) beside the volume that gateway received and sorted by forward hub — plus the LH dispatch wave behind it, grouped by plan hour from CT plan time to gate-out and dock arrival.</div>
+                    <div class="d">Two gateway blocks, each with its own receiving table (half hour, received, share) followed by its LH dispatch trips, one row per trip code — CAI-G5 first, then CAI-G6 with everything G1-bound.</div>
                 </div>
                 <div class="strip-actions">
                     <span class="m">FIRST MILE · G5 / G6</span>
-                    <button type="button" class="btn ct-act" onclick="fmExportCsv()" title="Export the four first-mile blocks for the selected date as CSV"><i class="bi bi-download"></i>Export CSV</button>
+                    <button type="button" class="btn ct-act" onclick="fmExportCsv()" title="Export the receiving table and both dispatch tables for the selected date as CSV"><i class="bi bi-download"></i>Export CSV</button>
                     <button type="button" class="btn ct-act ct-act-primary" onclick="tabRefresh('fm')" title="Reload the first-mile receiving sheet"><i class="bi bi-arrow-clockwise"></i>Refresh</button>
                 </div>
             </div>
@@ -2692,58 +2699,66 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 
             <div class="card p-3 border-0 shadow-sm mb-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <h6 class="fw-bold m-0"><i class="bi bi-box-arrow-in-down me-2 text-primary"></i>G5 receiving &amp; inbound — half hour by half hour
-                        <span class="badge text-bg-light border ms-1">CAI-Z2 / CAI-G6 → CAI-G5 → hubs</span></h6>
-                    <span class="small text-muted" id="fmG5Note">—</span>
+                    <h6 class="fw-bold m-0"><i class="bi bi-box-arrow-in-down me-2 text-primary"></i>G5 receiving — half hour by half hour
+                        <span class="badge text-bg-light border ms-1">CAI-G5</span></h6>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="small text-muted" id="fmG5RecvNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('fmG5RecvTable','First Mile — G5 receiving','fm_g5_receiving')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
                 </div>
-                <div class="fm-legend mb-2">
-                    <span><b style="background:#f59e0b"></b>Z2 in / G6 in — trips from CAI-Z2 and from the CAI-G6 transfer that reached the G5 dock in that half hour</span>
-                    <span><b style="background:#2563eb"></b>Received — the slot's grand total: inbound plus the receiving sheet's volume, split by forward hub</span>
-                </div>
-                <div style="overflow-x:auto;max-height:560px" id="fmG5Table"></div>
+                <div style="overflow-x:auto;max-height:420px" id="fmG5RecvTable"></div>
                 <div class="small text-muted mt-2">
-                    <i class="bi bi-signpost-split me-1"></i>One row per half hour: what came in from <strong>CAI-Z2</strong> and from <strong>CAI-G6</strong> (<code>Dst_Arrived_at_Dock_ts</code>, <code>count_of_shipment</code>), then what G5 received and sorted by forward hub — every hub rolls into <strong>CAI-G1</strong> except <strong>CAI-A2</strong>, <strong>CAI-A8</strong>, <strong>CAI-C4</strong> and <strong>CAI-C6</strong>.
-                    <strong>Received</strong> is the slot's grand total — inbound from <strong>CAI-Z2</strong> plus the <strong>CAI-G6</strong> transfer plus what G5 received and sorted by forward hub — <strong>Share</strong> its slice of the G5 day; the bar compares inbound (amber) against that total (blue).
+                    <i class="bi bi-signpost-split me-1"></i>Straight from the receiving sheet, one row per half hour, oldest first: the total received at <strong>CAI-G5</strong> in that slot, with no inbound-trip volume added.
+                    <strong>Share</strong> is the row's slice of G5's day.
                 </div>
             </div>
 
             <div class="card p-3 border-0 shadow-sm mb-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <h6 class="fw-bold m-0"><i class="bi bi-box-arrow-in-down me-2 text-primary"></i>G6 receiving &amp; inbound — half hour by half hour
-                        <span class="badge text-bg-light border ms-1">CAI-G5 → CAI-G6 → CAI-G1</span></h6>
-                    <span class="small text-muted" id="fmG6Note">—</span>
-                </div>
-                <div class="fm-legend mb-2">
-                    <span><b style="background:#f59e0b"></b>G5 in — trucks that reached the G6 dock in that half hour</span>
-                    <span><b style="background:#2563eb"></b>Received — every G6 forward hub rolls into CAI-G1</span>
-                </div>
-                <div style="overflow-x:auto;max-height:560px" id="fmG6Table"></div>
-                <div class="small text-muted mt-2">
-                    <i class="bi bi-signpost-split me-1"></i>Same layout for G6: the arrivals from <strong>CAI-G5</strong> on the left, the receiving volume on the right — <strong>every</strong> G6 forward hub rolls into <strong>CAI-G1</strong>.
-                </div>
-            </div>
-
-            <div class="card p-3 border-0 shadow-sm mb-4">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>G5 dispatch — LH trips by plan hour</h6>
-                    <span class="small text-muted" id="fmG5DispNote">—</span>
+                    <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>G5 dispatch — LH trips by code</h6>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="small text-muted" id="fmG5DispNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('fmG5DispTable','First Mile — G5 dispatch','fm_g5_dispatch')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
                 </div>
                 <div style="overflow-x:auto;max-height:560px" id="fmG5DispTable"></div>
                 <div class="small text-muted mt-2">
-                    <i class="bi bi-clock-history me-1"></i>Every trip whose source is <strong>CAI-G5</strong> — the forward hubs, the <strong>CAI-A4</strong> lane and the <strong>CAI-G6</strong> internal transfer — grouped by forward hub and the hour of <code>CT_plan_time</code> (21:00 and 21:30 land in the 21:00 row).
-                    Ad-hoc runs keep their own row as <strong>Extra</strong> or <strong>(no plan)</strong>. <strong>VAR</strong> = <code>Dst_Arrived_at_Dock_ts</code> − <code>Src_gate_out_ts</code>; <strong>Shipments share</strong> = row ÷ this table's total.
+                    <i class="bi bi-clock-history me-1"></i>One row per <code>trip_code</code> — each trip keeps its own <code>CT_plan_time</code> and shipment count, so nothing is summed across trips.
+                    Only trips whose source is <strong>CAI-G5</strong> and whose destination is <strong>CAI-G1</strong> or <strong>CAI-G6</strong> are listed
+                    (the direct A2 / A8 / C4 / C6 lanes and the CAI-A4 lane are hidden).
+                    Ad-hoc runs keep their own row as <strong>Extra</strong> or <strong>(no plan)</strong> at the bottom. <strong>VAR</strong> = <code>Dst_Arrived_at_Dock_ts</code> − <code>Src_gate_out_ts</code>; <strong>Share</strong> = row ÷ this table's total.
                 </div>
             </div>
 
             <div class="card p-3 border-0 shadow-sm mb-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>G6 dispatch — LH trips by plan hour</h6>
-                    <span class="small text-muted" id="fmG6DispNote">—</span>
+                    <h6 class="fw-bold m-0"><i class="bi bi-box-arrow-in-down me-2 text-primary"></i>G6 receiving — half hour, all to CAI-G1
+                        <span class="badge text-bg-light border ms-1">CAI-G6 → CAI-G1</span></h6>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="small text-muted" id="fmG6RecvNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('fmG6RecvTable','First Mile — G6 receiving','fm_g6_receiving')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto;max-height:420px" id="fmG6RecvTable"></div>
+                <div class="small text-muted mt-2">
+                    <i class="bi bi-signpost-split me-1"></i>Every G6 lane rolls into <strong>CAI-G1</strong>, so each half hour carries one received figure — the whole of G6's receiving, already G1-bound.
+                    <strong>Share</strong> is the row's slice of G6's day.
+                </div>
+            </div>
+
+            <div class="card p-3 border-0 shadow-sm mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold m-0"><i class="bi bi-truck me-2 text-primary"></i>G6 dispatch — LH trips by code</h6>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="small text-muted" id="fmG6DispNote">—</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="pdSnapTable('fmG6DispTable','First Mile — G6 dispatch','fm_g6_dispatch')" title="Copy this table as a PNG image"><i class="bi bi-camera me-1"></i>Snap</button>
+                    </div>
                 </div>
                 <div style="overflow-x:auto;max-height:560px" id="fmG6DispTable"></div>
                 <div class="small text-muted mt-2">
-                    <i class="bi bi-clock-history me-1"></i>Every trip whose source is <strong>CAI-G6</strong> — <strong>CAI-G1</strong> and the <strong>CAI-G5</strong> internal transfer — grouped by forward hub and the hour of <code>CT_plan_time</code>.
-                    <strong>VAR</strong> = <code>Dst_Arrived_at_Dock_ts</code> − <code>Src_gate_out_ts</code>; <strong>Shipments share</strong> = row ÷ this table's total.
+                    <i class="bi bi-clock-history me-1"></i>One row per <code>trip_code</code>, each with its own plan time and shipment count — no plan-hour summing.
+                    Only trips whose source is <strong>CAI-G6</strong> and whose destination is <strong>CAI-G1</strong> or <strong>CAI-G5</strong> are listed.
+                    <strong>VAR</strong> = <code>Dst_Arrived_at_Dock_ts</code> − <code>Src_gate_out_ts</code>; <strong>Share</strong> = row ÷ this table's total.
                 </div>
             </div>
         </div>
@@ -2880,12 +2895,12 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                         <div class="sub" id="lodTrendTotalSub">in the window</div>
                     </div></div>
                     <div class="col-6 col-md-3"><div class="kpi-mini">
-                        <div class="lbl">Peak day</div>
+                        <div class="lbl">Most day</div>
                         <div class="val" id="lodTrendPeak">—</div>
                         <div class="sub" id="lodTrendPeakSub">highest breach count</div>
                     </div></div>
                     <div class="col-6 col-md-3"><div class="kpi-mini">
-                        <div class="lbl">Peak share</div>
+                        <div class="lbl">Share</div>
                         <div class="val text-danger" id="lodTrendPeakShare">—</div>
                         <div class="sub">of the window's breaches</div>
                     </div></div>
@@ -5292,6 +5307,13 @@ function pdTableToCanvas(table, title){
                    /\btable-light\b/.test(tr.className)
         };
     });
+    /* Footer rows (Grand Total / Overall) live in tfoot, so add them after the
+       body rows — a snapshot without its total is not worth sending. */
+    if (table.tFoot){
+        Array.from(table.tFoot.rows).forEach(function(tr){
+            shown.push({ cells: Array.from(tr.cells).map(cellText), total: true });
+        });
+    }
     /* A column whose cells are numbers reads better right-aligned. */
     const isNum = head.map(function(_, i){
         let num = 0, seen = 0;
@@ -9778,8 +9800,8 @@ function renderMpGrid(rows, dayCols){
    The summary tab reproduces the ops pivots — Facility, shipment
    type, receiving aging, last-scan aging and Flag - for the date
    picked in the dropdown, each with its count, share of that
-   snapshot and a Grand Total row, plus a KPI strip. Facility and
-   Shipment Type chips narrow every pivot and the overdue tab.
+   snapshot and a Grand Total row, plus a KPI strip. Shipment Type,
+   Current Hub and Flag chips narrow every pivot and the overdue tab.
    The overdue tab lists shipments whose PDD is already behind the
    snapshot date (should have shipped, still pending) with their
    flag, feedback and days late.
@@ -9789,6 +9811,7 @@ const MM_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPk
 let mmRows = [], mmDates = [], mmDate = '', mmLoaded = false, mmLoading = false;
 let mmTypeSel = new Set();   // empty set = every shipment type
 let mmHubSel = new Set();    // empty set = every current hub
+let mmFlagSel = new Set();   // empty set = every flag
 
 function mmSoft(v){
     return String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
@@ -9852,26 +9875,33 @@ function mmDateRows(){
     return mmRows.filter(function(r){ return r.date === mmDate; });
 }
 function mmBaseRows(){
-    const rows = mmDateRows();
-    const typed = mmTypeSel.size ? rows.filter(function(r){ return mmTypeSel.has(r.type); }) : rows;
-    if (!mmHubSel.size) return typed;
-    return typed.filter(function(r){ return mmHubSel.has(r.hub); });
+    let rows = mmDateRows();
+    if (mmTypeSel.size) rows = rows.filter(function(r){ return mmTypeSel.has(r.type); });
+    if (mmHubSel.size)  rows = rows.filter(function(r){ return mmHubSel.has(r.hub); });
+    if (mmFlagSel.size) rows = rows.filter(function(r){ return mmFlagSel.has(r.flag); });
+    return rows;
 }
 
 /* ---- Shipment-type filter: one checkbox dropdown (the shared mcs widget) ----
    No selection means every type, so the button reads "All (8)". The count
    beside a value is how many rows it would return on this snapshot. */
+/* Count each facet against the other active filters, not the whole snapshot. */
+function mmFacetRows(skip){
+    return mmDateRows().filter(function(r){
+        if (skip !== 'type' && mmTypeSel.size && !mmTypeSel.has(r.type)) return false;
+        if (skip !== 'hub'  && mmHubSel.size  && !mmHubSel.has(r.hub))  return false;
+        if (skip !== 'flag' && mmFlagSel.size && !mmFlagSel.has(r.flag)) return false;
+        return true;
+    });
+}
 function mmTypeFacetCount(value){
-    const rows = mmHubSel.size
-        ? mmDateRows().filter(function(r){ return mmHubSel.has(r.hub); })
-        : mmDateRows();
-    return rows.reduce(function(n, r){ return n + (r.type === value ? 1 : 0); }, 0);
+    return mmFacetRows('type').reduce(function(n, r){ return n + (r.type === value ? 1 : 0); }, 0);
 }
 function mmHubFacetCount(value){
-    const rows = mmTypeSel.size
-        ? mmDateRows().filter(function(r){ return mmTypeSel.has(r.type); })
-        : mmDateRows();
-    return rows.reduce(function(n, r){ return n + (r.hub === value ? 1 : 0); }, 0);
+    return mmFacetRows('hub').reduce(function(n, r){ return n + (r.hub === value ? 1 : 0); }, 0);
+}
+function mmFlagFacetCount(value){
+    return mmFacetRows('flag').reduce(function(n, r){ return n + (r.flag === value ? 1 : 0); }, 0);
 }
 function mmSyncTypeSel(){
     const sel = document.getElementById('mmTypeSel');
@@ -9884,6 +9914,13 @@ function mmSyncHubSel(){
     const sel = document.getElementById('mmHubSel');
     if (!sel) return;
     mmHubSel = new Set(Array.prototype.slice.call(sel.options)
+        .filter(function(o){ return o.selected; })
+        .map(function(o){ return o.value; }));
+}
+function mmSyncFlagSel(){
+    const sel = document.getElementById('mmFlagSel');
+    if (!sel) return;
+    mmFlagSel = new Set(Array.prototype.slice.call(sel.options)
         .filter(function(o){ return o.selected; })
         .map(function(o){ return o.value; }));
 }
@@ -9918,19 +9955,22 @@ function renderMmTypeFilter(dateRows){
     }
     mmSyncTypeSel();
 
-    /* The hub dropdown mirrors the type one, so a single current hub can be
-       read across every pivot (and the type × update aging table). */
+    /* The hub and flag dropdowns mirror the type one, so a single current hub
+       or a single flag can be read across every pivot (and the type × update
+       aging table). */
     renderMmHubFilter(dateRows);
+    renderMmFlagFilter(dateRows);
 
     const note = document.getElementById('mmFilterNote');
     if (note) {
         const bits = [];
         if (mmTypeSel.size) bits.push('Shipment type: ' + Array.from(mmTypeSel).join(', '));
         if (mmHubSel.size) bits.push('Current hub: ' + Array.from(mmHubSel).join(', '));
+        if (mmFlagSel.size) bits.push('Flag: ' + Array.from(mmFlagSel).join(', '));
         note.textContent = bits.length
             ? bits.join(' · ') + ' · ' + fmt(mmBaseRows().length) + ' of ' +
               fmt(dateRows.length) + ' pending.'
-            : 'Showing every shipment type and current hub · ' + fmt(dateRows.length) + ' pending.';
+            : 'Showing every shipment type, current hub and flag · ' + fmt(dateRows.length) + ' pending.';
     }
 }
 function renderMmHubFilter(dateRows){
@@ -9961,8 +10001,36 @@ function renderMmHubFilter(dateRows){
     }
     mmSyncHubSel();
 }
+function renderMmFlagFilter(dateRows){
+    const sel = document.getElementById('mmFlagSel');
+    if (!sel) return;
+
+    const counts = new Map();
+    dateRows.forEach(function(r){ counts.set(r.flag, (counts.get(r.flag) || 0) + 1); });
+    const values = Array.from(counts.keys()).sort(function(a, b){
+        return (counts.get(b) - counts.get(a)) || String(a).localeCompare(String(b));
+    });
+    const key = values.join('\u0001');
+    if (sel.getAttribute('data-mm-key') !== key) {
+        const keep = new Set(Array.prototype.slice.call(sel.options)
+            .filter(function(o){ return o.selected; })
+            .map(function(o){ return o.value; }));
+        sel.innerHTML = values.map(function(v){
+            return '<option value="' + esc(v) + '">' + esc(v) + '</option>';
+        }).join('');
+        Array.prototype.forEach.call(sel.options, function(o){ o.selected = keep.has(o.value); });
+        sel.setAttribute('data-mm-key', key);
+    }
+
+    if (!sel.__mcs) {
+        mcsInit(sel, function(){ mmSyncFlagSel(); renderMmPendency(); }, mmFlagFacetCount);
+    } else {
+        mcsSync(sel);
+    }
+    mmSyncFlagSel();
+}
 function clearMmFilters(){
-    ['mmTypeSel', 'mmHubSel'].forEach(function(id){
+    ['mmTypeSel', 'mmHubSel', 'mmFlagSel'].forEach(function(id){
         const sel = document.getElementById(id);
         if (!sel) return;
         Array.prototype.forEach.call(sel.options, function(o){ o.selected = false; });
@@ -9970,6 +10038,7 @@ function clearMmFilters(){
     });
     mmTypeSel = new Set();
     mmHubSel = new Set();
+    mmFlagSel = new Set();
     renderMmPendency();
 }
 
@@ -13337,25 +13406,19 @@ function lodTrendExportCsv(){
    Receiving sheet: two side-by-side blocks in one tab —
      A–E  date_rec · hub · half_hour_bucket · forward_hub · total_shipment
      I–M  the same five columns for the other hub
-   Forward-hub rule:
-     G5  -> everything rolls into CAI-G1 except A2 / A8 / C4 / C6
-     G6  -> everything rolls into CAI-G1
-   Dispatch tables read the already-loaded LH trips (rawTrips): source
-   hub G5 / G6, grouped by forward hub and CT_plan_time.
+   Each gateway gets its own receiving table (half hour, received, share);
+   G6 is entirely G1-bound. Dispatch tables read the already-loaded LH trips
+   (rawTrips): source hub G5 / G6, destination G1 / G5 / G6, grouped by the
+   hour of CT_plan_time.
    ================================================================ */
 const FM_RECV_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvckzrYPkGotOeRMZBU2avSA1DldD41Qj_ZoX8tIb0JafSLerh9ScmlSjv8oTHCn4UeYwSlxeybB/pub?gid=2104183324&single=true&output=csv';
 
-const FM_G5_DIRECT = ['CAI-A2', 'CAI-A8', 'CAI-C4', 'CAI-C6'];
+/* Dispatch shows the gateway legs only: the G1 mainline and the G5 / G6
+   internal transfers. Every other forward hub is off this page. */
+const FM_DISP_DSTS = ['CAI-G1', 'CAI-G5', 'CAI-G6'];
 
 let fmRecv = [], fmLoaded = false, fmLoading = false;
 let fmDate = '', fmDateMin = '', fmDateMax = '';
-
-/* G5: only the four direct hubs survive; everything else lands at G1. */
-function fmG5Fwd(fwd){
-    return FM_G5_DIRECT.indexOf(fwd) >= 0 ? fwd : 'CAI-G1';
-}
-/* G6: every forward hub lands at G1. */
-function fmG6Fwd(){ return 'CAI-G1'; }
 
 /* Half-hour slots come as "02:30 PM to 03:00 PM". Rank them on the clock;
    slots after midnight (12:00 AM) sort last, not first. */
@@ -13390,42 +13453,47 @@ function fmPlanRank(plan){
 }
 
 /* ---------- dispatch tables (LH trips) ----------
-   Every trip out of the gateway — the standard forward hubs, the CAI-A4
-   lane and the G5 ↔ G6 internal transfers alike — grouped by forward hub
-   and the hour of its CT_plan_time. Ad-hoc runs carry "Extra" or no plan
-   time and keep a row of their own. */
+   One row per trip code, never a plan-hour roll-up: each trip keeps its own
+   CT_plan_time and shipment count, so nothing is summed across trips. Only
+   trips that end at a gateway are shown (CAI-G1 / CAI-G5 / CAI-G6); the direct
+   forward-hub lanes (A2 / A8 / C4 / C6) and the CAI-A4 lane are left out.
+   Ad-hoc runs carry "Extra" or no plan time and sort to the bottom. */
 function fmDispatchData(hub){
     const trips = (typeof rawTrips !== 'undefined' && rawTrips) ? rawTrips : [];
     const dayTrips = trips.filter(function(t){ return t && t.dateKey === fmDate; });
-    const groups = {};
-    let noPlan = 0;
+    const list = [];
+    let noPlan = 0, excluded = 0, excludedTrips = 0;
     dayTrips.forEach(function(t){
         if (String(t.srcHub || '').trim() !== hub) return;
         const dst = String(t.dstHub || '').trim() || '(blank)';
+        if (FM_DISP_DSTS.indexOf(dst) < 0){
+            excluded += Number(t.shipments) || 0;
+            excludedTrips++;
+            return;
+        }
         const raw = String(t.ctPlanRaw || '').trim();
         let plan;
         const m = raw.match(/^(\d{1,2}):(\d{2})/);
-        if (m) plan = ('0' + m[1]).slice(-2) + ':00';      /* 21:30 → 21:00 */
+        if (m) plan = ('0' + m[1]).slice(-2) + ':' + m[2];
         else if (raw) plan = raw;
         else { plan = '(no plan)'; noPlan++; }
-        const k = dst + '\u0000' + plan;
-        let g = groups[k];
-        if (!g){
-            g = groups[k] = { dst: dst, plan: plan, ship: 0, trips: 0, gate: null, dock: null };
-        }
-        g.ship += Number(t.shipments) || 0;
-        g.trips++;
-        if (t.srcGateOut instanceof Date && !isNaN(t.srcGateOut) &&
-            (!g.gate || t.srcGateOut < g.gate)) g.gate = t.srcGateOut;
-        if (t.dstDock instanceof Date && !isNaN(t.dstDock) &&
-            (!g.dock || t.dstDock > g.dock)) g.dock = t.dstDock;
+        list.push({
+            code: String(t.tripCode || '').trim() || String(t.tripId || '').trim() || '(no code)',
+            dst: dst,
+            plan: plan,
+            ship: Number(t.shipments) || 0,
+            gate: t.srcGateOut,
+            dock: t.dstDock
+        });
     });
-    const list = Object.keys(groups).map(function(k){ return groups[k]; }).sort(function(a, b){
+    list.sort(function(a, b){
         return (fmPlanRank(a.plan) - fmPlanRank(b.plan)) ||
-            String(a.dst).localeCompare(String(b.dst), undefined, { numeric: true });
+            String(a.dst).localeCompare(String(b.dst), undefined, { numeric: true }) ||
+            String(a.code).localeCompare(String(b.code), undefined, { numeric: true });
     });
     const total = list.reduce(function(s, g){ return s + g.ship; }, 0);
     return { list: list, total: total, noPlan: noPlan,
+             excluded: excluded, excludedTrips: excludedTrips,
              dayTrips: dayTrips.length, tripsLoaded: trips.length };
 }
 
@@ -13440,25 +13508,28 @@ function fmDispatchTable(hub, hostId, noteId){
         return;
     }
     if (!d.list.length){
-        host.innerHTML = '<div class="text-center text-muted py-4 small">No planned LH dispatch from ' + esc(hub) +
-            ' on ' + esc(fmDateLabel(fmDate)) + '.</div>';
+        host.innerHTML = '<div class="text-center text-muted py-4 small">No LH dispatch from ' + esc(hub) +
+            ' to CAI-G1, CAI-G5 or CAI-G6 on ' + esc(fmDateLabel(fmDate)) + '.</div>';
         if (note) note.textContent = '—';
         return;
     }
 
-    let head = '<thead><tr><th>Forward hub</th><th>Plan hour</th><th>Src gate out</th>' +
-        '<th>Dst arrived at dock</th><th>VAR</th><th class="wr-pdd-tot">Total shipments</th>' +
-        '<th class="wr-pdd-tot">Shipments share</th></tr></thead>';
+    let head = '<colgroup><col style="width:150px"><col style="width:115px"><col style="width:85px">' +
+        '<col style="width:110px"><col style="width:160px"><col style="width:60px">' +
+        '<col style="width:105px"><col style="width:90px"></colgroup>' +
+        '<thead><tr><th>Trip code</th><th>Forward hub</th><th>Plan time</th><th>Src gate out</th>' +
+        '<th>Dst arrived at dock</th><th>VAR</th><th class="wr-pdd-tot">Shipments</th>' +
+        '<th class="wr-pdd-tot">Share</th></tr></thead>';
 
     let body = '<tbody>';
     d.list.forEach(function(g){
         const share = d.total ? (g.ship / d.total * 100) : 0;
-        const tripTip = g.trips + ' trip' + (g.trips === 1 ? '' : 's') + ' in this hour';
         body += '<tr>' +
+            '<td title="trip_code">' + esc(g.code) + '</td>' +
             '<td>' + esc(g.dst) + '</td>' +
-            '<td title="CT plan time, rolled up to the hour">' + esc(g.plan) + '</td>' +
-            '<td title="' + esc(tripTip) + '">' + esc(fmClock(g.gate) || '—') + '</td>' +
-            '<td title="' + esc(tripTip) + '">' + esc(fmClock(g.dock) || '—') + '</td>' +
+            '<td title="CT_plan_time">' + esc(g.plan) + '</td>' +
+            '<td>' + esc(fmClock(g.gate) || '—') + '</td>' +
+            '<td>' + esc(fmClock(g.dock) || '—') + '</td>' +
             '<td>' + esc(fmVar(g.dock, g.gate) || '—') + '</td>' +
             '<td class="wr-pdd-tot">' + fmt(g.ship) + '</td>' +
             '<td class="wr-pdd-tot">' + share.toFixed(2) + '%</td>' +
@@ -13466,21 +13537,23 @@ function fmDispatchTable(hub, hostId, noteId){
     });
     body += '</tbody>';
 
-    const foot = '<tfoot><tr><td>Grand Total</td><td></td><td></td><td></td><td></td>' +
+    const foot = '<tfoot><tr><td>Grand Total</td><td></td><td></td><td></td><td></td><td></td>' +
         '<td class="wr-pdd-tot">' + fmt(d.total) + '</td>' +
         '<td class="wr-pdd-tot">' + (d.total ? '100.00%' : '0.00%') + '</td></tr></tfoot>';
 
-    host.innerHTML = '<table class="wr-pdd">' + head + body + foot + '</table>';
+    host.innerHTML = '<table class="wr-pdd fm-align">' + head + body + foot + '</table>';
     if (note){
-        note.textContent = fmt(d.list.length) + ' hub-hours · ' + fmt(d.total) + ' shipments' +
+        note.textContent = fmt(d.list.length) + ' trip' + (d.list.length === 1 ? '' : 's') + ' · ' +
+            fmt(d.total) + ' shipments' +
+            (d.excluded ? ' · ' + fmt(d.excluded) + ' to other hubs hidden' : '') +
             (d.noPlan ? ' · ' + fmt(d.noPlan) + ' run' + (d.noPlan === 1 ? '' : 's') + ' without CT plan' : '');
     }
 }
 
-/* ---------- receiving + inbound, one table, one row per half hour ----------
-   Each row carries both sides of the slot: the truck volume that reached
-   the dock (LH trip sheet) and what the hub received and sorted by forward
-   hub (receiving sheet). Rows cover every slot either gateway worked. */
+/* ---------- receiving, one table per gateway, one row per half hour ----------
+   Straight from the receiving sheet: the slot's total received volume and its
+   share of that gateway's day. G6 is always G1-bound, so its table carries a
+   single G1 column. No trip/inbound volume is mixed in. */
 function fmSlotOf(minutes){
     const m = ((Math.round(minutes) % 1440) + 1440) % 1440;
     return Math.floor(m / 30);
@@ -13489,136 +13562,60 @@ function fmSlotLabel(slot){
     const m = slot * 30;
     return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2);
 }
-function fmRecvFlow(hub, inSrc){
-    const isG6 = hub === 'CAI-G6';
-    const fwd = isG6 ? fmG6Fwd : fmG5Fwd;
-    const hubs = isG6 ? ['CAI-G1']
-        : ['CAI-G1', 'CAI-A2', 'CAI-A8', 'CAI-C4', 'CAI-C6'];
-    /* A gateway can be fed by more than one source: G5 takes the CAI-Z2 line
-       haul as well as the CAI-G6 internal transfer. */
-    const srcs = (Array.isArray(inSrc) ? inSrc : [inSrc]).filter(Boolean);
+function fmRecvFlow(hub){
     const bySlot = {};
-    const mk = function(s){
-        return bySlot[s] || (bySlot[s] = { slot: s, inShip: 0, inTrips: 0, recv: 0, cells: {}, ins: {} });
-    };
-
     fmRecv.forEach(function(r){
-        if (r.date !== fmDate) return;
+        if (r.date !== fmDate || r.hub !== hub) return;
         const s = fmSlotOf(fmHourStart(r.hour));
-        const g = mk(s);
-        if (r.hub !== hub) return;
-        const f = fwd(r.fwd);
-        g.cells[f] = (g.cells[f] || 0) + r.ship;
+        const g = bySlot[s] || (bySlot[s] = { slot: s, recv: 0 });
         g.recv += r.ship;
     });
-
-    const trips = (typeof rawTrips !== 'undefined' && rawTrips) ? rawTrips : [];
-    let inTrips = 0, noDock = 0;
-    trips.forEach(function(t){
-        if (!t || t.dateKey !== fmDate) return;
-        const src = String(t.srcHub || '').trim();
-        if (srcs.length && srcs.indexOf(src) < 0) return;
-        if (String(t.dstHub || '').trim() !== hub) return;
-        inTrips++;
-        const dock = t.dstDock;
-        if (!(dock instanceof Date) || isNaN(dock)){ noDock++; return; }
-        const g = mk(fmSlotOf(dock.getHours() * 60 + dock.getMinutes()));
-        const ship = Number(t.shipments) || 0;
-        g.inShip += ship;
-        g.ins[src] = (g.ins[src] || 0) + ship;
-        g.inTrips++;
-    });
-
     const list = Object.keys(bySlot).map(function(s){ return bySlot[s]; })
         .sort(function(a, b){ return a.slot - b.slot; });
-    const recvTotal = list.reduce(function(s, o){ return s + o.recv; }, 0);
-    const inTotal = list.reduce(function(s, o){ return s + o.inShip; }, 0);
-    const max = list.reduce(function(m, o){ return Math.max(m, o.recv, o.inShip); }, 1);
-    return { list: list, hubs: hubs, srcs: srcs, recvTotal: recvTotal, inTotal: inTotal,
-             inTrips: inTrips, noDock: noDock, max: max,
-             tripsLoaded: trips.length };
+    const total = list.reduce(function(s, o){ return s + o.recv; }, 0);
+    return { hub: hub, list: list, total: total };
 }
 
-function fmRecvFlowTable(hub, hostId, noteId, inSrc){
+function fmRecvFlowTable(hub, hostId, noteId){
     const host = document.getElementById(hostId);
     if (!host) return;
     const note = document.getElementById(noteId);
-    const d = fmRecvFlow(hub, inSrc);
-    if (!d.tripsLoaded && !d.list.length){
-        host.innerHTML = '<div class="text-center text-muted py-4 small">The LH trips and receiving sheets are still loading…</div>';
+    const d = fmRecvFlow(hub);
+    const isG6 = hub === 'CAI-G6';
+    if (!fmLoaded && !d.list.length){
+        host.innerHTML = '<div class="text-center text-muted py-4 small">The receiving sheet is still loading…</div>';
         if (note) note.textContent = '—';
         return;
     }
     if (!d.list.length){
-        host.innerHTML = '<div class="text-center text-muted py-4 small">Nothing arrived or was received at ' +
-            esc(hub) + ' on ' + esc(fmDateLabel(fmDate)) + '.</div>';
+        host.innerHTML = '<div class="text-center text-muted py-4 small">Nothing was received at ' + esc(hub) +
+            ' on ' + esc(fmDateLabel(fmDate)) + '.</div>';
         if (note) note.textContent = '—';
         return;
     }
 
-    const srcLabels = d.srcs.map(function(s){ return s.replace('CAI-', '') + ' in'; });
-    const inLabel = srcLabels.join(' + ');
-    /* Received = the slot's grand total: trucks in from the source gateway plus
-       everything this gateway received and sorted by forward hub. */
-    const comboTotal = d.inTotal + d.recvTotal;
-    const pct = function(v){ return d.max ? Math.min(100, v / d.max * 100) : 0; };
-
-    let head = '<thead><tr><th rowspan="2" style="text-align:left">Half hour</th>' +
-        '<th class="wr-pdd-grp" colspan="' + Math.max(1, srcLabels.length) + '">Inbound</th>' +
-        '<th class="wr-pdd-grp" colspan="' + d.hubs.length + '">Receiving by forward hub</th>' +
-        '<th rowspan="2" class="wr-pdd-tot">Received</th>' +
-        '<th rowspan="2" class="wr-pdd-tot">Share</th>' +
-        '<th rowspan="2">Volume</th></tr><tr>';
-    srcLabels.forEach(function(l){
-        head += '<th>' + esc(l) + '</th>';
-    });
-    d.hubs.forEach(function(f){
-        head += '<th>' + esc(f === 'CAI-G1' ? 'G1 (rolled)' : f.replace('CAI-', '')) + '</th>';
-    });
-    head += '</tr></thead>';
+    const dash = '<span class="text-muted">–</span>';
+    const head = '<colgroup><col style="width:150px"><col style="width:130px"><col style="width:110px"></colgroup>' +
+        '<thead><tr><th>Half hour</th><th class="wr-pdd-tot">' + (isG6 ? 'G1 (all)' : 'Received') +
+        '</th><th class="wr-pdd-tot">Share</th></tr></thead>';
 
     let body = '<tbody>';
     d.list.forEach(function(o){
-        const combo = o.inShip + o.recv;
-        const share = comboTotal ? (combo / comboTotal * 100) : 0;
-        body += '<tr><td class="fm-hour">' + fmSlotLabel(o.slot) + '</td>';
-        d.srcs.forEach(function(s){
-            const v = o.ins[s] || 0;
-            body += v ? '<td>' + fmt(v) + '</td>' : '<td><span class="text-muted">–</span></td>';
-        });
-        d.hubs.forEach(function(f){
-            const v = o.cells[f] || 0;
-            body += v ? '<td>' + fmt(v) + '</td>' : '<td><span class="text-muted">–</span></td>';
-        });
-        body += '<td class="wr-pdd-tot">' +
-            (combo ? fmt(combo) : '<span class="text-muted">–</span>') + '</td>' +
-            '<td class="wr-pdd-tot">' + (combo ? share.toFixed(2) + '%' : '–') + '</td>' +
-            '<td><span class="fm-flow" title="' + esc(inLabel) + ' ' + fmt(o.inShip) +
-                ' + received ' + fmt(o.recv) + ' = ' + fmt(combo) + '">' +
-                '<i class="fm-in" style="width:' + pct(o.inShip).toFixed(2) + '%"></i>' +
-                '<i class="fm-out" style="width:' + pct(combo).toFixed(2) + '%"></i>' +
-            '</span></td></tr>';
+        const share = d.total ? (o.recv / d.total * 100) : 0;
+        body += '<tr><td class="fm-hour">' + fmSlotLabel(o.slot) + '</td>' +
+            '<td class="wr-pdd-tot">' + (o.recv ? fmt(o.recv) : dash) + '</td>' +
+            '<td class="wr-pdd-tot">' + (o.recv ? share.toFixed(2) + '%' : '–') + '</td></tr>';
     });
     body += '</tbody>';
 
-    let foot = '<tfoot><tr><td>Grand Total</td>';
-    d.srcs.forEach(function(s){
-        foot += '<td>' + fmt(d.list.reduce(function(a, o){ return a + (o.ins[s] || 0); }, 0)) + '</td>';
-    });
-    d.hubs.forEach(function(f){
-        foot += '<td>' + fmt(d.list.reduce(function(s, o){ return s + (o.cells[f] || 0); }, 0)) + '</td>';
-    });
-    foot += '<td class="wr-pdd-tot">' + fmt(comboTotal) + '</td>' +
-        '<td class="wr-pdd-tot">' + (comboTotal ? '100.00%' : '0.00%') + '</td>' +
-        '<td></td></tr></tfoot>';
+    const foot = '<tfoot><tr><td>Grand Total</td>' +
+        '<td class="wr-pdd-tot">' + fmt(d.total) + '</td>' +
+        '<td class="wr-pdd-tot">' + (d.total ? '100.00%' : '0.00%') + '</td></tr></tfoot>';
 
-    host.innerHTML = '<table class="wr-pdd">' + head + body + foot + '</table>';
+    host.innerHTML = '<table class="wr-pdd fm-align">' + head + body + foot + '</table>';
     if (note){
-        note.textContent = fmt(d.list.length) + ' half hours · ' + fmt(d.inTotal) + ' in from ' +
-            d.srcs.map(function(s){ return s.replace('CAI-', ''); }).join(' + ') +
-            ' (' + fmt(d.inTrips) + ' trip' + (d.inTrips === 1 ? '' : 's') + ') · ' +
-            fmt(d.recvTotal) + ' received here' +
-            (d.noDock ? ' · ' + fmt(d.noDock) + ' without dock time' : '');
+        note.textContent = fmt(d.list.length) + ' half hours · ' + fmt(d.total) + ' received' +
+            (isG6 ? ' — all to CAI-G1' : '');
     }
 }
 
@@ -13660,9 +13657,9 @@ function renderFm(){
         }
     }
 
-    fmRecvFlowTable('CAI-G5', 'fmG5Table', 'fmG5Note', ['CAI-Z2', 'CAI-G6']);
-    fmRecvFlowTable('CAI-G6', 'fmG6Table', 'fmG6Note', 'CAI-G5');
+    fmRecvFlowTable('CAI-G5', 'fmG5RecvTable', 'fmG5RecvNote');
     fmDispatchTable('CAI-G5', 'fmG5DispTable', 'fmG5DispNote');
+    fmRecvFlowTable('CAI-G6', 'fmG6RecvTable', 'fmG6RecvNote');
     fmDispatchTable('CAI-G6', 'fmG6DispTable', 'fmG6DispNote');
 }
 
@@ -13676,6 +13673,8 @@ function fmOnTripsReady(){
 }
 
 async function loadFmCsv(force){
+    /* The saved copy can paint first; swap in the fresh download when it lands. */
+    csvOnHeal('fmrecv', function(){ loadFmCsv(true); });
     if (fmLoading || (fmLoaded && !force)) return;
     fmLoading = true;
     const badge = document.getElementById('fmBadge');
@@ -13745,7 +13744,7 @@ async function loadFmCsv(force){
         if (badge){ badge.className = 'badge text-bg-danger'; badge.textContent = 'Load failed'; }
         setTabStatus('page-fm', 'err', msg);
         if (!fmRecv.length){
-            ['fmG5Table', 'fmG6Table', 'fmG5DispTable', 'fmG6DispTable'].forEach(function(id){
+            ['fmG5RecvTable', 'fmG5DispTable', 'fmG6RecvTable', 'fmG6DispTable'].forEach(function(id){
                 const host = document.getElementById(id);
                 if (!host) return;
                 host.innerHTML = '<div class="text-center text-muted py-4 small">' + esc(msg) +
@@ -13770,37 +13769,25 @@ function fmExportCsv(){
         body.forEach(function(r){ lines.push(r.map(csvCell).join(',')); });
     }
 
-    const flowBlock = function(hub, inSrc){
-        const d = fmRecvFlow(hub, inSrc);
-        const comboTotal = d.inTotal + d.recvTotal;
-        block(hub + ' receiving & inbound (half hour by half hour)',
-            ['Half hour'].concat(d.srcs.map(function(s){ return s + ' in'; }), d.hubs, ['Received', 'Share']),
-            d.list.map(function(o){
-                const combo = o.inShip + o.recv;
-                return [fmSlotLabel(o.slot)]
-                    .concat(d.srcs.map(function(s){ return o.ins[s] || 0; }))
-                    .concat(d.hubs.map(function(f){ return o.cells[f] || 0; }))
-                    .concat([combo, comboTotal ? (combo / comboTotal * 100).toFixed(2) + '%' : '0.00%']);
-            }).concat([['Grand Total']
-                .concat(d.srcs.map(function(s){
-                    return d.list.reduce(function(a, o){ return a + (o.ins[s] || 0); }, 0);
-                }))
-                .concat(d.hubs.map(function(f){
-                    return d.list.reduce(function(s, o){ return s + (o.cells[f] || 0); }, 0);
-                }))
-                .concat([comboTotal, comboTotal ? '100.00%' : '0.00%'])]));
-    };
-    flowBlock('CAI-G5', 'CAI-Z2');
-    flowBlock('CAI-G6', 'CAI-G5');
+    [['CAI-G5', 'CAI-G5 receiving (half hour by half hour)', 'Received'],
+     ['CAI-G6', 'CAI-G6 receiving (half hour by half hour) — all to CAI-G1', 'CAI-G1']]
+    .forEach(function(cfg){
+        const flow = fmRecvFlow(cfg[0]);
+        block(cfg[1], ['Half hour', cfg[2], 'Share'],
+            flow.list.map(function(o){
+                return [fmSlotLabel(o.slot), o.recv,
+                    flow.total ? (o.recv / flow.total * 100).toFixed(2) + '%' : '0.00%'];
+            }).concat([['Grand Total', flow.total, flow.total ? '100.00%' : '0.00%']]));
+    });
 
     ['CAI-G5', 'CAI-G6'].forEach(function(hub){
         const d = fmDispatchData(hub);
-        block(hub + ' dispatch (by plan hour)', ['Forward hub', 'Plan hour', 'Src gate out',
-            'Dst arrived at dock', 'VAR', 'Total shipments', 'Shipments share'],
+        block(hub + ' dispatch (one row per trip code)', ['Trip code', 'Forward hub', 'Plan time',
+            'Src gate out', 'Dst arrived at dock', 'VAR', 'Shipments', 'Share'],
             d.list.map(function(g){
-                return [g.dst, g.plan, fmClock(g.gate), fmClock(g.dock), fmVar(g.dock, g.gate),
+                return [g.code, g.dst, g.plan, fmClock(g.gate), fmClock(g.dock), fmVar(g.dock, g.gate),
                     g.ship, d.total ? (g.ship / d.total * 100).toFixed(2) + '%' : '0.00%'];
-            }).concat([['Grand Total', '', '', '', '', d.total, d.total ? '100.00%' : '0.00%']]));
+            }).concat([['Grand Total', '', '', '', '', '', d.total, d.total ? '100.00%' : '0.00%']]));
     });
 
     const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
