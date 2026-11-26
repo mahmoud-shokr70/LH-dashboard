@@ -12866,6 +12866,7 @@ function pddBreachParsePivot(grid){
     if (!dates.length) return null;
 
     const rows = [];
+    const totals = {};
     for (let r = head + 1; r < grid.length; r++){
         const row = grid[r] || [];
         const lod = String(row[12] || '').trim();
@@ -12878,10 +12879,15 @@ function pddBreachParsePivot(grid){
             if (col.date) cell[col.date] = { n: n, pct: pct };
             else if (/^grand\s*total$/i.test(col.label)) grand = { n: n, pct: pct };
         });
+        /* The Grand Total row carries the day totals, used as the % denominator. */
+        if (/^grand\s*total$/i.test(lod)){
+            Object.keys(cell).forEach(function(d){ totals[d] = cell[d].n; });
+            continue;
+        }
         rows.push({ lod: lod, cell: cell, grand: grand });
     }
     if (!rows.length) return null;
-    return { dates: dates, rows: rows };
+    return { dates: dates, rows: rows, totals: totals };
 }
 
 /* Shared breach window for both breach charts. Empty means "no bound". */
@@ -13107,13 +13113,10 @@ function pddBreachRender(){
 
     const series = PDD_GATEWAY_LINES.map(function(g){
         const row = pivot.rows.filter(function(r){ return g.re.test(r.lod); })[0] || null;
-        return {
-            g: g,
-            row: row,
-            data: dates.map(function(d){ return row && row.cell[d] ? +row.cell[d].pct.toFixed(2) : 0; })
-        };
+        const counts = dates.map(function(d){ return row && row.cell[d] ? row.cell[d].n : 0; });
+        return { g: g, row: row, counts: counts, data: counts };
     });
-    const maxPct = series.reduce(function(m, s){
+    const maxCount = series.reduce(function(m, s){
         return Math.max(m, s.data.reduce(function(a, v){ return Math.max(a, v); }, 0));
     }, 0);
 
@@ -13127,6 +13130,7 @@ function pddBreachRender(){
                 return {
                     label: s.g.label,
                     data: s.data,
+                    __n: s.counts,
                     borderColor: s.g.color,
                     backgroundColor: s.g.color,
                     borderWidth: 2.2,
@@ -13151,10 +13155,10 @@ function pddBreachRender(){
                 },
                 y: {
                     beginAtZero: true,
-                    suggestedMax: Math.max(5, Math.ceil(maxPct * 1.2)),
+                    suggestedMax: Math.max(5, Math.ceil(maxCount * 1.15)),
                     grid: { color: 'rgba(148,163,184,.18)' },
-                    title: { display: true, text: '% of the day', font: { size: 10 } },
-                    ticks: { font: { size: 10 }, callback: function(v){ return Math.round(v) + '%'; } }
+                    title: { display: true, text: 'Shipments (AWB)', font: { size: 10 } },
+                    ticks: { font: { size: 10 }, precision: 0 }
                 }
             },
             plugins: {
@@ -13163,8 +13167,31 @@ function pddBreachRender(){
                     labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, font: { size: 10 } }
                 },
                 tooltip: {
+                    itemSort: function(a, b){
+                        const an = (a.dataset.__n && a.dataset.__n[a.dataIndex]) || 0;
+                        const bn = (b.dataset.__n && b.dataset.__n[b.dataIndex]) || 0;
+                        return bn - an;
+                    },
                     callbacks: {
-                        label: function(c){ return ' ' + c.dataset.label + ': ' + Number(c.parsed.y).toFixed(2) + '% of day'; }
+                        title: function(items){
+                            if (!items.length) return '';
+                            const d = dates[items[0].dataIndex];
+                            const total = (pivot.totals && pivot.totals[d]) || 0;
+                            const mm = items.reduce(function(s, i){
+                                return s + ((i.dataset.__n && i.dataset.__n[i.dataIndex]) || 0);
+                            }, 0);
+                            const mmPct = total ? Math.round(mm / total * 100) : 0;
+                            return [pddBreachMonth(d),
+                                    'Total: ' + fmt(total) + ' AWB',
+                                    'MM delay: ' + fmt(mm) + ' AWB · ' + mmPct + '%'];
+                        },
+                        label: function(c){
+                            const n = (c.dataset.__n && c.dataset.__n[c.dataIndex]) || 0;
+                            const d = dates[c.dataIndex];
+                            const total = (pivot.totals && pivot.totals[d]) || 0;
+                            const pct = total ? (n / total * 100) : 0;
+                            return ' ' + c.dataset.label + ': ' + fmt(n) + ' · ' + pct.toFixed(2) + '%';
+                        }
                     }
                 }
             }
@@ -13177,16 +13204,13 @@ function pddBreachRender(){
     }
     if (noteEl){
         noteEl.textContent = pddBreachMonth(dates[0]) + ' – ' + pddBreachMonth(dates[dates.length - 1]) +
-            ' · gateway LOD share of each day (sheet pivot)';
+            ' · gateway shipments (AWB) · tooltip = total · MM delay · % of day';
     }
     const headNote = document.getElementById('lodTrendNote');
     if (headNote) headNote.textContent = 'Four gateway LODs · source: sheet pivot (column M)';
     if (legendEl){
-        legendEl.innerHTML = "<i class=\"bi bi-calendar3 me-1\"></i>Each line = that gateway's share of the day (from the sheet pivot, column M). " +
-            'Window share of all LOD: ' + series.map(function(s){
-                return '<strong>' + esc(s.g.label) + '</strong> ' +
-                    (s.row ? s.row.grand.pct.toFixed(2) + '%' : '—');
-            }).join(' · ') + '.';
+        legendEl.innerHTML = "<i class=\"bi bi-calendar3 me-1\"></i>Lines = shipped AWB for <strong>G1 / G5 / G6 / Z2 Missed</strong> (sheet pivot). " +
+            '<strong>MM delay</strong> = G1 + G5 + G6 + Z2; hover a day for the day total, MM delay and each gate\'s <strong>% of the day</strong>.';
     }
 }
 
