@@ -275,6 +275,14 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
 .kpi-card-header { font-family: var(--font-head); font-size: 0.82rem; font-weight: 800; text-transform: uppercase; color: #6b6353; letter-spacing: 0.6px; display: flex; align-items: center; gap: 6px; }
 .kpi-card-header::before { content:''; width:8px; height:8px; border-radius:99px; background: var(--noon); box-shadow: 0 0 0 3px rgba(254,238,0,.25); }
 .kpi-main-pct { font-size: 2.1rem; font-weight: 800; color: #111111; margin: 4px 0; letter-spacing: -0.5px; }
+    /* Percentile tile: the P90 sits in its own square inside the card */
+    .kpi-mid { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .kpi-tat { flex: 0 0 84px; width: 84px; height: 84px; border: 1px solid var(--warm-line); border-radius: 16px;
+        background: #fcfaf2; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 2px; text-align: center; }
+    .kpi-tat-title { font-family: var(--font-head); font-size: 0.62rem; font-weight: 800; letter-spacing: 0.9px;
+        text-transform: uppercase; color: #6b6353; }
+    .kpi-tat-val { font-size: 1.18rem; font-weight: 800; color: #111111; line-height: 1.1; white-space: nowrap; }
 .kpi-stat-row { display: flex; justify-content: space-between; font-size: 0.8rem; padding-top: 8px; border-top: 1px dashed var(--warm-line); margin-top: 8px; }
 .kpi-stat-item { text-align: center; }
 .kpi-stat-label { color: var(--warm-sub); font-weight: 600; text-transform: uppercase; font-size: 0.62rem; }
@@ -1160,7 +1168,13 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 <div class="col-md-2"><div class="kpi-card border-gatein metric-card" data-metric="gateInToOpenAdh" onclick="selectMetricCard(this, 'gateInToOpenAdh')" title="Click to focus on this metric">
                     <span class="card-hint">SELECT ▸</span>
                     <div class="kpi-card-header">Gate→Open</div>
-                    <div class="kpi-main-pct text-info" id="m-gateInToOpenAdh-pct">0%</div>
+                    <div class="kpi-mid">
+                        <div class="kpi-main-pct text-info" id="m-gateInToOpenAdh-pct">0%</div>
+                        <div class="kpi-tat" title="P90 — 90th percentile of Gate_in_to_open (minutes) across the filtered trips">
+                            <div class="kpi-tat-title">TAT</div>
+                            <div class="kpi-tat-val" id="m-gateInToOpenAdh-p90">—</div>
+                        </div>
+                    </div>
                     <div class="kpi-stat-row">
                         <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="m-gateInToOpenAdh-total">0</div></div>
                         <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Pass</div><div class="kpi-stat-val text-success" id="m-gateInToOpenAdh-pass">0</div></div>
@@ -1170,7 +1184,13 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 <div class="col-md-2"><div class="kpi-card border-openseal metric-card" data-metric="openToSealAdh" onclick="selectMetricCard(this, 'openToSealAdh')" title="Click to focus on this metric">
                     <span class="card-hint">SELECT ▸</span>
                     <div class="kpi-card-header">Open→Seal</div>
-                    <div class="kpi-main-pct text-success" id="m-openToSealAdh-pct">0%</div>
+                    <div class="kpi-mid">
+                        <div class="kpi-main-pct text-success" id="m-openToSealAdh-pct">0%</div>
+                        <div class="kpi-tat" title="P90 — 90th percentile of Open_to_seal_in_Minutes across the filtered trips">
+                            <div class="kpi-tat-title">TAT</div>
+                            <div class="kpi-tat-val" id="m-openToSealAdh-p90">—</div>
+                        </div>
+                    </div>
                     <div class="kpi-stat-row">
                         <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="m-openToSealAdh-total">0</div></div>
                         <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Pass</div><div class="kpi-stat-val text-success" id="m-openToSealAdh-pass">0</div></div>
@@ -1180,7 +1200,13 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                 <div class="col-md-2"><div class="kpi-card border-arrival metric-card" data-metric="arrivalAdh" onclick="selectMetricCard(this, 'arrivalAdh')" title="Click to focus on this metric">
                     <span class="card-hint">SELECT ▸</span>
                     <div class="kpi-card-header">Arrival Adh</div>
-                    <div class="kpi-main-pct text-warning" id="m-arrivalAdh-pct">0%</div>
+                    <div class="kpi-mid">
+                        <div class="kpi-main-pct text-warning" id="m-arrivalAdh-pct">0%</div>
+                        <div class="kpi-tat" title="P90 — 90th percentile of Arrived_TAT_in_Minutes across the filtered trips">
+                            <div class="kpi-tat-title">TAT</div>
+                            <div class="kpi-tat-val" id="m-arrivalAdh-p90">—</div>
+                        </div>
+                    </div>
                     <div class="kpi-stat-row">
                         <div class="kpi-stat-item"><div class="kpi-stat-label">Total</div><div class="kpi-stat-val" id="m-arrivalAdh-total">0</div></div>
                         <div class="kpi-stat-item"><div class="kpi-stat-label text-success">Pass</div><div class="kpi-stat-val text-success" id="m-arrivalAdh-pass">0</div></div>
@@ -2727,6 +2753,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     Only trips whose source is <strong>CAI-G5</strong> and whose destination is <strong>CAI-G1</strong> or <strong>CAI-G6</strong> are listed
                     (the direct A2 / A8 / C4 / C6 lanes and the CAI-A4 lane are hidden).
                     Ad-hoc runs keep their own row as <strong>Extra</strong> or <strong>(no plan)</strong> at the bottom. <strong>VAR</strong> = <code>Dst_Arrived_at_Dock_ts</code> − <code>Src_gate_out_ts</code>; <strong>Share</strong> = row ÷ this table's total.
+                    <strong>Rec. shipments</strong> = the G5 receiving in this trip's window: every half hour whose cargo finished the floor cycle — print <code>awb_nr</code>, weigh, segregate by country zone — by the trip's plan time. With the <strong>60 min</strong> process, a 17:00 plan takes the 15:00 and 15:30 buckets (they finish by 16:30 and 17:00); the 16:00 bucket finishes 17:30 and is too late. Each half hour is used once, oldest trip first. A trip is capped at <strong>2,500</strong> and the overflow rolls to the next trip. Receiving still in the cycle at the last plan time is reported in the note, not recommended.
                 </div>
             </div>
 
@@ -2759,6 +2786,7 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     <i class="bi bi-clock-history me-1"></i>One row per <code>trip_code</code>, each with its own plan time and shipment count — no plan-hour summing.
                     Only trips whose source is <strong>CAI-G6</strong> and whose destination is <strong>CAI-G1</strong> or <strong>CAI-G5</strong> are listed.
                     <strong>VAR</strong> = <code>Dst_Arrived_at_Dock_ts</code> − <code>Src_gate_out_ts</code>; <strong>Share</strong> = row ÷ this table's total.
+                    <strong>Rec. shipments</strong> = the G6 receiving in this trip's window: every half hour whose cargo finished the floor cycle — print <code>awb_nr</code>, weigh, segregate by country zone — by the trip's plan time. With the <strong>60 min</strong> process, a 17:00 plan takes the 15:00 and 15:30 buckets (they finish by 16:30 and 17:00); the 16:00 bucket finishes 17:30 and is too late. Each half hour is used once, oldest trip first. A trip is capped at <strong>2,500</strong> and the overflow rolls to the next trip. Receiving still in the cycle at the last plan time is reported in the note, not recommended.
                 </div>
             </div>
         </div>
@@ -2879,49 +2907,25 @@ body.rail-collapsed #pageTabs .nav-link .tab-state .tab-time { display: none; }
                     <span class="small text-muted" id="lodTrendNote">—</span>
                     <div class="d-flex align-items-center gap-2 flex-wrap">
                         <div class="d-flex align-items-center gap-2 pdd-filter">
-                            <label class="small text-muted mb-0" for="lodTrendLod">LOD</label>
-                            <select id="lodTrendLod" class="form-select form-select-sm" multiple title="Which LOD lines to stack — tick as many as you need"></select>
+                            <label class="small text-muted mb-0" for="pddBreachFrom">From</label>
+                            <input type="date" id="pddBreachFrom" class="form-control form-control-sm" onchange="pddBreachDateChanged()" title="Breach window start">
+                        </div>
+                        <div class="d-flex align-items-center gap-2 pdd-filter">
+                            <label class="small text-muted mb-0" for="pddBreachTo">To</label>
+                            <input type="date" id="pddBreachTo" class="form-control form-control-sm" onchange="pddBreachDateChanged()" title="Breach window end">
                         </div>
                         <span class="badge text-bg-secondary" id="lodTrendBadge">No data yet</span>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="lodTrendExportCsv()" title="Export the day × LOD counts and the share line as CSV"><i class="bi bi-filetype-csv me-1"></i>Export CSV</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadPddBreachCsv(true)" title="Reload the PDD breach DOD sheet"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadPddBreachCsv(true)" title="Reload the PDD breach sheet"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
                     </div>
-                </div>
-
-                <div class="row g-3 mb-4">
-                    <div class="col-6 col-md-3"><div class="kpi-mini">
-                        <div class="lbl">Breaches</div>
-                        <div class="val" id="lodTrendTotal">—</div>
-                        <div class="sub" id="lodTrendTotalSub">in the window</div>
-                    </div></div>
-                    <div class="col-6 col-md-3"><div class="kpi-mini">
-                        <div class="lbl">Most day</div>
-                        <div class="val" id="lodTrendPeak">—</div>
-                        <div class="sub" id="lodTrendPeakSub">highest breach count</div>
-                    </div></div>
-                    <div class="col-6 col-md-3"><div class="kpi-mini">
-                        <div class="lbl">Share</div>
-                        <div class="val text-danger" id="lodTrendPeakShare">—</div>
-                        <div class="sub">of the window's breaches</div>
-                    </div></div>
-                    <div class="col-6 col-md-3"><div class="kpi-mini">
-                        <div class="lbl">CAI-G1 Missed</div>
-                        <div class="val" id="lodTrendG1">—</div>
-                        <div class="sub">share of all breaches</div>
-                    </div></div>
                 </div>
 
                 <div class="card p-3 border-0 shadow-sm mb-4">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                        <h6 class="fw-bold m-0"><i class="bi bi-graph-up me-2 text-primary"></i>Day-on-day breach &amp; LOD trend</h6>
+                        <h6 class="fw-bold m-0"><i class="bi bi-graph-up me-2 text-primary"></i>DOD breach — gateway share of day</h6>
                         <span class="small text-muted" id="lodTrendChartNote">—</span>
                     </div>
-                    <div style="height:420px;position:relative;"><canvas id="chartLodTrend"></canvas></div>
-                    <div class="pd-mf-legend mt-2">
-                        <i class="bi bi-calendar3 me-1"></i>Bars = breached AWBs per day, stacked by <code>LOD</code>.
-                        The line is the right axis: each day's breaches as a share of the window's total, so spikes and quiet days stand out.
-                        <strong>HIGH SPIKE</strong> marks the three heaviest days, <strong>LOW</strong> the two lightest.
-                    </div>
+                    <div style="height:460px;position:relative;"><canvas id="chartLodTrend"></canvas></div>
+                    <div class="pd-mf-legend mt-2" id="lodTrendLegend">—</div>
                 </div>
             </div><!-- /Breach trend by LOD -->
 
@@ -3550,6 +3554,12 @@ function esc(s){ return (s===null||s===undefined)?'':String(s).replace(/[&<>"']/
 function isPass(v){ if(v===null||v===undefined) return false; const s=String(v).toUpperCase().trim(); return ['ADHERED','TRUE','YES','PASSED','PASS','1','Y', 'WITHIN TARGET', 'PERFECT'].includes(s); }
 function isYes(v){ if(!v) return false; const s=String(v).toUpperCase().trim(); return ['YES','TRUE','1','Y','ADHOC'].includes(s); }
 function avg(arr){ const a=arr.filter(x=>x!==null&&x!==undefined&&!isNaN(x)); return a.length? a.reduce((s,x)=>s+x,0)/a.length : null; }
+/* Nearest-rank 90th percentile — 90% of the trips finish at or below this value. */
+function p90(arr){
+    const a = arr.filter(x=>x!==null&&x!==undefined&&!isNaN(x)).slice().sort((x,y)=>x-y);
+    if(!a.length) return null;
+    return a[Math.max(0, Math.ceil(0.9*a.length)-1)];
+}
 function fmt(n){ return (n||0).toLocaleString('en-US'); }
 function groupBy(arr, fn){ const m={}; arr.forEach(x=>{ const k=fn(x)||'—'; (m[k]=m[k]||[]).push(x); }); return m; }
 function composite(arr){ if(!arr.length) return 0; let p=0,t=0; arr.forEach(x=>{ CORE_KEYS.forEach(k=>{ t++; if(isPass(x[k])) p++; }); }); return t? p/t*100 : 0; }
@@ -7228,6 +7238,7 @@ function liveBreachAnalysis(rows){
     const isBad  = raw => liveAdhClass(raw) === 'late';   // early = adhered, late = breach
     const isLate = raw => String(raw || '').toLowerCase().includes('late');
     const hubMap = {}, venMap = {}, laneMap = {};
+    const laneOut = {}, laneArr = {};   // lane -> late trips (dispatch / arrival)
     const lateOutHub = {}, lateArrHub = {};   // hub -> { n, sum } for LATE-only drift
     const earlyOutHub = {}, earlyArrHub = {}; // same, for EARLY (ahead of plan)
     const cause = { lateArr:0, earlyArr:0, lateOut:0, earlyOut:0 };
@@ -7252,12 +7263,23 @@ function liveBreachAnalysis(rows){
             addDrift(earlyOutHub, t.srcHub, t.outVarMin);
         if (arrBad && !isLate(t.arrAdhRaw) && typeof t.arrVarMin === 'number' && t.arrVarMin < 0)
             addDrift(earlyArrHub, t.dstHub, t.arrVarMin);
+        const lane = (t.srcHub || '?') + ' → ' + (t.dstHub || '?');
+        // Late trips per lane, split by checkpoint (early never counts as a delay).
+        if (outBad && isLate(t.outAdhRaw)){
+            const g = laneOut[lane] || (laneOut[lane] = { n: 0, sum: 0, minsN: 0 });
+            g.n++;
+            if (typeof t.outVarMin === 'number' && t.outVarMin > 0){ g.sum += t.outVarMin; g.minsN++; }
+        }
+        if (arrBad && isLate(t.arrAdhRaw)){
+            const g = laneArr[lane] || (laneArr[lane] = { n: 0, sum: 0, minsN: 0 });
+            g.n++;
+            if (typeof t.arrVarMin === 'number' && t.arrVarMin > 0){ g.sum += t.arrVarMin; g.minsN++; }
+        }
         if (!outBad && !arrBad) return;
         breaches++;
         const hub = arrBad ? (t.dstHub || t.srcHub || '—') : (t.srcHub || t.dstHub || '—');
         hubMap[hub] = (hubMap[hub] || 0) + 1;
         if (t.vendor) venMap[t.vendor] = (venMap[t.vendor] || 0) + 1;
-        const lane = (t.srcHub || '?') + ' → ' + (t.dstHub || '?');
         laneMap[lane] = (laneMap[lane] || 0) + 1;
     });
 
@@ -7270,6 +7292,10 @@ function liveBreachAnalysis(rows){
         .sort((a, b) => b.total - a.total);
     const lateOut  = rankDrift(lateOutHub),  lateArr  = rankDrift(lateArrHub);
     const earlyOut = rankDrift(earlyOutHub), earlyArr = rankDrift(earlyArrHub);
+    const rankLane = map => Object.entries(map)
+        .map(([lane, g]) => ({ lane, n: g.n, avg: g.minsN ? Math.round(g.sum / g.minsN) : null }))
+        .sort((a, b) => (b.n - a.n) || ((b.avg || 0) - (a.avg || 0)));
+    const lateOutLane = rankLane(laneOut), lateArrLane = rankLane(laneArr);
     const causes = [
         { k: 'Late arrival',   n: cause.lateArr },
         { k: 'Early arrival',  n: cause.earlyArr },
@@ -7277,7 +7303,7 @@ function liveBreachAnalysis(rows){
         { k: 'Early dispatch', n: cause.earlyOut }
     ].filter(c => c.n > 0).sort((a, b) => b.n - a.n);
 
-    return { breaches, byHub, byLane, causes, topVendor, lateOut, lateArr, earlyOut, earlyArr };
+    return { breaches, byHub, byLane, causes, topVendor, lateOut, lateArr, earlyOut, earlyArr, lateOutLane, lateArrLane };
 }
 
 function liveAdherenceTotals(rows){
@@ -7299,7 +7325,7 @@ function buildTextSummary(rows){
     const rangeLabel = liveScopeLabel();
     const srcSel = selValues('#live-src'), dstSel = selValues('#live-dst');
     const venSel = selValues('#live-vendor'), flagSel = selValues('#live-flag');
-    const scopeBits = [rangeLabel]
+    const filters = []
         .concat(srcSel.length ? ['Src ' + srcSel.join('/')] : [])
         .concat(dstSel.length ? ['Dst ' + dstSel.join('/')] : [])
         .concat(venSel.length ? ['Vendors ' + venSel.join('/')] : [])
@@ -7309,42 +7335,32 @@ function buildTextSummary(rows){
     const b = liveBreachAnalysis(rows);
     const share = b.breaches ? Math.round(b.breaches / (rows.length || 1) * 100) : 0;
 
+    // One compact report: headline, then late trips per lane for each checkpoint.
     const L = [];
-    L.push('LINE HAUL  —  LIVE TRACKING SUMMARY');
-    L.push('Scope: ' + scopeBits.join('  |  '));
-    L.push('');
-    L.push(fmt(rows.length) + ' occurrences, of which ' + fmt(b.breaches) + ' were not adhered to plan (' + share + '%).');
-    L.push('');
-    L.push('Adherence to plan');
-    L.push('  Dispatch : ' + t.outPct + '%   (' + fmt(t.outOk) + ' of ' + fmt(t.outP) + ' planned)');
-    L.push('  Arrival  : ' + t.arrPct + '%   (' + fmt(t.arrOk) + ' of ' + fmt(t.arrP) + ' planned)');
-    if (t.noPlan) L.push('  No plan time on ' + fmt(t.noPlan) + ' occurrence' + (t.noPlan === 1 ? '' : 's'));
+    L.push('LINE HAUL · ' + rangeLabel);
+    if (filters.length) L.push(filters.join(' · '));
+    L.push(fmt(rows.length) + ' trips · ' + fmt(b.breaches) + ' off plan (' + share + '%) · Dispatch ' +
+        t.outPct + '% (' + fmt(t.outOk) + '/' + fmt(t.outP) + ') · Arrival ' + t.arrPct +
+        '% (' + fmt(t.arrOk) + '/' + fmt(t.arrP) + ')');
 
-    if (b.byHub.length){
+    const laneBlock = (label, list) => {
+        if (!list.length) return;
+        const total = list.reduce((s, x) => s + x.n, 0);
         L.push('');
-        L.push('Where the breaches are');
-        b.byHub.slice(0, 5).forEach(h => L.push('  ' + String(h.hub).padEnd(10) + ' ' + fmt(h.n) + '   (' + h.pct.toFixed(1) + '%)'));
-    }
-    if (b.causes.length){
+        L.push(label + ' ' + fmt(total) + ' · ' + fmt(list.length) + ' lane' + (list.length === 1 ? '' : 's'));
+        list.forEach(x => L.push('  ' + String(x.lane).padEnd(22) + String(fmt(x.n)).padStart(2) +
+            (x.avg === null ? '' : '  +' + x.avg + ' min')));
+    };
+    laneBlock('Late dispatch', b.lateOutLane);
+    laneBlock('Late arrival', b.lateArrLane);
+
+    const foot = [];
+    if (b.byHub.length)  foot.push('worst hub ' + b.byHub[0].hub + ' ' + fmt(b.byHub[0].n) + ' (' + b.byHub[0].pct.toFixed(0) + '%)');
+    if (b.byLane.length) foot.push('worst lane ' + b.byLane[0].lane + ' ' + fmt(b.byLane[0].n));
+    if (foot.length){
+        const lag = foot.join(' · ');
         L.push('');
-        L.push('What went wrong');
-        b.causes.forEach(c => L.push('  ' + c.k.padEnd(15) + ' ' + fmt(c.n)));
-    }
-    if (b.lateOut.length || b.earlyOut.length){
-        L.push('');
-        L.push('Dispatch by hub — trips, avg drift');
-        if (b.lateOut.length)  b.lateOut.slice(0, 3).forEach(x => L.push('  late  ' + String(x.hub).padEnd(10) + ' ' + fmt(x.n) + ' trips   avg +' + x.avg + ' min'));
-        if (b.earlyOut.length) b.earlyOut.slice(0, 3).forEach(x => L.push('  early ' + String(x.hub).padEnd(10) + ' ' + fmt(x.n) + ' trips   avg -' + x.avg + ' min'));
-    }
-    if (b.lateArr.length || b.earlyArr.length){
-        L.push('');
-        L.push('Arrival by hub — trips, avg drift');
-        if (b.lateArr.length)  b.lateArr.slice(0, 3).forEach(x => L.push('  late  ' + String(x.hub).padEnd(10) + ' ' + fmt(x.n) + ' trips   avg +' + x.avg + ' min'));
-        if (b.earlyArr.length) b.earlyArr.slice(0, 3).forEach(x => L.push('  early ' + String(x.hub).padEnd(10) + ' ' + fmt(x.n) + ' trips   avg -' + x.avg + ' min'));
-    }
-    if (b.byLane.length){
-        L.push('');
-        L.push('Worst lane: ' + b.byLane[0].lane + '  (' + fmt(b.byLane[0].n) + ' breaches)');
+        L.push(lag.charAt(0).toUpperCase() + lag.slice(1));
     }
     return L.join('\n');
 }
@@ -7358,43 +7374,16 @@ function buildSendSummary(rows){
     if (!b.breaches) return 'Dispatch adherence ' + t.outPct + '% and arrival adherence ' + t.arrPct +
                              '% — all ' + fmt(rows.length) + ' occurrences adhered to plan in this scope.';
 
-    const joinNames = arr => arr.length > 1
-        ? arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1]
-        : (arr[0] || '');
-
+    // Same figures as the DETAILED summary, kept to a short message:
+    // adherence headline, then the late hubs for each checkpoint.
     const L = [];
-
-    // 1. Headline adherence.
     L.push('Dispatch adherence ' + t.outPct + '% and arrival adherence ' + t.arrPct + '% in this scope.');
 
-    // 2. What ran late and what ran early — per checkpoint, hubs + minutes.
-    //    The missing direction is stated explicitly so the reader always
-    //    knows which one moved and which one did not.
-    const nameHubs = arr => joinNames(arr.slice(0, 2).map(x => x.hub + ' by ' + x.avg + 'm'));
-    const axisLine = (late, early) => {
-        if (late.length && early.length) return 'ran late at ' + nameHubs(late) + ', and early at ' + nameHubs(early) + '.';
-        if (late.length)                 return 'ran late at '  + nameHubs(late)  + ' (nothing early).';
-        if (early.length)                return 'ran early at ' + nameHubs(early) + ' (nothing late).';
-        return '';
-    };
-    const dLine = axisLine(b.lateOut, b.earlyOut);
-    const aLine = axisLine(b.lateArr, b.earlyArr);
-    if (dLine) L.push('Dispatch ' + dLine);
-    if (aLine) L.push('Arrival '  + aLine);
+    // Hubs with the most late minutes, "hub by Nm" — late only, no early note.
+    const nameHubs = arr => arr.slice(0, 2).map(x => x.hub + ' by ' + x.avg + 'm').join(' and ');
+    if (b.lateOut.length) L.push('Dispatch ran late at ' + nameHubs(b.lateOut));
+    if (b.lateArr.length) L.push('Arrival ran late at ' + nameHubs(b.lateArr));
 
-    // 3. Share of breaches by hub.
-    const hubs = b.byHub.slice(0, 3);
-    if (hubs.length)
-        L.push('Majority of the breaches with ' + joinNames(hubs.map(h => h.pct.toFixed(2) + '% for ' + h.hub)) + '.');
-
-    // 5. Vendor + weakest lane.
-    const tail = [];
-    if (b.topVendor)     tail.push('vendor ' + b.topVendor.name + ' has the most breaches (' + fmt(b.topVendor.n) + ')');
-    if (b.byLane.length) tail.push('weakest lane ' + b.byLane[0].lane);
-    if (tail.length){
-        const txt = tail.join(', ');
-        L.push(txt.charAt(0).toUpperCase() + txt.slice(1) + '.');
-    }
     return L.join('\n');
 }
 
@@ -8007,6 +7996,15 @@ function renderDashboard(data){
         document.getElementById(`m-${suffix}-total`).innerText = fmt(total);
         document.getElementById(`m-${suffix}-pass`).innerText = fmt(pass);
         document.getElementById(`m-${suffix}-fail`).innerText = fmt(fail);
+        // P90 of the stage's own minute column, on the same filtered trips
+        const p90Field = { gateInToOpenAdh:'gateInToOpenMin', openToSealAdh:'openToSealMin', arrivalAdh:'arrivedTatMin' }[key];
+        if (p90Field){
+            const el90 = document.getElementById(`m-${suffix}-p90`);
+            if (el90){
+                const v = p90(data.map(t => t[p90Field]));
+                el90.innerText = v===null ? '—' : Math.round(v) + ' min';
+            }
+        }
     });
 
     // LH Plan vs Actual — lane plan from the plan sheet against real vendor trips
@@ -12828,6 +12826,106 @@ let pddBreachLod = [], pddBreachHub = [], pddBreachType = 'bar';
 
 const PDD_BREACH_COLORS = ['#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#0ea5e9', '#ec4899', '#84cc16'];
 
+/* The four gateway "Missed" LODs drawn as separate % lines. The sheet labels
+   them "CAI-G1 Missed" etc.; the regex keeps it working if the CAI- prefix or
+   spacing changes. */
+const PDD_GATEWAY_LINES = [
+    { label: 'G1 Missed', re: /G1\s*Missed/i, color: '#111827' },
+    { label: 'G5 Missed', re: /G5\s*Missed/i, color: '#f97316' },
+    { label: 'G6 Missed', re: /G6\s*Missed/i, color: '#16a34a' },
+    { label: 'Z2 Missed', re: /Z2\s*Missed/i, color: '#dc2626' }
+];
+
+/* The sheet carries a pivot in column M: one row per LOD, then two columns per
+   date (COUNTA of awb_nr + that count's % of the day), ending with a Grand
+   Total pair. This reads that block so the visual matches the sheet report. */
+let pddBreachPivot = null;
+
+function pddBreachParsePivot(grid){
+    if (!grid || !grid.length) return null;
+    let head = -1;
+    for (let i = 0; i < Math.min(grid.length, 80); i++){
+        if (String(((grid[i] || [])[12]) || '').trim().toUpperCase() === 'LOD'){ head = i; break; }
+    }
+    if (head < 1) return null;
+
+    const dateRow = grid[head - 1] || [];
+    const cols = [];
+    for (let c = 13; c < dateRow.length; c += 2){
+        const label = String(dateRow[c] || '').trim();
+        if (label) cols.push({ c: c, label: label });
+    }
+    if (!cols.length) return null;
+
+    const dates = [];
+    cols.forEach(function(col){
+        if (/^grand\s*total$/i.test(col.label)) return;
+        const d = pddBreachDay(col.label);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(d)){ col.date = d; dates.push(d); }
+    });
+    if (!dates.length) return null;
+
+    const rows = [];
+    for (let r = head + 1; r < grid.length; r++){
+        const row = grid[r] || [];
+        const lod = String(row[12] || '').trim();
+        if (!lod) break;
+        const cell = {};
+        let grand = { n: 0, pct: 0 };
+        cols.forEach(function(col){
+            const n = Number(String(row[col.c] || '').replace(/,/g, '')) || 0;
+            const pct = parseFloat(String(row[col.c + 1] || '').replace('%', '')) || 0;
+            if (col.date) cell[col.date] = { n: n, pct: pct };
+            else if (/^grand\s*total$/i.test(col.label)) grand = { n: n, pct: pct };
+        });
+        rows.push({ lod: lod, cell: cell, grand: grand });
+    }
+    if (!rows.length) return null;
+    return { dates: dates, rows: rows };
+}
+
+/* Shared breach window for both breach charts. Empty means "no bound". */
+let pddBreachFrom = '', pddBreachTo = '';
+
+function pddBreachInDate(r){
+    return (!pddBreachFrom || r.date >= pddBreachFrom) &&
+           (!pddBreachTo || r.date <= pddBreachTo);
+}
+
+function pddBreachDateChanged(){
+    const f = document.getElementById('pddBreachFrom');
+    const t = document.getElementById('pddBreachTo');
+    pddBreachFrom = f ? f.value : '';
+    pddBreachTo = t ? t.value : '';
+    if (pddBreachFrom && pddBreachTo && pddBreachFrom > pddBreachTo){
+        const swap = pddBreachFrom;
+        pddBreachFrom = pddBreachTo;
+        pddBreachTo = swap;
+        if (f) f.value = pddBreachFrom;
+        if (t) t.value = pddBreachTo;
+    }
+    pddBreachRender();   // it also refreshes the LOD trend below
+}
+
+/* Seed the From / To boxes from the sheet, keeping a still-valid selection. */
+function pddBreachBindDates(rows){
+    const dates = Array.from(new Set((rows || []).map(function(r){ return r.date; }))).sort();
+    if (!dates.length) return;
+    const min = dates[0], max = dates[dates.length - 1];
+    const f = document.getElementById('pddBreachFrom');
+    const t = document.getElementById('pddBreachTo');
+    if (f){
+        f.min = min; f.max = max;
+        if (!f.value || f.value < min || f.value > max) f.value = min;
+    }
+    if (t){
+        t.min = min; t.max = max;
+        if (!t.value || t.value < min || t.value > max) t.value = max;
+    }
+    pddBreachFrom = f ? f.value : min;
+    pddBreachTo = t ? t.value : max;
+}
+
 /* Dates arrive as ISO y-m-d from the published CSV; keep a couple of fallbacks
    so a hand-edited tab cannot break the x axis. */
 function pddBreachDay(v){
@@ -12879,7 +12977,8 @@ function pddBreachReadFilters(){
     pddBreachHub = pddBreachSel('pddBreachHub');
 }
 function pddBreachMatch(r){
-    return (!pddBreachLod.length || pddBreachLod.indexOf(r.lod) >= 0) &&
+    return pddBreachInDate(r) &&
+           (!pddBreachLod.length || pddBreachLod.indexOf(r.lod) >= 0) &&
            (!pddBreachHub.length || pddBreachHub.indexOf(r.hub) >= 0);
 }
 function pddBreachChanged(){ pddBreachReadFilters(); pddBreachRender(); }
@@ -12902,6 +13001,7 @@ function pddBreachFacet(which){
     return function(v){
         let n = 0;
         (pddBreachRows || []).forEach(function(r){
+            if (!pddBreachInDate(r)) return;
             if (which !== 'lod' && pddBreachLod.length && pddBreachLod.indexOf(r.lod) < 0) return;
             if (which !== 'hub' && pddBreachHub.length && pddBreachHub.indexOf(r.hub) < 0) return;
             if ((which === 'lod' ? r.lod : r.hub) === v) n++;
@@ -12961,17 +13061,8 @@ async function loadPddBreachCsv(force){
 
         pddBreachRows = rows;
         pddBreachLoaded = true;
-
-        const lodTot = {};
-        rows.forEach(function(r){ lodTot[r.lod] = (lodTot[r.lod] || 0) + 1; });
-        pddBreachFillBox('pddBreachLod', rows.map(function(r){ return r.lod; }), function(a, b){
-            return (lodTot[b] - lodTot[a]) || String(a).localeCompare(String(b));
-        });
-        pddBreachFillBox('pddBreachHub', rows.map(function(r){ return r.hub; }), function(a, b){
-            return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
-        });
-        pddBreachInitFilters();
-        pddBreachReadFilters();
+        pddBreachPivot = pddBreachParsePivot(grid);
+        pddBreachBindDates(rows);
         pddBreachRender();
     } catch (e) {
         console.warn('[PDD breach DOD] load failed:', e);
@@ -12987,156 +13078,118 @@ async function loadPddBreachCsv(force){
     }
 }
 
+/* DOD breach visual — four gateway lines straight from the sheet pivot in
+   column M (each line = that LOD's % of the day). No filters, no table: a
+   single chart. */
 function pddBreachRender(){
-    const allRows = pddBreachRows || [];
-    if (!allRows.length) return;
-    const rows = allRows.filter(pddBreachMatch);
-    const agg = pddBreachAgg(rows);
-    const globalOrder = pddBreachAgg(allRows).lods;
-    const colorOf = function(lod){
-        const i = globalOrder.indexOf(lod);
-        return PDD_BREACH_COLORS[(i < 0 ? 0 : i) % PDD_BREACH_COLORS.length];
-    };
+    const canvas = document.getElementById('chartLodTrend');
+    const badge = document.getElementById('lodTrendBadge');
+    const noteEl = document.getElementById('lodTrendChartNote');
+    const legendEl = document.getElementById('lodTrendLegend');
+    if (!canvas) return;
 
-    const canvas = document.getElementById('chartPddBreach');
-    if (charts.pddBreach){ charts.pddBreach.destroy(); delete charts.pddBreach; }
-    if (canvas && rows.length){
-        /* The page-wide value-label plugin draws every segment by default.
-           For the stacked bars label only the top segment, with the day's
-           total; for the lines label the last point of each series. */
-        const labelOpts = pddBreachType === 'bar' ? {
-            color: '#0f172a',
-            formatter: function(v, sum, di, i, chart){
-                let top = -1;
-                chart.data.datasets.forEach(function(ds, k){
-                    if (Number(ds.data[i]) > 0) top = k;
-                });
-                if (di !== top) return '';
-                let total = 0;
-                chart.data.datasets.forEach(function(ds){ total += Number(ds.data[i]) || 0; });
-                return total ? fmt(total) : '';
-            }
-        } : {
-            lastOnly: true,
-            color: '#0f172a',
-            formatter: function(v){ return v ? fmt(v) : ''; }
+    const pivot = pddBreachPivot;
+    if (!pivot){
+        if (charts.lodTrend){ charts.lodTrend.destroy(); delete charts.lodTrend; }
+        canvas.style.display = 'none';
+        if (badge){ badge.className = 'badge text-bg-secondary'; badge.textContent = 'No data yet'; }
+        return;
+    }
+
+    const from = pddBreachFrom || pivot.dates[0];
+    const to = pddBreachTo || pivot.dates[pivot.dates.length - 1];
+    const dates = pivot.dates.filter(function(d){ return d >= from && d <= to; });
+    if (!dates.length){
+        if (charts.lodTrend){ charts.lodTrend.destroy(); delete charts.lodTrend; }
+        if (badge){ badge.className = 'badge text-bg-secondary'; badge.textContent = 'No days in this window'; }
+        return;
+    }
+
+    const series = PDD_GATEWAY_LINES.map(function(g){
+        const row = pivot.rows.filter(function(r){ return g.re.test(r.lod); })[0] || null;
+        return {
+            g: g,
+            row: row,
+            data: dates.map(function(d){ return row && row.cell[d] ? +row.cell[d].pct.toFixed(2) : 0; })
         };
-        charts.pddBreach = new Chart(canvas.getContext('2d'), {
-            type: pddBreachType,
-            data: {
-                labels: agg.dates.map(pddBreachMonth),
-                datasets: agg.lods.map(function(lod){
-                    const color = colorOf(lod);
-                    return {
-                        label: lod,
-                        data: agg.dates.map(function(d){ return agg.cell[lod + '\u0000' + d] || 0; }),
-                        backgroundColor: pddBreachType === 'bar' ? color : color + '33',
-                        borderColor: color,
-                        borderWidth: pddBreachType === 'bar' ? 0 : 2,
-                        borderRadius: pddBreachType === 'bar' ? 3 : 0,
-                        maxBarThickness: 34,
-                        tension: 0.28,
-                        pointRadius: pddBreachType === 'bar' ? 0 : 2,
-                        pointHoverRadius: 4,
-                        fill: false
-                    };
-                })
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                scales: {
-                    x: {
-                        stacked: pddBreachType === 'bar',
-                        grid: { display: false },
-                        ticks: { autoSkip: true, maxRotation: 60, minRotation: 45, font: { size: 10 } }
-                    },
-                    y: {
-                        stacked: pddBreachType === 'bar',
-                        beginAtZero: true,
-                        grid: { color: 'rgba(148,163,184,.18)' },
-                        title: { display: true, text: 'Shipments (AWB)', font: { size: 10 } },
-                        ticks: { font: { size: 10 }, precision: 0 }
-                    }
+    });
+    const maxPct = series.reduce(function(m, s){
+        return Math.max(m, s.data.reduce(function(a, v){ return Math.max(a, v); }, 0));
+    }, 0);
+
+    canvas.style.display = '';
+    if (charts.lodTrend){ charts.lodTrend.destroy(); delete charts.lodTrend; }
+    charts.lodTrend = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: dates.map(pddBreachMonth),
+            datasets: series.map(function(s){
+                return {
+                    label: s.g.label,
+                    data: s.data,
+                    borderColor: s.g.color,
+                    backgroundColor: s.g.color,
+                    borderWidth: 2.2,
+                    pointRadius: 2.5,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: s.g.color,
+                    pointBorderWidth: 1.6,
+                    tension: 0.28,
+                    fill: false
+                };
+            })
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            layout: { padding: { top: 20 } },
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { autoSkip: true, maxRotation: 45, minRotation: 0, font: { size: 10 } }
                 },
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, font: { size: 10 } }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(c){ return ' ' + c.dataset.label + ': ' + fmt(c.parsed.y) + ' AWB'; },
-                            footer: function(items){
-                                let s = 0;
-                                items.forEach(function(i){ s += (i.parsed.y || 0); });
-                                return 'Total: ' + fmt(s) + ' AWB';
-                            }
-                        }
-                    },
-                    valueLabels: labelOpts
+                y: {
+                    beginAtZero: true,
+                    suggestedMax: Math.max(5, Math.ceil(maxPct * 1.2)),
+                    grid: { color: 'rgba(148,163,184,.18)' },
+                    title: { display: true, text: '% of the day', font: { size: 10 } },
+                    ticks: { font: { size: 10 }, callback: function(v){ return Math.round(v) + '%'; } }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, font: { size: 10 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(c){ return ' ' + c.dataset.label + ': ' + Number(c.parsed.y).toFixed(2) + '% of day'; }
+                    }
                 }
             }
-        });
-    }
-
-    const host = document.getElementById('pddBreachTable');
-    if (host){
-        if (!rows.length){
-            host.innerHTML = '<div class="text-center text-muted py-4 small">No rows for this filter.</div>';
-        } else {
-            let head = '<thead><tr><th>Date</th>';
-            agg.lods.forEach(function(l){ head += '<th>' + esc(l) + '</th>'; });
-            head += '<th class="wr-pdd-tot">Total</th></tr></thead>';
-
-            let body = '<tbody>';
-            agg.dates.forEach(function(d){
-                body += '<tr><td>' + esc(pddBreachMonth(d)) + '</td>';
-                agg.lods.forEach(function(l){
-                    const v = agg.cell[l + '\u0000' + d] || 0;
-                    body += v ? '<td>' + fmt(v) + '</td>' : '<td class="wr-pdd-zero">–</td>';
-                });
-                body += '<td class="wr-pdd-tot">' + fmt(agg.dayTot[d] || 0) + '</td></tr>';
-            });
-            body += '</tbody>';
-
-            let foot = '<tfoot><tr><td>Grand Total</td>';
-            agg.lods.forEach(function(l){ foot += '<td>' + fmt(agg.lodTot[l] || 0) + '</td>'; });
-            foot += '<td class="wr-pdd-tot">' + fmt(agg.total) + '</td></tr></tfoot>';
-
-            host.innerHTML = '<table class="wr-pdd">' + head + body + foot + '</table>';
         }
-    }
+    });
 
-    const badge = document.getElementById('pddBreachBadge');
     if (badge){
         badge.className = 'badge text-bg-info';
-        badge.textContent = fmt(agg.total) + ' AWB · ' + fmt(agg.dates.length) + ' day' + (agg.dates.length === 1 ? '' : 's');
+        badge.textContent = fmt(dates.length) + ' day' + (dates.length === 1 ? '' : 's');
     }
-    const note = document.getElementById('pddBreachNote');
-    if (note){
-        const lodCount = new Set(allRows.map(function(r){ return r.lod; })).size;
-        const hubCount = new Set(allRows.map(function(r){ return r.hub; })).size;
-        note.textContent = fmt(allRows.length) + ' breach rows · ' + fmt(lodCount) + ' LOD · ' + fmt(hubCount) + ' hubs' +
-            (rows.length !== allRows.length ? ' · ' + fmt(agg.total) + ' AWB after filters' : '');
+    if (noteEl){
+        noteEl.textContent = pddBreachMonth(dates[0]) + ' – ' + pddBreachMonth(dates[dates.length - 1]) +
+            ' · gateway LOD share of each day (sheet pivot)';
     }
-    const chartNote = document.getElementById('pddBreachChartNote');
-    if (chartNote){
-        const span = agg.dates.length
-            ? pddBreachMonth(agg.dates[0]) + ' – ' + pddBreachMonth(agg.dates[agg.dates.length - 1])
-            : '—';
-        chartNote.textContent = span + ' · ' + fmt(agg.total) + ' AWB · ' +
-            (pddBreachType === 'bar' ? 'stacked by LOD' : 'one line per LOD');
+    const headNote = document.getElementById('lodTrendNote');
+    if (headNote) headNote.textContent = 'Four gateway LODs · source: sheet pivot (column M)';
+    if (legendEl){
+        legendEl.innerHTML = "<i class=\"bi bi-calendar3 me-1\"></i>Each line = that gateway's share of the day (from the sheet pivot, column M). " +
+            'Window share of all LOD: ' + series.map(function(s){
+                return '<strong>' + esc(s.g.label) + '</strong> ' +
+                    (s.row ? s.row.grand.pct.toFixed(2) + '%' : '—');
+            }).join(' · ') + '.';
     }
-    const tableNote = document.getElementById('pddBreachTableNote');
-    if (tableNote){
-        tableNote.textContent = fmt(agg.dates.length) + ' days × ' + fmt(agg.lods.length) + ' LOD';
-    }
-
-    /* The day-on-day LOD view lives on its own inner tab and reads the same rows. */
-    if (typeof lodTrendInit === 'function') lodTrendInit();
-    if (typeof lodTrendRender === 'function') lodTrendRender();
 }
+
 
 function pddBreachExportCsv(){
     const rows = (pddBreachRows || []).filter(pddBreachMatch);
@@ -13175,6 +13228,7 @@ function pddBreachExportCsv(){
    ================================================================ */
 const LOD_TREND_LINE = '#b91c1c';
 let lodTrendLod = [];
+let lodTrendViewMode = 'lines';   // 'lines' = the four % lines only
 
 function lodTrendSel(){
     const el = document.getElementById('lodTrendLod');
@@ -13183,11 +13237,54 @@ function lodTrendSel(){
         .map(function(o){ return o.value; });
 }
 function lodTrendMatch(r){
-    return !lodTrendLod.length || lodTrendLod.indexOf(r.lod) >= 0;
+    return pddBreachInDate(r) && (!lodTrendLod.length || lodTrendLod.indexOf(r.lod) >= 0);
 }
 function lodTrendChanged(){
     lodTrendLod = lodTrendSel();
     lodTrendRender();
+}
+function lodTrendView(btn, mode){
+    lodTrendViewMode = mode;
+    const group = btn.closest('.btn-group');
+    if (group) group.querySelectorAll('[data-lod-view]').forEach(function(b){ b.classList.toggle('active', b === btn); });
+    lodTrendRender();
+}
+
+/* Quick filter: keep only the four gateway Missed LODs in both charts. */
+function pddBreachGatewayValues(){
+    const out = [];
+    (pddBreachRows || []).forEach(function(r){
+        if (PDD_GATEWAY_LINES.some(function(g){ return g.re.test(r.lod); }) && out.indexOf(r.lod) < 0) out.push(r.lod);
+    });
+    return out;
+}
+function pddBreachSelectValues(id, values){
+    const el = document.getElementById(id);
+    if (!el) return;
+    const keep = new Set(values);
+    Array.from(el.options).forEach(function(o){ o.selected = keep.has(o.value); });
+    if (el.__mcs) mcsSync(el);
+}
+function pddBreachSelectAll(id){
+    const el = document.getElementById(id);
+    if (!el) return;
+    Array.from(el.options).forEach(function(o){ o.selected = true; });
+    if (el.__mcs) mcsSync(el);
+}
+function lodTrendGatewayOnly(){
+    const keep = pddBreachGatewayValues();
+    pddBreachSelectValues('lodTrendLod', keep);
+    pddBreachSelectValues('pddBreachLod', keep);
+    pddBreachLod = pddBreachSel('pddBreachLod');
+    lodTrendLod = lodTrendSel();
+    pddBreachRender();   // it also refreshes the LOD trend
+}
+function lodTrendAllLod(){
+    pddBreachSelectAll('lodTrendLod');
+    pddBreachSelectAll('pddBreachLod');
+    pddBreachLod = pddBreachSel('pddBreachLod');
+    lodTrendLod = lodTrendSel();
+    pddBreachRender();
 }
 
 /* Build/refresh the LOD box from the breach rows, keeping current ticks. */
@@ -13199,6 +13296,11 @@ function lodTrendInit(){
     pddBreachFillBox('lodTrendLod', (pddBreachRows || []).map(function(r){ return r.lod; }), function(a, b){
         return (lodTot[b] - lodTot[a]) || String(a).localeCompare(String(b));
     });
+    /* First build opens on the four gateway Missed LODs only. */
+    if (!el.dataset.gwDefault){
+        el.dataset.gwDefault = '1';
+        pddBreachSelectValues('lodTrendLod', pddBreachGatewayValues());
+    }
     mcsInit(el, lodTrendChanged, function(v){
         return (pddBreachRows || []).filter(function(r){ return r.lod === v; }).length;
     });
@@ -13238,11 +13340,28 @@ function lodTrendRender(){
         return PDD_BREACH_COLORS[(i < 0 ? 0 : i) % PDD_BREACH_COLORS.length];
     };
     const total = agg.total;
-    const share = {};
-    agg.dates.forEach(function(d){ share[d] = total ? (agg.dayTot[d] / total * 100) : 0; });
 
-    const ranked = agg.dates.slice().sort(function(a, b){
-        return (agg.dayTot[b] - agg.dayTot[a]) || a.localeCompare(b);
+    /* Denominator for every % line: the breaches of ALL LODs inside the same
+       From/To window. The LOD filter changes the bars, never the denominator. */
+    const windowAgg = pddBreachAgg(allRows.filter(pddBreachInDate));
+    const windowTotal = windowAgg.total;
+    const dates = windowAgg.dates;
+    const gatewayLines = PDD_GATEWAY_LINES.map(function(g){
+        const lod = windowAgg.lods.filter(function(l){ return g.re.test(l); })[0] || '';
+        const byDay = {};
+        dates.forEach(function(d){
+            const n = lod ? (windowAgg.cell[lod + '\u0000' + d] || 0) : 0;
+            byDay[d] = windowTotal ? (n / windowTotal * 100) : 0;
+        });
+        return { label: g.label, color: g.color, byDay: byDay,
+                 total: lod ? (windowAgg.lodTot[lod] || 0) : 0 };
+    });
+    const maxShare = gatewayLines.reduce(function(m, g){
+        return Math.max(m, dates.reduce(function(s, d){ return Math.max(s, g.byDay[d] || 0); }, 0));
+    }, 0);
+
+    const ranked = dates.slice().sort(function(a, b){
+        return ((agg.dayTot[b] || 0) - (agg.dayTot[a] || 0)) || a.localeCompare(b);
     });
     const peakSet = new Set(ranked.slice(0, 3));
     const lowSet = new Set(ranked.slice(-2));
@@ -13258,7 +13377,7 @@ function lodTrendRender(){
         return {
             type: 'bar',
             label: lod,
-            data: agg.dates.map(function(d){ return agg.cell[lod + '\u0000' + d] || 0; }),
+            data: dates.map(function(d){ return agg.cell[lod + '\u0000' + d] || 0; }),
             backgroundColor: colorOf(lod),
             hoverBackgroundColor: colorOf(lod),
             borderRadius: 2,
@@ -13266,49 +13385,55 @@ function lodTrendRender(){
             stack: 'breach'
         };
     });
-    const line = {
-        type: 'line',
-        label: 'Share of window %',
-        data: agg.dates.map(function(d){ return +share[d].toFixed(2); }),
-        yAxisID: 'y1',
-        borderColor: LOD_TREND_LINE,
-        backgroundColor: LOD_TREND_LINE,
-        borderWidth: 2.5,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        pointBackgroundColor: '#fff',
-        pointBorderColor: LOD_TREND_LINE,
-        pointBorderWidth: 2,
-        tension: 0.3,
-        fill: false
-    };
+    const lines = gatewayLines.map(function(g){
+        return {
+            type: 'line',
+            label: g.label + ' % of all LOD',
+            data: dates.map(function(d){ return +g.byDay[d].toFixed(2); }),
+            yAxisID: 'y1',
+            borderColor: g.color,
+            backgroundColor: g.color,
+            borderWidth: 2,
+            pointRadius: 2.5,
+            pointHoverRadius: 5,
+            pointBackgroundColor: '#fff',
+            pointBorderColor: g.color,
+            pointBorderWidth: 1.6,
+            tension: 0.28,
+            fill: false
+        };
+    });
+    const showBars = lodTrendViewMode !== 'lines';
+    const datasets = showBars ? bars.concat(lines) : lines;
+    const lineIndex = showBars ? bars.length : 0;
 
     charts.lodTrend = new Chart(canvas.getContext('2d'), {
-        type: 'bar',
-        data: { labels: agg.dates.map(pddBreachMonth), datasets: bars.concat([line]) },
+        type: showBars ? 'bar' : 'line',
+        data: { labels: dates.map(pddBreachMonth), datasets: datasets },
         options: {
             responsive: true, maintainAspectRatio: false,
             layout: { padding: { top: 24 } },
             interaction: { mode: 'index', intersect: false },
             scales: {
                 x: {
-                    stacked: true,
+                    stacked: showBars,
                     grid: { display: false },
                     ticks: { autoSkip: true, maxRotation: 45, minRotation: 0, font: { size: 10 } }
                 },
                 y: {
-                    stacked: true,
+                    display: showBars,
+                    stacked: showBars,
                     beginAtZero: true,
                     grid: { color: 'rgba(148,163,184,.18)' },
                     title: { display: true, text: 'Breaches (AWB)', font: { size: 10 } },
                     ticks: { font: { size: 10 }, precision: 0 }
                 },
                 y1: {
-                    position: 'right',
+                    position: showBars ? 'right' : 'left',
                     beginAtZero: true,
-                    suggestedMax: Math.max(5, Math.ceil(share[ranked[0]] * 1.35)),
-                    grid: { display: false },
-                    title: { display: true, text: '% of window', font: { size: 10 } },
+                    suggestedMax: Math.max(5, Math.ceil(maxShare * 1.35)),
+                    grid: { display: !showBars, color: 'rgba(148,163,184,.18)' },
+                    title: { display: true, text: '% of all LOD', font: { size: 10 } },
                     ticks: { font: { size: 10 }, callback: function(v){ return Math.round(v) + '%'; } }
                 }
             },
@@ -13325,6 +13450,7 @@ function lodTrendRender(){
                             return ' ' + c.dataset.label + ': ' + fmt(c.parsed.y) + ' AWB';
                         },
                         footer: function(items){
+                            if (!showBars) return '';
                             const day = items.filter(function(i){ return i.dataset.yAxisID !== 'y1'; })
                                 .reduce(function(s, i){ return s + (i.parsed.y || 0); }, 0);
                             return day ? 'Day total: ' + fmt(day) + ' AWB' : '';
@@ -13332,11 +13458,11 @@ function lodTrendRender(){
                     }
                 },
                 valueLabels: {
-                    color: LOD_TREND_LINE,
+                    color: gatewayLines[0].color,
                     formatter: function(v, sum, di, i, chart){
-                        if (di !== chart.data.datasets.length - 1) return '';
-                        if (peakSet.has(agg.dates[i])) return 'HIGH SPIKE';
-                        if (lowSet.has(agg.dates[i])) return 'LOW';
+                        if (di !== lineIndex) return '';   // label the G1 line only
+                        if (peakSet.has(dates[i])) return 'HIGH SPIKE';
+                        if (lowSet.has(dates[i])) return 'LOW';
                         return '';
                     }
                 }
@@ -13351,26 +13477,38 @@ function lodTrendRender(){
         if (el) el.textContent = txt;
     };
     setTxt('lodTrendTotal', fmt(total));
-    setTxt('lodTrendTotalSub', fmt(agg.dates.length) + ' days · ' + fmt(agg.lods.length) + ' LOD');
+    setTxt('lodTrendTotalSub', fmt(dates.length) + ' days · ' + fmt(agg.lods.length) + ' LOD');
     setTxt('lodTrendPeak', pddBreachMonth(peak));
     setTxt('lodTrendPeakSub', fmt(agg.dayTot[peak]) + ' AWB · highest day');
-    setTxt('lodTrendPeakShare', share[peak].toFixed(1) + '%');
-    const g1 = agg.lods.filter(function(l){ return /G1/i.test(l); })
-        .reduce(function(s, l){ return s + (agg.lodTot[l] || 0); }, 0);
-    setTxt('lodTrendG1', total ? (g1 / total * 100).toFixed(0) + '%' : '—');
+    setTxt('lodTrendPeakShare', windowTotal ? (agg.dayTot[peak] / windowTotal * 100).toFixed(1) + '%' : '—');
+    setTxt('lodTrendG1', windowTotal ? (gatewayLines[0].total / windowTotal * 100).toFixed(0) + '%' : '—');
 
     if (badge){
         badge.className = 'badge text-bg-info';
-        badge.textContent = fmt(total) + ' AWB · ' + fmt(agg.dates.length) + ' days';
+        badge.textContent = fmt(total) + ' AWB · ' + fmt(dates.length) + ' days';
     }
-    setTxt('lodTrendChartNote', pddBreachMonth(agg.dates[0]) + ' – ' +
-        pddBreachMonth(agg.dates[agg.dates.length - 1]) + ' · bars by LOD · line = share of window');
+    setTxt('lodTrendChartNote', pddBreachMonth(dates[0]) + ' – ' +
+        pddBreachMonth(dates[dates.length - 1]) +
+        (showBars ? ' · bars by LOD · lines = G1/G5/G6/Z2 % of all LOD'
+                  : ' · G1/G5/G6/Z2 daily % of all-LOD window'));
+    const legend = document.getElementById('lodTrendLegend');
+    if (legend){
+        legend.innerHTML = showBars
+            ? '<i class="bi bi-calendar3 me-1"></i>Bars = breached AWBs per day, stacked by <code>LOD</code>. ' +
+              'The four lines are the right axis: <strong>G1 / G5 / G6 / Z2 Missed</strong> each day as a % of <strong>all LOD</strong> breaches in the From–To window. ' +
+              '<strong>HIGH SPIKE</strong> marks the three heaviest days and <strong>LOW</strong> the two lightest on the G1 line.'
+            : '<i class="bi bi-calendar3 me-1"></i>Lines = <strong>G1 / G5 / G6 / Z2 Missed</strong> each day as a % of <strong>all LOD</strong> breaches in the From–To window. ' +
+              '<strong>HIGH SPIKE</strong> marks the three heaviest days and <strong>LOW</strong> the two lightest on the G1 line.';
+    }
     const note = document.getElementById('lodTrendNote');
     if (note){
         const lodCount = new Set(allRows.map(function(r){ return r.lod; })).size;
         const hubCount = new Set(allRows.map(function(r){ return r.hub; })).size;
         note.textContent = fmt(allRows.length) + ' breach rows · ' + fmt(lodCount) + ' LOD · ' +
             fmt(hubCount) + ' hubs' +
+            (pddBreachFrom || pddBreachTo
+                ? ' · window ' + pddBreachMonth(pddBreachFrom || '') + ' – ' + pddBreachMonth(pddBreachTo || '')
+                : '') +
             (rows.length !== allRows.length ? ' · ' + fmt(total) + ' AWB after filters' : '');
     }
 }
@@ -13379,16 +13517,18 @@ function lodTrendExportCsv(){
     const rows = (pddBreachRows || []).filter(lodTrendMatch);
     if (!rows.length){ showToast('No breach rows to export', 'warning'); return; }
     const agg = pddBreachAgg(rows);
-    const lines = [['Date'].concat(agg.lods, ['Day total', '% of window']).map(csvCell).join(',')];
+    const windowAgg = pddBreachAgg((pddBreachRows || []).filter(pddBreachInDate));
+    const windowTotal = windowAgg.total;
+    const lines = [['Date'].concat(agg.lods, ['Day total', '% of all LOD window']).map(csvCell).join(',')];
     agg.dates.forEach(function(d){
         lines.push([d].concat(
             agg.lods.map(function(l){ return agg.cell[l + '\u0000' + d] || 0; }),
-            [agg.dayTot[d] || 0, agg.total ? (agg.dayTot[d] / agg.total * 100).toFixed(2) + '%' : '0.00%']
+            [agg.dayTot[d] || 0, windowTotal ? (agg.dayTot[d] / windowTotal * 100).toFixed(2) + '%' : '0.00%']
         ).map(csvCell).join(','));
     });
     lines.push(['Grand Total'].concat(
         agg.lods.map(function(l){ return agg.lodTot[l] || 0; }),
-        [agg.total, '100.00%']
+        [agg.total, windowTotal ? (agg.total / windowTotal * 100).toFixed(2) + '%' : '0.00%']
     ).map(csvCell).join(','));
 
     const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
@@ -13416,6 +13556,12 @@ const FM_RECV_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhLvck
 /* Dispatch shows the gateway legs only: the G1 mainline and the G5 / G6
    internal transfers. Every other forward hub is off this page. */
 const FM_DISP_DSTS = ['CAI-G1', 'CAI-G5', 'CAI-G6'];
+
+/* Dispatch limits: FM_TRUCK_CAP is the most shipments one trip carries, and
+   FM_PROCESS_MIN is the floor cycle — print AWB, weigh, segregate by country
+   zone — that a shipment must finish before it is dispatchable. */
+const FM_TRUCK_CAP = 2500;
+const FM_PROCESS_MIN = 60;
 
 let fmRecv = [], fmLoaded = false, fmLoading = false;
 let fmDate = '', fmDateMin = '', fmDateMax = '';
@@ -13462,6 +13608,7 @@ function fmDispatchData(hub){
     const trips = (typeof rawTrips !== 'undefined' && rawTrips) ? rawTrips : [];
     const dayTrips = trips.filter(function(t){ return t && t.dateKey === fmDate; });
     const list = [];
+    const flow = fmRecvFlow(hub);   // receiving at this gateway, half-hour slots
     let noPlan = 0, excluded = 0, excludedTrips = 0;
     dayTrips.forEach(function(t){
         if (String(t.srcHub || '').trim() !== hub) return;
@@ -13482,6 +13629,8 @@ function fmDispatchData(hub){
             dst: dst,
             plan: plan,
             ship: Number(t.shipments) || 0,
+            planRank: fmPlanRank(plan),
+            rec: 0,
             gate: t.srcGateOut,
             dock: t.dstDock
         });
@@ -13491,8 +13640,11 @@ function fmDispatchData(hub){
             String(a.dst).localeCompare(String(b.dst), undefined, { numeric: true }) ||
             String(a.code).localeCompare(String(b.code), undefined, { numeric: true });
     });
+    fmAllocateRec(flow, list);
     const total = list.reduce(function(s, g){ return s + g.ship; }, 0);
-    return { list: list, total: total, noPlan: noPlan,
+    const recTotal = list.reduce(function(s, g){ return s + g.rec; }, 0);
+    return { list: list, total: total, recTotal: recTotal,
+             unready: Math.max(0, flow.total - recTotal), noPlan: noPlan,
              excluded: excluded, excludedTrips: excludedTrips,
              dayTrips: dayTrips.length, tripsLoaded: trips.length };
 }
@@ -13516,10 +13668,12 @@ function fmDispatchTable(hub, hostId, noteId){
 
     let head = '<colgroup><col style="width:150px"><col style="width:115px"><col style="width:85px">' +
         '<col style="width:110px"><col style="width:160px"><col style="width:60px">' +
-        '<col style="width:105px"><col style="width:90px"></colgroup>' +
+        '<col style="width:105px"><col style="width:120px"><col style="width:150px"></colgroup>' +
         '<thead><tr><th>Trip code</th><th>Forward hub</th><th>Plan time</th><th>Src gate out</th>' +
         '<th>Dst arrived at dock</th><th>VAR</th><th class="wr-pdd-tot">Shipments</th>' +
-        '<th class="wr-pdd-tot">Share</th></tr></thead>';
+        '<th class="wr-pdd-tot">Share</th>' +
+        '<th class="wr-pdd-tot" title="Each half hour counted once, when its AWB/weight/country-zone processing finishes by plan time (60 min); overflow rolls to the next trip; capped at 2,500 per trip">Rec. shipments</th>' +
+        '</tr></thead>';
 
     let body = '<tbody>';
     d.list.forEach(function(g){
@@ -13533,18 +13687,24 @@ function fmDispatchTable(hub, hostId, noteId){
             '<td>' + esc(fmVar(g.dock, g.gate) || '—') + '</td>' +
             '<td class="wr-pdd-tot">' + fmt(g.ship) + '</td>' +
             '<td class="wr-pdd-tot">' + share.toFixed(2) + '%</td>' +
+            '<td class="wr-pdd-tot">' + fmt(g.rec) +
+                (g.split ? '<span style="display:block;font-size:11px;line-height:1.35;font-weight:400;color:#6b7280;white-space:nowrap">' +
+                    fmt(g.split) + (g.splitTo ? ' \u2192 ' + g.splitTo : ' \u2192 end of day') + '</span>' : '') +
+            '</td>' +
             '</tr>';
     });
     body += '</tbody>';
 
     const foot = '<tfoot><tr><td>Grand Total</td><td></td><td></td><td></td><td></td><td></td>' +
         '<td class="wr-pdd-tot">' + fmt(d.total) + '</td>' +
-        '<td class="wr-pdd-tot">' + (d.total ? '100.00%' : '0.00%') + '</td></tr></tfoot>';
+        '<td class="wr-pdd-tot">' + (d.total ? '100.00%' : '0.00%') + '</td>' +
+        '<td class="wr-pdd-tot">' + fmt(d.recTotal) + '</td></tr></tfoot>';
 
     host.innerHTML = '<table class="wr-pdd fm-align">' + head + body + foot + '</table>';
     if (note){
         note.textContent = fmt(d.list.length) + ' trip' + (d.list.length === 1 ? '' : 's') + ' · ' +
-            fmt(d.total) + ' shipments' +
+            fmt(d.total) + ' shipments · ' + FM_PROCESS_MIN + ' min AWB/weight/zone buffer' +
+            (d.unready ? ' · ' + fmt(d.unready) + ' still in the cycle after the last plan' : '') +
             (d.excluded ? ' · ' + fmt(d.excluded) + ' to other hubs hidden' : '') +
             (d.noPlan ? ' · ' + fmt(d.noPlan) + ' run' + (d.noPlan === 1 ? '' : 's') + ' without CT plan' : '');
     }
@@ -13574,6 +13734,50 @@ function fmRecvFlow(hub){
         .sort(function(a, b){ return a.slot - b.slot; });
     const total = list.reduce(function(s, o){ return s + o.recv; }, 0);
     return { hub: hub, list: list, total: total };
+}
+
+/* Recommended load per trip: sum the receiving that finished the floor cycle
+   — AWB print, weigh, country-zone segregation — in time for the trip. A
+   half-hour bucket counts when its end + FM_PROCESS_MIN is at or before the
+   plan time, so a 17:00 trip takes the 15:00 and 15:30 buckets (processed by
+   16:30 and 17:00). Each bucket is used once, by the first trip whose cutoff
+   it meets. A trip never takes more than FM_TRUCK_CAP; the overflow rolls to
+   the next trip. Receiving still in the cycle at the last plan time is not
+   recommended and is reported instead. */
+function fmAllocateRec(flow, items){
+    items.forEach(function(it){ it.rec = 0; it.split = 0; it.splitTo = ''; });
+    if (!flow || !flow.list.length) return;
+    const shift = function(m){ return m < 600 ? m + 1440 : m; };
+    const slots = flow.list.map(function(o){ return { at: shift(o.slot * 30), recv: o.recv }; })
+        .sort(function(a, b){ return a.at - b.at; });
+    const trips = items
+        .filter(function(it){ return it.planRank < 99999; })
+        .sort(function(a, b){ return shift(a.planRank) - shift(b.planRank); });
+    if (!slots.length || !trips.length) return;
+
+    let idx = 0, carry = 0;
+    trips.forEach(function(t, k){
+        const cutoff = shift(t.planRank);
+        let avail = carry;
+        carry = 0;
+        while (idx < slots.length && slots[idx].at + 30 + FM_PROCESS_MIN <= cutoff){
+            avail += slots[idx].recv;
+            idx++;
+        }
+        const take = Math.min(FM_TRUCK_CAP, avail);
+        carry = avail - take;
+        t.rec = take;
+        t.split = carry;
+        t.splitTo = (carry > 0.5 && trips[k + 1]) ? trips[k + 1].plan : '';
+    });
+
+    /* Overflow on the last trip cannot roll anywhere: keep it on that trip. */
+    const last = trips[trips.length - 1];
+    if (last.split > 0.5){
+        last.rec += last.split;
+        last.split = 0;
+        last.splitTo = '';
+    }
 }
 
 function fmRecvFlowTable(hub, hostId, noteId){
@@ -13783,11 +13987,11 @@ function fmExportCsv(){
     ['CAI-G5', 'CAI-G6'].forEach(function(hub){
         const d = fmDispatchData(hub);
         block(hub + ' dispatch (one row per trip code)', ['Trip code', 'Forward hub', 'Plan time',
-            'Src gate out', 'Dst arrived at dock', 'VAR', 'Shipments', 'Share'],
+            'Src gate out', 'Dst arrived at dock', 'VAR', 'Shipments', 'Share', 'Rec. shipments'],
             d.list.map(function(g){
                 return [g.code, g.dst, g.plan, fmClock(g.gate), fmClock(g.dock), fmVar(g.dock, g.gate),
-                    g.ship, d.total ? (g.ship / d.total * 100).toFixed(2) + '%' : '0.00%'];
-            }).concat([['Grand Total', '', '', '', '', '', d.total, d.total ? '100.00%' : '0.00%']]));
+                    g.ship, d.total ? (g.ship / d.total * 100).toFixed(2) + '%' : '0.00%', g.rec];
+            }).concat([['Grand Total', '', '', '', '', '', d.total, d.total ? '100.00%' : '0.00%', d.recTotal]]));
     });
 
     const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
